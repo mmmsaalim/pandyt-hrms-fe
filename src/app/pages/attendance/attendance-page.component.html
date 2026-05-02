@@ -1,0 +1,11 @@
+<section class="card table-card">
+  <div class="table-head"><h3>Attendance</h3><span class="badge">{{ rows.length }}</span></div>
+  <table>
+    <thead><tr><th>Date</th><th>Clock In</th><th>Clock Out</th><th>Hours</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr *ngFor="let r of rows">
+        <td>{{ r.date | date }}</td><td>{{ r.clockIn | date:'shortTime' }}</td><td>{{ r.clockOut | date:'shortTime' }}</td><td>{{ r.hours }}</td><td><span class="badge">{{ r.status }}</span></td>
+      </tr>
+    </tbody>
+  </table>
+</section>

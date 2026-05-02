@@ -1,0 +1,187 @@
+<section class="dashboard-page">
+  <header class="page-head">
+    <div>
+      <h2>Good morning, {{ greetingName }}</h2>
+      <p *ngIf="!isEmployeeView">Here is what is happening across your workspace today.</p>
+      <p *ngIf="isEmployeeView">Here is your personal dashboard for attendance, leave, and payslips.</p>
+    </div>
+    <button *ngIf="!isEmployeeView" class="new-btn" type="button">+ New</button>
+  </header>
+
+  <section class="stats-grid">
+    <article class="stat-card" *ngFor="let stat of stats">
+      <div class="stat-top">
+        <span class="icon" [class]="'icon ' + stat.accent">{{ stat.icon }}</span>
+        <span class="trend">{{ stat.trend }}</span>
+      </div>
+      <h3>{{ stat.value }}</h3>
+      <p class="label">{{ stat.label }}</p>
+      <p class="detail">{{ stat.detail }}</p>
+    </article>
+  </section>
+
+  <section class="middle-grid" *ngIf="!isEmployeeView">
+    <article class="panel growth-panel">
+      <div class="panel-head">
+        <div>
+          <h3>Headcount growth</h3>
+          <p>Net employees over the last 7 months</p>
+        </div>
+        <span class="chip">+34.2%</span>
+      </div>
+
+      <div class="line-wrap">
+        <svg viewBox="0 0 100 50" preserveAspectRatio="none" aria-hidden="true">
+          <defs>
+            <linearGradient id="growthFill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#4c58db" stop-opacity="0.35"></stop>
+              <stop offset="100%" stop-color="#4c58db" stop-opacity="0.02"></stop>
+            </linearGradient>
+          </defs>
+          <polyline class="line" [attr.points]="chartPoints"></polyline>
+          <polygon class="area" [attr.points]="chartPoints + ' 100,50 0,50'"></polygon>
+        </svg>
+        <div class="months">
+          <span *ngFor="let month of months">{{ month }}</span>
+        </div>
+      </div>
+    </article>
+
+    <article class="panel split-panel">
+      <div class="panel-head">
+        <div>
+          <h3>Department split</h3>
+          <p>By active employees</p>
+        </div>
+      </div>
+
+      <div class="donut" [style.--donut-gradient]="'conic-gradient(' + donutGradient + ')'">
+        <span class="hole"></span>
+      </div>
+
+      <div class="legend">
+        <div class="legend-item" *ngFor="let item of split">
+          <span class="dot" [style.background]="item.color"></span>
+          <span>{{ item.label }}</span>
+          <strong>{{ item.value }}</strong>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <section class="bottom-grid" *ngIf="!isEmployeeView">
+    <article class="panel attendance-panel">
+      <div class="panel-head">
+        <div>
+          <h3>This week attendance</h3>
+          <p>Present vs baseline capacity</p>
+        </div>
+      </div>
+
+      <div class="bars">
+        <div class="bar-col" *ngFor="let value of attendance; let i = index">
+          <span class="bar" [style.height.px]="attendanceHeight(value)"></span>
+          <label>{{ attendanceLabels[i] }}</label>
+        </div>
+      </div>
+    </article>
+
+    <article class="panel approvals-panel">
+      <div class="panel-head">
+        <div>
+          <h3>Pending approvals</h3>
+          <p>Latest 5 leave requests awaiting decision</p>
+        </div>
+        <a routerLink="/leave">View all</a>
+      </div>
+
+      <div class="approval-row" *ngFor="let item of approvals">
+        <div class="avatar">{{ item.initials }}</div>
+        <div>
+          <h4>{{ item.name }}</h4>
+          <p>{{ item.meta }}</p>
+        </div>
+        <button type="button" routerLink="/leave">Open</button>
+      </div>
+
+      <div class="approval-row empty-row" *ngIf="approvals.length === 0">
+        <div>
+          <h4>No pending requests</h4>
+          <p>Leave approvals will appear here when employees submit requests.</p>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <section class="employee-grid" *ngIf="isEmployeeView && employeeData">
+    <article class="panel profile-panel">
+      <div class="panel-head">
+        <div>
+          <h3>Employee details</h3>
+          <p>Your profile information</p>
+        </div>
+      </div>
+
+      <div class="profile-grid">
+        <div class="profile-item">
+          <span>Employee code</span>
+          <strong>{{ employeeData.employeeCode }}</strong>
+        </div>
+        <div class="profile-item">
+          <span>Department</span>
+          <strong>{{ employeeData.department }}</strong>
+        </div>
+        <div class="profile-item">
+          <span>Designation</span>
+          <strong>{{ employeeData.designation }}</strong>
+        </div>
+        <div class="profile-item">
+          <span>Joined date</span>
+          <strong>{{ employeeData.joinedDate | date: 'mediumDate' }}</strong>
+        </div>
+      </div>
+    </article>
+
+    <article class="panel employee-list-panel">
+      <div class="panel-head">
+        <div>
+          <h3>Recent attendance</h3>
+          <p>Last 7 records</p>
+        </div>
+      </div>
+      <div class="list-row" *ngFor="let item of employeeData.attendance">
+        <span>{{ item.date | date: 'mediumDate' }}</span>
+        <strong>{{ item.status }}</strong>
+        <small>{{ item.hours }}h</small>
+      </div>
+    </article>
+
+    <article class="panel employee-list-panel">
+      <div class="panel-head">
+        <div>
+          <h3>Recent leave requests</h3>
+          <p>Latest 5 requests</p>
+        </div>
+      </div>
+      <div class="list-row" *ngFor="let item of employeeData.leaveRequests">
+        <span>{{ item.type }} ({{ item.days }}d)</span>
+        <strong>{{ item.status }}</strong>
+        <small>{{ item.startDate | date: 'MMM d' }} - {{ item.endDate | date: 'MMM d' }}</small>
+      </div>
+    </article>
+
+    <article class="panel employee-list-panel">
+      <div class="panel-head">
+        <div>
+          <h3>Recent payslips</h3>
+          <p>Latest 5 payslips</p>
+        </div>
+      </div>
+      <div class="list-row" *ngFor="let item of employeeData.payslips">
+        <span>{{ item.id }}</span>
+        <strong>{{ item.status }}</strong>
+        <small>{{ item.netPay | number: '1.0-0' }}</small>
+      </div>
+    </article>
+  </section>
+</section>

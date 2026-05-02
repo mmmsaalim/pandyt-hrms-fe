@@ -1,0 +1,11 @@
+<section class="card table-card">
+  <div class="table-head"><h3>Tenants / Companies</h3><span class="badge">{{ rows.length }}</span></div>
+  <table>
+    <thead><tr><th>Name</th><th>Plan</th><th>Seats</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr *ngFor="let r of rows">
+        <td>{{ r.name }}</td><td>{{ r.plan }}</td><td>{{ r.seats }}</td><td><span class="badge">{{ r.status }}</span></td>
+      </tr>
+    </tbody>
+  </table>
+</section>

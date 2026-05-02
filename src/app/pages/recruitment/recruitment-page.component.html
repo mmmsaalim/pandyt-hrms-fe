@@ -1,0 +1,14 @@
+<section class="card table-card">
+  <div class="table-head"><h3>Recruitment</h3><span class="badge">{{ rows.length }}</span></div>
+  <table>
+    <thead><tr><th>Name</th><th>Role</th><th>Stage</th><th>Rating</th></tr></thead>
+    <tbody>
+      <tr *ngFor="let r of rows">
+        <td>{{ r.name }}</td>
+        <td>{{ r.roleApplied }}</td>
+        <td><span class="badge">{{ r.stage }}</span></td>
+        <td>{{ r.rating }}/5</td>
+      </tr>
+    </tbody>
+  </table>
+</section>

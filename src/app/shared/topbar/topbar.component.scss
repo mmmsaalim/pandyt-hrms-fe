@@ -1,0 +1,9 @@
+.topbar { display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.25rem; border-bottom: 1px solid var(--border); background: rgba(255,255,255,0.85); backdrop-filter: blur(10px); position: sticky; top: 0; z-index: 3; }
+h1 { margin: 0; font-size: 1.1rem; font-family: var(--font-display); }
+.eyebrow { margin: 0; font-size: .75rem; color: var(--muted); }
+.ghost { border: 1px solid var(--border); border-radius: 10px; padding: .5rem .8rem; background: white; cursor: pointer; }
+.menu-btn { display: none; border: 1px solid var(--border); background: white; border-radius: 10px; padding: .5rem .7rem; }
+
+@media (max-width: 900px) {
+  .menu-btn { display: inline-flex; }
+}

@@ -1,0 +1,10 @@
+.sidebar { width: 250px; border-right: 1px solid var(--border); background: linear-gradient(180deg, #ffffff, #f4f7ff); padding: 1.2rem; position: sticky; top: 0; height: 100vh; }
+.brand { font-family: var(--font-display); font-weight: 700; color: var(--indigo); margin-bottom: 1rem; font-size: 1.3rem; }
+nav { display: grid; gap: .35rem; }
+a { text-decoration: none; color: #334155; padding: .6rem .7rem; border-radius: .7rem; font-weight: 500; }
+a.active, a:hover { background: #e8edff; color: #243b8a; }
+
+@media (max-width: 900px) {
+  .sidebar { position: fixed; left: -280px; z-index: 6; transition: left .25s ease; box-shadow: 0 10px 30px rgba(15, 23, 42, .12); }
+  .sidebar.open { left: 0; }
+}

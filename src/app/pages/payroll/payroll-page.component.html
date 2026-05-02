@@ -1,0 +1,11 @@
+<section class="card table-card">
+  <div class="table-head"><h3>Payroll Runs</h3><span class="badge">{{ rows.length }}</span></div>
+  <table>
+    <thead><tr><th>Period</th><th>Gross</th><th>Net</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr *ngFor="let r of rows">
+        <td>{{ r.period }}</td><td>{{ r.grossAmount | currency }}</td><td>{{ r.netAmount | currency }}</td><td><span class="badge">{{ r.status }}</span></td>
+      </tr>
+    </tbody>
+  </table>
+</section>

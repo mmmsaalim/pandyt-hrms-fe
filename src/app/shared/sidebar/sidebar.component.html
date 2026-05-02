@@ -1,0 +1,8 @@
+<aside class="sidebar" [class.open]="open">
+  <div class="brand">FlowHR</div>
+  <nav>
+    <a *ngFor="let item of navItems()" [routerLink]="item.path" routerLinkActive="active" (click)="closed.emit()">
+      {{ item.label }}
+    </a>
+  </nav>
+</aside>

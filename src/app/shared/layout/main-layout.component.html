@@ -1,0 +1,8 @@
+<div class="layout-shell">
+  <app-sidebar [open]="sidebarOpen" (closed)="sidebarOpen = false"></app-sidebar>
+  <main>
+    <app-topbar [title]="pageTitle" [toggleSidebar]="toggleSidebar"></app-topbar>
+    <section class="content"><router-outlet></router-outlet></section>
+  </main>
+</div>
+<div class="backdrop" *ngIf="sidebarOpen" (click)="sidebarOpen = false"></div>

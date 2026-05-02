@@ -1,0 +1,14 @@
+<section class="card table-card">
+  <div class="table-head"><h3>Employees</h3><span class="badge">{{ employees.length }} records</span></div>
+  <table>
+    <thead><tr><th>Name</th><th>Department</th><th>Designation</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr *ngFor="let e of employees">
+        <td>{{ e.user?.firstName }} {{ e.user?.lastName }}</td>
+        <td>{{ e.department }}</td>
+        <td>{{ e.designation }}</td>
+        <td><span class="badge">{{ e.employmentStatus }}</span></td>
+      </tr>
+    </tbody>
+  </table>
+</section>

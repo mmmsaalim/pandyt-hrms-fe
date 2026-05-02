@@ -1,0 +1,45 @@
+<section class="card table-card">
+  <div class="table-head"><h3>Leave Requests</h3><span class="badge">{{ rows.length }}</span></div>
+  <table>
+    <thead>
+      <tr>
+        <th *ngIf="isCompanyAdmin">Employee</th>
+        <th>Type</th>
+        <th>Dates</th>
+        <th>Days</th>
+        <th>Status</th>
+        <th *ngIf="isCompanyAdmin">Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let r of rows">
+        <td *ngIf="isCompanyAdmin" class="employee-cell">
+          <strong>{{ employeeName(r) }}</strong>
+          <small>{{ r.employee?.employeeCode }} · {{ r.employee?.department }}</small>
+        </td>
+        <td>{{ r.type }}</td>
+        <td>{{ r.startDate | date }} - {{ r.endDate | date }}</td>
+        <td>{{ r.days }}</td>
+        <td><span class="badge" [ngClass]="r.status.toLowerCase()">{{ r.status }}</span></td>
+        <td *ngIf="isCompanyAdmin" class="actions-cell">
+          <button
+            type="button"
+            class="action-btn approve"
+            [disabled]="busyRowId === r.id || r.status === 'APPROVED'"
+            (click)="updateStatus(r, 'APPROVED')"
+          >
+            Approve
+          </button>
+          <button
+            type="button"
+            class="action-btn reject"
+            [disabled]="busyRowId === r.id || r.status === 'REJECTED'"
+            (click)="updateStatus(r, 'REJECTED')"
+          >
+            Reject
+          </button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</section>

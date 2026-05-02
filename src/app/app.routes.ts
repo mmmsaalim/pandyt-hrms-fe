@@ -1,0 +1,61 @@
+import { Routes } from '@angular/router';
+import { authGuard } from './core/guards/auth.guard';
+import { roleGuard } from './core/guards/role.guard';
+import { LoginComponent } from './pages/auth/login/login.component';
+import { MainLayoutComponent } from './shared/layout/main-layout.component';
+import { DashboardPageComponent } from './pages/dashboard/dashboard-page.component';
+import { EmployeesPageComponent } from './pages/employees/employees-page.component';
+import { LeavePageComponent } from './pages/leave/leave-page.component';
+import { AttendancePageComponent } from './pages/attendance/attendance-page.component';
+import { PayrollPageComponent } from './pages/payroll/payroll-page.component';
+import { PayslipsPageComponent } from './pages/payslips/payslips-page.component';
+import { RecruitmentPageComponent } from './pages/recruitment/recruitment-page.component';
+import { ReportsPageComponent } from './pages/reports/reports-page.component';
+import { TenantsPageComponent } from './pages/tenants/tenants-page.component';
+
+export const appRoutes: Routes = [
+  { path: 'login', component: LoginComponent },
+  {
+    path: '',
+    component: MainLayoutComponent,
+    canActivate: [authGuard],
+    children: [
+      { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
+      { path: 'dashboard', component: DashboardPageComponent },
+      {
+        path: 'tenants',
+        component: TenantsPageComponent,
+        canActivate: [roleGuard],
+        data: { roles: ['SUPER_ADMIN'] },
+      },
+      {
+        path: 'employees',
+        component: EmployeesPageComponent,
+        canActivate: [roleGuard],
+        data: { roles: ['SUPER_ADMIN', 'COMPANY_ADMIN'] },
+      },
+      { path: 'leave', component: LeavePageComponent },
+      { path: 'attendance', component: AttendancePageComponent },
+      {
+        path: 'payroll',
+        component: PayrollPageComponent,
+        canActivate: [roleGuard],
+        data: { roles: ['SUPER_ADMIN', 'COMPANY_ADMIN'] },
+      },
+      { path: 'payslips', component: PayslipsPageComponent },
+      {
+        path: 'recruitment',
+        component: RecruitmentPageComponent,
+        canActivate: [roleGuard],
+        data: { roles: ['SUPER_ADMIN', 'COMPANY_ADMIN'] },
+      },
+      {
+        path: 'reports',
+        component: ReportsPageComponent,
+        canActivate: [roleGuard],
+        data: { roles: ['SUPER_ADMIN', 'COMPANY_ADMIN'] },
+      },
+    ],
+  },
+  { path: '**', redirectTo: '' },
+];

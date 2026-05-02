@@ -1,0 +1,8 @@
+<header class="topbar">
+  <button class="menu-btn" (click)="toggleSidebar.emit()">☰</button>
+  <div>
+    <p class="eyebrow">FlowHR Workspace</p>
+    <h1>{{ title }}</h1>
+  </div>
+  <button class="ghost" (click)="auth.logout()">Logout</button>
+</header>

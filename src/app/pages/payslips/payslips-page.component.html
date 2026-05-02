@@ -1,0 +1,15 @@
+<section class="card table-card">
+  <div class="table-head"><h3>Payslips</h3><span class="badge">{{ rows.length }}</span></div>
+  <table>
+    <thead><tr><th>Employee</th><th>Gross</th><th>Deductions</th><th>Net</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr *ngFor="let r of rows">
+        <td>{{ r.employee?.user?.firstName }} {{ r.employee?.user?.lastName }}</td>
+        <td>{{ r.grossPay | currency }}</td>
+        <td>{{ r.deductions | currency }}</td>
+        <td>{{ r.netPay | currency }}</td>
+        <td><span class="badge">{{ r.status }}</span></td>
+      </tr>
+    </tbody>
+  </table>
+</section>
