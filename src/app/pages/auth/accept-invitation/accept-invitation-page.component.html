@@ -1,0 +1,18 @@
+<div class="auth-shell">
+  <div class="auth-card">
+    <h1>Invitation</h1>
+
+    <p *ngIf="loading">Loading invitation...</p>
+    <p *ngIf="errorMessage" class="error">{{ errorMessage }}</p>
+
+    <div *ngIf="!loading && invitation && !errorMessage" class="invite-details">
+      <p><strong>Company:</strong> {{ invitation.company?.name }}</p>
+      <p><strong>Email:</strong> {{ invitation.email }}</p>
+      <p><strong>Role:</strong> {{ invitation.role }}</p>
+      <p><strong>Status:</strong> {{ invitation.status }}</p>
+      <button type="button" (click)="continueToSetPassword()">Continue to Set Password</button>
+    </div>
+
+    <a routerLink="/login">Back to login</a>
+  </div>
+</div>

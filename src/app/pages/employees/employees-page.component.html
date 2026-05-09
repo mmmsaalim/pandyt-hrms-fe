@@ -1,5 +1,53 @@
 <section class="card table-card">
-  <div class="table-head"><h3>Employees</h3><span class="badge">{{ employees.length }} records</span></div>
+  <div class="table-head">
+    <h3>Employees</h3>
+    <div class="table-actions">
+      <span class="badge">{{ employees.length }} records</span>
+      <button *ngIf="isCompanyAdmin" type="button" class="add-btn" (click)="openCreateForm()">
+        + Add Employee
+      </button>
+    </div>
+  </div>
+
+  <section class="create-panel" *ngIf="isCompanyAdmin && showCreateForm">
+    <h4>Invite employee</h4>
+    <div class="form-grid">
+      <label>
+        Full name
+        <input [(ngModel)]="form.name" name="name" type="text" />
+      </label>
+      <label>
+        Work email
+        <input [(ngModel)]="form.workEmail" name="workEmail" type="email" />
+      </label>
+      <label>
+        Employee code
+        <input [(ngModel)]="form.employeeCode" name="employeeCode" type="text" />
+      </label>
+      <label>
+        Department
+        <input [(ngModel)]="form.department" name="department" type="text" />
+      </label>
+      <label>
+        Designation
+        <input [(ngModel)]="form.designation" name="designation" type="text" />
+      </label>
+      <label>
+        Role
+        <select [(ngModel)]="form.role" name="role">
+          <option value="EMPLOYEE">EMPLOYEE</option>
+          <option value="COMPANY_ADMIN">COMPANY_ADMIN</option>
+        </select>
+      </label>
+    </div>
+    <p class="error" *ngIf="errorMessage">{{ errorMessage }}</p>
+    <button type="button" class="add-btn" (click)="createEmployee()" [disabled]="creating">
+      {{ creating ? 'Inviting...' : 'Send Invitation' }}
+    </button>
+  </section>
+
+  <p class="success" *ngIf="successMessage">{{ successMessage }}</p>
+
   <table>
     <thead><tr><th>Name</th><th>Department</th><th>Designation</th><th>Status</th></tr></thead>
     <tbody>

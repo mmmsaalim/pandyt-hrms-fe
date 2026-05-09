@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { DatePipe, DecimalPipe, NgFor, NgIf } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { DashboardService } from '../../core/services/dashboard.service';
 import { AuthService } from '../../core/services/auth.service';
 import { LeaveService } from '../../core/services/leave.service';
@@ -103,7 +103,7 @@ export class DashboardPageComponent implements OnInit {
     },
   ];
 
-  readonly split = [
+  readonly split_company = [
     { label: 'Engineering', value: 86, color: '#4c58db' },
     { label: 'Sales', value: 42, color: '#10b7c7' },
     { label: 'Design', value: 28, color: '#55bf67' },
@@ -111,6 +111,15 @@ export class DashboardPageComponent implements OnInit {
     { label: 'Finance', value: 22, color: '#e048b2' },
     { label: 'Other', value: 37, color: '#8b98b7' },
   ];
+
+  readonly split_super = [
+    { label: 'BASIC Plan', value: 8, color: '#4c58db' },
+    { label: 'STANDARD Plan', value: 5, color: '#10b7c7' },
+    { label: 'PRO Plan', value: 3, color: '#55bf67' },
+    { label: 'ENTERPRISE', value: 2, color: '#f6a912' },
+  ];
+
+  split: typeof this.split_company = this.split_company;
 
   approvals: ApprovalCard[] = [];
 
@@ -120,11 +129,14 @@ export class DashboardPageComponent implements OnInit {
   greetingName = 'Priya';
   isEmployeeView = false;
   employeeData: EmployeeDashboardData | null = null;
+  isSuperAdmin = false;
+  isCompanyAdmin = false;
 
   constructor(
     private readonly dashboardService: DashboardService,
     private readonly auth: AuthService,
     private readonly leaveService: LeaveService,
+    private readonly router: Router,
   ) {}
 
   private initials(name: string): string {
@@ -159,40 +171,44 @@ export class DashboardPageComponent implements OnInit {
   }
 
   private setSuperAdminStats(data: any): void {
-    const employees = Number(data.employees ?? 0);
-    const users = Number(data.users ?? 0);
+    const tenants = Number(data.tenants ?? 0);
+    const activeTenants = Number(data.activeTenants ?? 0);
+    const totalEmployees = Number(data.totalEmployees ?? 0);
+    const totalRevenue = Number(data.totalRevenue ?? 0);
+
+    this.split = this.split_super;
 
     this.stats = [
       {
-        label: 'Total employees',
-        value: employees.toLocaleString(),
-        detail: 'Across all tenants',
-        trend: '+5.2%',
-        icon: '👥',
+        label: 'Total tenants',
+        value: tenants.toLocaleString(),
+        detail: 'Active companies',
+        trend: '+3.2%',
+        icon: '🏢',
         accent: 'violet',
       },
       {
-        label: 'Present today',
-        value: Math.max(Math.round(employees * 0.89), 0).toLocaleString(),
-        detail: 'Live attendance',
-        trend: '+1.4%',
-        icon: '🗓',
+        label: 'Platform users',
+        value: totalEmployees.toLocaleString(),
+        detail: 'Across all tenants',
+        trend: '+5.1%',
+        icon: '👥',
         accent: 'mint',
       },
       {
-        label: 'Payroll (Apr)',
-        value: `$${(Math.max(users * 0.012, 0.1)).toFixed(2)}M`,
-        detail: 'Processed amount',
-        trend: '+1.3%',
-        icon: '💳',
+        label: 'Monthly revenue',
+        value: `$${(totalRevenue / 1000).toFixed(1)}K`,
+        detail: 'Platform total',
+        trend: '+8.4%',
+        icon: '💰',
         accent: 'sky',
       },
       {
-        label: 'Open positions',
-        value: Math.max(Math.round(users * 0.04), 2).toLocaleString(),
-        detail: 'Hiring pipeline',
-        trend: '-2',
-        icon: '🧑‍💼',
+        label: 'Active companies',
+        value: activeTenants.toLocaleString(),
+        detail: 'On current plan',
+        trend: '+2.1%',
+        icon: '🎯',
         accent: 'amber',
       },
     ];
@@ -202,6 +218,8 @@ export class DashboardPageComponent implements OnInit {
     const employees = Number(data.employees ?? 0);
     const payrollRuns = Number(data.payrollRuns ?? 0);
     const leavePending = Number(data.leavePending ?? 0);
+
+    this.split = this.split_company;
 
     this.stats = [
       {
@@ -283,6 +301,8 @@ export class DashboardPageComponent implements OnInit {
   ngOnInit(): void {
     this.greetingName = this.auth.user()?.firstName || 'Priya';
     const userRoles = this.auth.user()?.roles ?? [];
+    this.isSuperAdmin = userRoles.includes('SUPER_ADMIN');
+    this.isCompanyAdmin = userRoles.includes('COMPANY_ADMIN');
     this.isEmployeeView = false;
     this.employeeData = null;
 
@@ -314,6 +334,29 @@ export class DashboardPageComponent implements OnInit {
 
   attendanceHeight(value: number) {
     return Math.max(24, Math.round((value / 240) * 130));
+  }
+
+  get newButtonLabel(): string {
+    if (this.isSuperAdmin) {
+      return '+ New Tenant';
+    }
+
+    if (this.isCompanyAdmin) {
+      return '+ Add Employee';
+    }
+
+    return '+ New';
+  }
+
+  onNewClick(): void {
+    if (this.isSuperAdmin) {
+      this.router.navigate(['/tenants'], { queryParams: { new: '1' } });
+      return;
+    }
+
+    if (this.isCompanyAdmin) {
+      this.router.navigate(['/employees'], { queryParams: { new: '1' } });
+    }
   }
 
   private buildChartPoints(): string {

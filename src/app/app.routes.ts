@@ -12,9 +12,15 @@ import { PayslipsPageComponent } from './pages/payslips/payslips-page.component'
 import { RecruitmentPageComponent } from './pages/recruitment/recruitment-page.component';
 import { ReportsPageComponent } from './pages/reports/reports-page.component';
 import { TenantsPageComponent } from './pages/tenants/tenants-page.component';
+import { CompanyPaymentsPageComponent } from './pages/company-payments/company-payments-page.component';
+import { AcceptInvitationPageComponent } from './pages/auth/accept-invitation/accept-invitation-page.component';
+import { SetPasswordPageComponent } from './pages/auth/set-password/set-password-page.component';
+import { InvitationsPageComponent } from './pages/invitations/invitations-page.component';
 
 export const appRoutes: Routes = [
   { path: 'login', component: LoginComponent },
+  { path: 'accept-invitation', component: AcceptInvitationPageComponent },
+  { path: 'set-password', component: SetPasswordPageComponent },
   {
     path: '',
     component: MainLayoutComponent,
@@ -29,29 +35,56 @@ export const appRoutes: Routes = [
         data: { roles: ['SUPER_ADMIN'] },
       },
       {
+        path: 'company-payments',
+        component: CompanyPaymentsPageComponent,
+        canActivate: [roleGuard],
+        data: { roles: ['SUPER_ADMIN'] },
+      },
+      {
         path: 'employees',
         component: EmployeesPageComponent,
         canActivate: [roleGuard],
-        data: { roles: ['SUPER_ADMIN', 'COMPANY_ADMIN'] },
+        data: { roles: ['COMPANY_ADMIN'] },
       },
-      { path: 'leave', component: LeavePageComponent },
-      { path: 'attendance', component: AttendancePageComponent },
+      {
+        path: 'leave',
+        component: LeavePageComponent,
+        canActivate: [roleGuard],
+        data: { roles: ['COMPANY_ADMIN', 'EMPLOYEE'] },
+      },
+      {
+        path: 'attendance',
+        component: AttendancePageComponent,
+        canActivate: [roleGuard],
+        data: { roles: ['COMPANY_ADMIN', 'EMPLOYEE'] },
+      },
       {
         path: 'payroll',
         component: PayrollPageComponent,
         canActivate: [roleGuard],
-        data: { roles: ['SUPER_ADMIN', 'COMPANY_ADMIN'] },
+        data: { roles: ['COMPANY_ADMIN'] },
       },
-      { path: 'payslips', component: PayslipsPageComponent },
+      {
+        path: 'payslips',
+        component: PayslipsPageComponent,
+        canActivate: [roleGuard],
+        data: { roles: ['COMPANY_ADMIN', 'EMPLOYEE'] },
+      },
       {
         path: 'recruitment',
         component: RecruitmentPageComponent,
         canActivate: [roleGuard],
-        data: { roles: ['SUPER_ADMIN', 'COMPANY_ADMIN'] },
+        data: { roles: ['COMPANY_ADMIN'] },
       },
       {
         path: 'reports',
         component: ReportsPageComponent,
+        canActivate: [roleGuard],
+        data: { roles: ['COMPANY_ADMIN'] },
+      },
+      {
+        path: 'invitations',
+        component: InvitationsPageComponent,
         canActivate: [roleGuard],
         data: { roles: ['SUPER_ADMIN', 'COMPANY_ADMIN'] },
       },

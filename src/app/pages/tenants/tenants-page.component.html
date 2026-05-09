@@ -1,5 +1,44 @@
 <section class="card table-card">
-  <div class="table-head"><h3>Tenants / Companies</h3><span class="badge">{{ rows.length }}</span></div>
+  <div class="table-head">
+    <h3>Tenants / Companies</h3>
+    <div class="table-actions">
+      <span class="badge">{{ rows.length }}</span>
+      <button type="button" class="add-btn" (click)="openCreateForm()">+ New Tenant</button>
+    </div>
+  </div>
+
+  <section class="create-panel" *ngIf="showCreateForm">
+    <h4>Create company and invite admin</h4>
+    <div class="form-grid">
+      <label>
+        Company name
+        <input [(ngModel)]="form.companyName" name="companyName" type="text" placeholder="Acme HR" />
+      </label>
+      <label>
+        Admin name
+        <input [(ngModel)]="form.adminName" name="adminName" type="text" placeholder="Aisha Khan" />
+      </label>
+      <label>
+        Admin email
+        <input [(ngModel)]="form.adminEmail" name="adminEmail" type="email" placeholder="admin@acme.com" />
+      </label>
+      <label>
+        Subscription plan
+        <input [(ngModel)]="form.subscriptionPlan" name="subscriptionPlan" type="text" placeholder="BASIC" />
+      </label>
+      <label>
+        Seats
+        <input [(ngModel)]="form.seats" name="tenantSeats" type="number" min="1" />
+      </label>
+    </div>
+    <p class="error" *ngIf="errorMessage">{{ errorMessage }}</p>
+    <button type="button" class="add-btn" (click)="createTenant()" [disabled]="creating">
+      {{ creating ? 'Creating...' : 'Create Company' }}
+    </button>
+  </section>
+
+  <p class="success" *ngIf="successMessage">{{ successMessage }}</p>
+
   <table>
     <thead><tr><th>Name</th><th>Plan</th><th>Seats</th><th>Status</th></tr></thead>
     <tbody>

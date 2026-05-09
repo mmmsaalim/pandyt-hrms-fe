@@ -18,17 +18,20 @@ export class SidebarComponent {
     const userRoles = this.auth.user()?.roles ?? [];
     const isSuper = userRoles.includes('SUPER_ADMIN');
     const isCompany = userRoles.includes('COMPANY_ADMIN');
+    const isEmployee = userRoles.includes('EMPLOYEE');
 
     return [
       { path: '/dashboard', label: 'Dashboard', show: true },
       { path: '/tenants', label: 'Tenants', show: isSuper },
-      { path: '/employees', label: 'Employees', show: isSuper || isCompany },
-      { path: '/leave', label: 'Leave', show: true },
-      { path: '/attendance', label: 'Attendance', show: true },
-      { path: '/payroll', label: 'Payroll', show: isSuper || isCompany },
-      { path: '/payslips', label: 'Payslips', show: true },
-      { path: '/recruitment', label: 'Recruitment', show: isSuper || isCompany },
-      { path: '/reports', label: 'Reports', show: isSuper || isCompany },
+      { path: '/company-payments', label: 'Company Payments', show: isSuper },
+      { path: '/employees', label: 'Employees', show: isCompany },
+      { path: '/leave', label: 'Leave', show: isCompany || isEmployee },
+      { path: '/attendance', label: 'Attendance', show: isCompany || isEmployee },
+      { path: '/payroll', label: 'Payroll', show: isCompany },
+      { path: '/payslips', label: 'Payslips', show: isCompany || isEmployee },
+      { path: '/recruitment', label: 'Recruitment', show: isCompany },
+      { path: '/reports', label: 'Reports', show: isCompany },
+      { path: '/invitations', label: 'Invitations', show: isSuper || isCompany },
     ].filter((x) => x.show);
   });
 

@@ -1,0 +1,120 @@
+.page-header {
+  margin-bottom: 1.5rem;
+
+  h1 {
+    font-size: 1.5rem;
+    font-weight: 600;
+  }
+}
+
+.alert {
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+
+  &.success {
+    background: #d1fae5;
+    color: #065f46;
+    border: 1px solid #a7f3d0;
+  }
+
+  &.error {
+    background: #fee2e2;
+    color: #991b1b;
+    border: 1px solid #fca5a5;
+  }
+}
+
+.loading {
+  color: #6b7280;
+  padding: 1rem 0;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+
+  th {
+    text-align: left;
+    padding: 0.6rem 0.75rem;
+    background: #f9fafb;
+    border-bottom: 1px solid #e5e7eb;
+    color: #374151;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  td {
+    padding: 0.6rem 0.75rem;
+    border-bottom: 1px solid #f3f4f6;
+    color: #111827;
+  }
+
+  tr:hover td {
+    background: #fafafa;
+  }
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+
+  &.pending {
+    background: #fef3c7;
+    color: #92400e;
+  }
+
+  &.accepted {
+    background: #d1fae5;
+    color: #065f46;
+  }
+
+  &.expired {
+    background: #f3f4f6;
+    color: #6b7280;
+  }
+
+  &.revoked {
+    background: #fee2e2;
+    color: #991b1b;
+  }
+}
+
+.btn-resend {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.8rem;
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  &:hover:not(:disabled) {
+    background: #1d4ed8;
+  }
+}
+
+.no-action {
+  color: #9ca3af;
+}
+
+.empty {
+  text-align: center;
+  color: #6b7280;
+  padding: 2rem 0;
+}

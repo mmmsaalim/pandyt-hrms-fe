@@ -1,0 +1,35 @@
+.auth-shell {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+}
+
+.auth-card {
+  width: min(520px, 100%);
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 1rem;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.error {
+  color: #b42318;
+}
+
+.invite-details {
+  display: grid;
+  gap: 0.35rem;
+}
+
+button {
+  border: 0;
+  border-radius: 10px;
+  background: #4c58db;
+  color: #fff;
+  font-weight: 700;
+  padding: 0.55rem 0.8rem;
+  cursor: pointer;
+}

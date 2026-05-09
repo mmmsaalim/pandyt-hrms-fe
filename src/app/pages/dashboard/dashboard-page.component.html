@@ -2,10 +2,13 @@
   <header class="page-head">
     <div>
       <h2>Good morning, {{ greetingName }}</h2>
-      <p *ngIf="!isEmployeeView">Here is what is happening across your workspace today.</p>
+      <p *ngIf="isSuperAdmin">Platform overview: All tenants and operations across the system.</p>
+      <p *ngIf="isCompanyAdmin">Company operations: Manage your employees, leave, attendance, and payroll.</p>
       <p *ngIf="isEmployeeView">Here is your personal dashboard for attendance, leave, and payslips.</p>
     </div>
-    <button *ngIf="!isEmployeeView" class="new-btn" type="button">+ New</button>
+    <button *ngIf="!isEmployeeView" class="new-btn" type="button" (click)="onNewClick()">
+      {{ newButtonLabel }}
+    </button>
   </header>
 
   <section class="stats-grid">
@@ -20,7 +23,58 @@
     </article>
   </section>
 
-  <section class="middle-grid" *ngIf="!isEmployeeView">
+  <!-- Super Admin Platform Dashboard -->
+  <section class="middle-grid" *ngIf="isSuperAdmin">
+    <article class="panel growth-panel">
+      <div class="panel-head">
+        <div>
+          <h3>Platform growth</h3>
+          <p>Net users across all tenants (last 7 months)</p>
+        </div>
+        <span class="chip">+34.2%</span>
+      </div>
+
+      <div class="line-wrap">
+        <svg viewBox="0 0 100 50" preserveAspectRatio="none" aria-hidden="true">
+          <defs>
+            <linearGradient id="growthFill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#4c58db" stop-opacity="0.35"></stop>
+              <stop offset="100%" stop-color="#4c58db" stop-opacity="0.02"></stop>
+            </linearGradient>
+          </defs>
+          <polyline class="line" [attr.points]="chartPoints"></polyline>
+          <polygon class="area" [attr.points]="chartPoints + ' 100,50 0,50'"></polygon>
+        </svg>
+        <div class="months">
+          <span *ngFor="let month of months">{{ month }}</span>
+        </div>
+      </div>
+    </article>
+
+    <article class="panel split-panel">
+      <div class="panel-head">
+        <div>
+          <h3>Tenant breakdown</h3>
+          <p>By active users</p>
+        </div>
+      </div>
+
+      <div class="donut" [style.--donut-gradient]="'conic-gradient(' + donutGradient + ')'">
+        <span class="hole"></span>
+      </div>
+
+      <div class="legend">
+        <div class="legend-item" *ngFor="let item of split">
+          <span class="dot" [style.background]="item.color"></span>
+          <span>{{ item.label }}</span>
+          <strong>{{ item.value }}</strong>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <!-- Company Admin HR Dashboard -->
+  <section class="middle-grid" *ngIf="isCompanyAdmin">
     <article class="panel growth-panel">
       <div class="panel-head">
         <div>
@@ -69,7 +123,8 @@
     </article>
   </section>
 
-  <section class="bottom-grid" *ngIf="!isEmployeeView">
+  <!-- Company Admin HR Operations Only -->
+  <section class="bottom-grid" *ngIf="isCompanyAdmin">
     <article class="panel attendance-panel">
       <div class="panel-head">
         <div>

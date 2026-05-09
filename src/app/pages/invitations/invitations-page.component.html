@@ -1,0 +1,49 @@
+<div class="page-header">
+  <h1>Invitations</h1>
+</div>
+
+<div class="alert success" *ngIf="resendSuccess()">{{ resendSuccess() }}</div>
+<div class="alert error" *ngIf="errorMsg()">{{ errorMsg() }}</div>
+
+<div class="loading" *ngIf="loading()">Loading…</div>
+
+<div class="table-wrap" *ngIf="!loading()">
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Email</th>
+        <th>Role</th>
+        <th>Company</th>
+        <th>Status</th>
+        <th>Invited At</th>
+        <th>Expires At</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let row of invitations()">
+        <td>{{ row.name }}</td>
+        <td>{{ row.email }}</td>
+        <td>{{ row.role }}</td>
+        <td>{{ row.company?.name ?? '—' }}</td>
+        <td><span [class]="statusClass(row.status)">{{ row.status }}</span></td>
+        <td>{{ row.invitedAt | date:'short' }}</td>
+        <td>{{ row.expiresAt | date:'short' }}</td>
+        <td>
+          <button
+            *ngIf="row.status === 'PENDING'"
+            class="btn-resend"
+            [disabled]="resendingEmail() === row.email"
+            (click)="resend(row)">
+            {{ resendingEmail() === row.email ? 'Sending…' : 'Resend' }}
+          </button>
+          <span *ngIf="row.status !== 'PENDING'" class="no-action">—</span>
+        </td>
+      </tr>
+      <tr *ngIf="invitations().length === 0">
+        <td colspan="8" class="empty">No invitations found.</td>
+      </tr>
+    </tbody>
+  </table>
+</div>

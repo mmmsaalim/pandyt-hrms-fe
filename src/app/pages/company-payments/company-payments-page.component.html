@@ -1,0 +1,64 @@
+<section class="header">
+  <div>
+    <h1>Company Payments</h1>
+    <p>Billing overview across all tenant companies.</p>
+  </div>
+  <button class="refresh" (click)="loadData()" [disabled]="loading()">
+    {{ loading() ? 'Refreshing...' : 'Refresh' }}
+  </button>
+</section>
+
+<div class="summary" *ngIf="!loading() && rows().length > 0">
+  <div class="card">
+    <span class="label">Total companies</span>
+    <strong>{{ rows().length }}</strong>
+  </div>
+  <div class="card">
+    <span class="label">Total due this cycle</span>
+    <strong>{{ totalRevenueDue() | currency:'USD':'symbol':'1.2-2' }}</strong>
+  </div>
+</div>
+
+<div class="alert error" *ngIf="errorMessage()">{{ errorMessage() }}</div>
+<div class="loading" *ngIf="loading()">Loading payment data...</div>
+
+<div class="table-shell" *ngIf="!loading()">
+  <table>
+    <thead>
+      <tr>
+        <th>Company</th>
+        <th>Plan</th>
+        <th>Tenant Status</th>
+        <th>Billing Status</th>
+        <th>Seats</th>
+        <th>Employees</th>
+        <th>Overage</th>
+        <th>Subtotal</th>
+        <th>Tax</th>
+        <th>Total Due</th>
+        <th>Renewal</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let row of rows()">
+        <td>
+          <div class="company">{{ row.companyName }}</div>
+          <div class="muted">{{ row.tenantId }}</div>
+        </td>
+        <td>{{ row.plan }}</td>
+        <td>{{ row.status }}</td>
+        <td><span [class]="statusClass(row.billingStatus)">{{ row.billingStatus }}</span></td>
+        <td>{{ row.includedSeats }}</td>
+        <td>{{ row.activeEmployees }}</td>
+        <td>{{ row.overageSeats }}</td>
+        <td>{{ row.subtotal | currency:'USD':'symbol':'1.2-2' }}</td>
+        <td>{{ row.tax | currency:'USD':'symbol':'1.2-2' }}</td>
+        <td class="due">{{ row.totalDue | currency:'USD':'symbol':'1.2-2' }}</td>
+        <td>{{ row.renewalDate | date:'mediumDate' }}</td>
+      </tr>
+      <tr *ngIf="rows().length === 0">
+        <td colspan="11" class="empty">No tenants found.</td>
+      </tr>
+    </tbody>
+  </table>
+</div>

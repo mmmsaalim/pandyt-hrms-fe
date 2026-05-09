@@ -1,1 +1,76 @@
-:host {}
+:host {
+	display: block;
+}
+
+.table-head {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 0.75rem;
+}
+
+.table-actions {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.add-btn {
+	border: 0;
+	border-radius: 10px;
+	background: #4c58db;
+	color: #fff;
+	font-weight: 700;
+	padding: 0.5rem 0.8rem;
+	cursor: pointer;
+}
+
+.add-btn:disabled {
+	opacity: 0.7;
+	cursor: wait;
+}
+
+.create-panel {
+	margin: 0.75rem 0 1rem;
+	padding: 0.85rem;
+	border: 1px solid var(--border);
+	border-radius: 12px;
+	background: #f9fbff;
+}
+
+.create-panel h4 {
+	margin: 0 0 0.65rem;
+}
+
+.form-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+	gap: 0.65rem;
+}
+
+label {
+	display: grid;
+	gap: 0.25rem;
+	font-size: 0.85rem;
+	color: var(--muted);
+}
+
+input,
+select {
+	border: 1px solid var(--border);
+	border-radius: 8px;
+	padding: 0.45rem 0.55rem;
+	background: #fff;
+}
+
+.error {
+	color: #b42318;
+	margin: 0.6rem 0;
+	font-size: 0.85rem;
+}
+
+.success {
+	color: #166534;
+	margin: 0.6rem 0;
+	font-size: 0.85rem;
+}

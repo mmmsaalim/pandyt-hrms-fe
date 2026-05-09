@@ -9,4 +9,15 @@ export class EmployeesService {
   list() {
     return this.http.get(`${environment.apiUrl}/employees`);
   }
+
+  inviteEmployee(dto: {
+    name: string;
+    workEmail: string;
+    department: string;
+    designation: string;
+    role: 'EMPLOYEE' | 'COMPANY_ADMIN';
+    employeeCode?: string;
+  }) {
+    return this.http.post(`${environment.apiUrl}/employees/invite`, dto);
+  }
 }
