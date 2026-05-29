@@ -1,0 +1,115 @@
+<section class="card table-card">
+  <div class="table-head">
+    <h3>Organisation</h3>
+    <div class="table-actions">
+      <button type="button" class="tab-btn" [ngClass]="{active: activeTab === 'tree'}" (click)="activeTab = 'tree'">Tree</button>
+      <button type="button" class="tab-btn" [ngClass]="{active: activeTab === 'locations'}" (click)="activeTab = 'locations'">Locations</button>
+      <button type="button" class="tab-btn" [ngClass]="{active: activeTab === 'departments'}" (click)="activeTab = 'departments'">Departments</button>
+      <button type="button" class="tab-btn" [ngClass]="{active: activeTab === 'teams'}" (click)="activeTab = 'teams'">Teams</button>
+    </div>
+  </div>
+
+  <p *ngIf="message" class="{{ messageType === 'success' ? 'success' : 'error' }}">{{ message }}</p>
+
+  <!-- Tree Tab -->
+  <ng-container *ngIf="activeTab === 'tree'">
+    <div class="org-tree">
+      <div *ngFor="let loc of tree" class="tree-location">
+        <h4>📍 {{ loc.name }}</h4>
+        <div *ngFor="let dept of loc.departments" class="tree-department">
+          <strong>🏢 {{ dept.name }}</strong>
+          <div *ngFor="let team of dept.teams" class="tree-team">
+            <span>👥 {{ team.name }}</span>
+            <span class="badge">{{ team._count?.employees ?? 0 }} employees</span>
+          </div>
+        </div>
+      </div>
+      <p *ngIf="tree.length === 0">No organisation structure defined yet.</p>
+    </div>
+  </ng-container>
+
+  <!-- Locations Tab -->
+  <ng-container *ngIf="activeTab === 'locations'">
+    <div *ngIf="isCompanyAdmin" class="table-actions" style="margin-bottom:12px">
+      <button type="button" class="add-btn" (click)="showLocationForm = !showLocationForm">
+        {{ showLocationForm ? 'Cancel' : '+ Add Location' }}
+      </button>
+    </div>
+    <section class="create-panel" *ngIf="showLocationForm">
+      <h4>New Location</h4>
+      <div class="form-grid">
+        <label>Name<input [(ngModel)]="locationForm.name" type="text" /></label>
+        <label>Address<input [(ngModel)]="locationForm.address" type="text" /></label>
+      </div>
+      <button type="button" class="add-btn" (click)="createLocation()">Create</button>
+    </section>
+    <table>
+      <thead><tr><th>ID</th><th>Name</th><th>Address</th></tr></thead>
+      <tbody>
+        <tr *ngFor="let l of locations">
+          <td>{{ l.id }}</td><td>{{ l.name }}</td><td>{{ l.address ?? '—' }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </ng-container>
+
+  <!-- Departments Tab -->
+  <ng-container *ngIf="activeTab === 'departments'">
+    <div *ngIf="isCompanyAdmin" class="table-actions" style="margin-bottom:12px">
+      <button type="button" class="add-btn" (click)="showDepartmentForm = !showDepartmentForm">
+        {{ showDepartmentForm ? 'Cancel' : '+ Add Department' }}
+      </button>
+    </div>
+    <section class="create-panel" *ngIf="showDepartmentForm">
+      <h4>New Department</h4>
+      <div class="form-grid">
+        <label>Name<input [(ngModel)]="departmentForm.name" type="text" /></label>
+        <label>Location
+          <select [(ngModel)]="departmentForm.locationId">
+            <option [ngValue]="0">— None —</option>
+            <option *ngFor="let l of locations" [ngValue]="l.id">{{ l.name }}</option>
+          </select>
+        </label>
+      </div>
+      <button type="button" class="add-btn" (click)="createDepartment()">Create</button>
+    </section>
+    <table>
+      <thead><tr><th>ID</th><th>Name</th><th>Location</th></tr></thead>
+      <tbody>
+        <tr *ngFor="let d of departments">
+          <td>{{ d.id }}</td><td>{{ d.name }}</td><td>{{ d.location?.name ?? '—' }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </ng-container>
+
+  <!-- Teams Tab -->
+  <ng-container *ngIf="activeTab === 'teams'">
+    <div *ngIf="isCompanyAdmin" class="table-actions" style="margin-bottom:12px">
+      <button type="button" class="add-btn" (click)="showTeamForm = !showTeamForm">
+        {{ showTeamForm ? 'Cancel' : '+ Add Team' }}
+      </button>
+    </div>
+    <section class="create-panel" *ngIf="showTeamForm">
+      <h4>New Team</h4>
+      <div class="form-grid">
+        <label>Name<input [(ngModel)]="teamForm.name" type="text" /></label>
+        <label>Department (required)
+          <select [(ngModel)]="teamForm.departmentId">
+            <option [ngValue]="0">— Select —</option>
+            <option *ngFor="let d of departments" [ngValue]="d.id">{{ d.name }}</option>
+          </select>
+        </label>
+      </div>
+      <button type="button" class="add-btn" (click)="createTeam()">Create</button>
+    </section>
+    <table>
+      <thead><tr><th>ID</th><th>Name</th><th>Department</th></tr></thead>
+      <tbody>
+        <tr *ngFor="let t of teams">
+          <td>{{ t.id }}</td><td>{{ t.name }}</td><td>{{ t.department?.name ?? '—' }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </ng-container>
+</section>

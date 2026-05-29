@@ -1,10 +1,54 @@
 <section class="card table-card">
-  <div class="table-head"><h3>Payroll Runs</h3><span class="badge">{{ rows.length }}</span></div>
+  <div class="table-head">
+    <h3>Payroll Runs</h3>
+    <div class="table-actions">
+      <span class="badge">{{ rows.length }}</span>
+      <button *ngIf="isCompanyAdmin" type="button" class="add-btn" (click)="showCreateForm = !showCreateForm">
+        {{ showCreateForm ? 'Cancel' : '+ New Run' }}
+      </button>
+    </div>
+  </div>
+
+  <p *ngIf="message" class="{{ messageType === 'success' ? 'success' : 'error' }}">{{ message }}</p>
+
+  <section class="create-panel" *ngIf="showCreateForm">
+    <h4>New Payroll Run</h4>
+    <div class="form-grid">
+      <label>Period (e.g. 2026-05)<input [(ngModel)]="newPeriod" type="text" placeholder="YYYY-MM" /></label>
+    </div>
+    <button type="button" class="add-btn" (click)="createRun()" [disabled]="busy">Create</button>
+  </section>
+
   <table>
-    <thead><tr><th>Period</th><th>Gross</th><th>Net</th><th>Status</th></tr></thead>
+    <thead>
+      <tr>
+        <th>Period</th>
+        <th>Gross (LKR)</th>
+        <th>Net (LKR)</th>
+        <th>Status</th>
+        <th>Processed At</th>
+        <th *ngIf="isCompanyAdmin">Actions</th>
+      </tr>
+    </thead>
     <tbody>
       <tr *ngFor="let r of rows">
-        <td>{{ r.period }}</td><td>{{ r.grossAmount | currency }}</td><td>{{ r.netAmount | currency }}</td><td><span class="badge">{{ r.status }}</span></td>
+        <td>{{ r.period }}</td>
+        <td>{{ r.grossAmount | currency:'LKR':'symbol':'1.2-2' }}</td>
+        <td>{{ r.netAmount | currency:'LKR':'symbol':'1.2-2' }}</td>
+        <td><span class="badge" [ngClass]="r.status?.toLowerCase()">{{ r.status }}</span></td>
+        <td>{{ r.processedAt ? (r.processedAt | date:'medium') : '—' }}</td>
+        <td *ngIf="isCompanyAdmin" class="actions-cell">
+          <button
+            type="button" class="action-btn approve"
+            [disabled]="busyRunId === r.id || r.status === 'COMPLETED'"
+            (click)="processRun(r)"
+          >Process</button>
+          <button
+            type="button" class="action-btn delete"
+            [disabled]="busyRunId === r.id"
+            (click)="deleteRun(r)"
+          >Delete</button>
+        </td>
       </tr>
     </tbody>
   </table>

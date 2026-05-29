@@ -12,10 +12,13 @@ import { PayslipsPageComponent } from './pages/payslips/payslips-page.component'
 import { RecruitmentPageComponent } from './pages/recruitment/recruitment-page.component';
 import { ReportsPageComponent } from './pages/reports/reports-page.component';
 import { TenantsPageComponent } from './pages/tenants/tenants-page.component';
+import { LeadsPageComponent } from './pages/leads/leads-page.component';
 import { CompanyPaymentsPageComponent } from './pages/company-payments/company-payments-page.component';
 import { AcceptInvitationPageComponent } from './pages/auth/accept-invitation/accept-invitation-page.component';
 import { SetPasswordPageComponent } from './pages/auth/set-password/set-password-page.component';
 import { InvitationsPageComponent } from './pages/invitations/invitations-page.component';
+import { ConfigurationPageComponent } from './pages/configuration/configuration-page.component';
+import { OrganisationPageComponent } from './pages/organisation/organisation-page.component';
 
 export const appRoutes: Routes = [
   { path: 'login', component: LoginComponent },
@@ -35,6 +38,12 @@ export const appRoutes: Routes = [
         data: { roles: ['SUPER_ADMIN'] },
       },
       {
+        path: 'leads',
+        component: LeadsPageComponent,
+        canActivate: [roleGuard],
+        data: { roles: ['SUPER_ADMIN'] },
+      },
+      {
         path: 'company-payments',
         component: CompanyPaymentsPageComponent,
         canActivate: [roleGuard],
@@ -44,31 +53,37 @@ export const appRoutes: Routes = [
         path: 'employees',
         component: EmployeesPageComponent,
         canActivate: [roleGuard],
+        data: { roles: ['COMPANY_ADMIN', 'EMPLOYEE'], permissions: ['employees.read'] },
+      },
+      {
+        path: 'organisation',
+        component: OrganisationPageComponent,
+        canActivate: [roleGuard],
         data: { roles: ['COMPANY_ADMIN'] },
       },
       {
         path: 'leave',
         component: LeavePageComponent,
         canActivate: [roleGuard],
-        data: { roles: ['COMPANY_ADMIN', 'EMPLOYEE'] },
+        data: { roles: ['COMPANY_ADMIN', 'EMPLOYEE'], permissions: ['leave.read'] },
       },
       {
         path: 'attendance',
         component: AttendancePageComponent,
         canActivate: [roleGuard],
-        data: { roles: ['COMPANY_ADMIN', 'EMPLOYEE'] },
+        data: { roles: ['COMPANY_ADMIN', 'EMPLOYEE'], permissions: ['attendance.read'] },
       },
       {
         path: 'payroll',
         component: PayrollPageComponent,
         canActivate: [roleGuard],
-        data: { roles: ['COMPANY_ADMIN'] },
+        data: { roles: ['COMPANY_ADMIN', 'EMPLOYEE'], permissions: ['payroll.manage'] },
       },
       {
         path: 'payslips',
         component: PayslipsPageComponent,
         canActivate: [roleGuard],
-        data: { roles: ['COMPANY_ADMIN', 'EMPLOYEE'] },
+        data: { roles: ['COMPANY_ADMIN', 'EMPLOYEE'], permissions: ['payslips.manage'] },
       },
       {
         path: 'recruitment',
@@ -80,13 +95,34 @@ export const appRoutes: Routes = [
         path: 'reports',
         component: ReportsPageComponent,
         canActivate: [roleGuard],
-        data: { roles: ['COMPANY_ADMIN'] },
+        data: { roles: ['COMPANY_ADMIN', 'EMPLOYEE'], permissions: ['reports.read'] },
       },
       {
         path: 'invitations',
         component: InvitationsPageComponent,
         canActivate: [roleGuard],
-        data: { roles: ['SUPER_ADMIN', 'COMPANY_ADMIN'] },
+        data: {
+          roles: ['SUPER_ADMIN', 'COMPANY_ADMIN', 'EMPLOYEE'],
+          permissions: ['employees.invite'],
+        },
+      },
+      {
+        path: 'configuration',
+        canActivate: [roleGuard],
+        data: { roles: ['COMPANY_ADMIN'], permissions: ['configuration.manage'] },
+        children: [
+          { path: '', pathMatch: 'full', redirectTo: 'users-permissions' },
+          {
+            path: 'users-permissions',
+            component: ConfigurationPageComponent,
+            data: { tab: 'users-permissions' },
+          },
+          {
+            path: 'access-configuration',
+            component: ConfigurationPageComponent,
+            data: { tab: 'access-configuration' },
+          },
+        ],
       },
     ],
   },

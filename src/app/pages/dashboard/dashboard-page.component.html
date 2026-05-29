@@ -2,6 +2,10 @@
   <header class="page-head">
     <div>
       <h2>Good morning, {{ greetingName }}</h2>
+      <div class="tenant-banner" *ngIf="tenantName && !isSuperAdmin">
+        <span class="tenant-label">Signed in to</span>
+        <strong>{{ tenantName }}</strong>
+      </div>
       <p *ngIf="isSuperAdmin">Platform overview: All tenants and operations across the system.</p>
       <p *ngIf="isCompanyAdmin">Company operations: Manage your employees, leave, attendance, and payroll.</p>
       <p *ngIf="isEmployeeView">Here is your personal dashboard for attendance, leave, and payslips.</p>

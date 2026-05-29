@@ -1,8 +1,40 @@
 <aside class="sidebar" [class.open]="open">
   <div class="brand">FlowHR</div>
   <nav>
-    <a *ngFor="let item of navItems()" [routerLink]="item.path" routerLinkActive="active" (click)="closed.emit()">
-      {{ item.label }}
-    </a>
+    <ng-container *ngFor="let item of navItems()">
+      <!-- Flat nav item -->
+      <a
+        *ngIf="!isGroup(item)"
+        [routerLink]="item.path"
+        routerLinkActive="active"
+        (click)="closed.emit()"
+      >
+        {{ item.label }}
+      </a>
+
+      <!-- Group with children -->
+      <div *ngIf="isGroup(item)" class="nav-group">
+        <button
+          type="button"
+          class="group-header"
+          [class.expanded]="isGroupExpanded(item.key)"
+          (click)="toggleGroup(item.key)"
+        >
+          <span class="group-arrow">›</span>
+          {{ item.label }}
+        </button>
+        <div *ngIf="isGroupExpanded(item.key)" class="group-items">
+          <a
+            *ngFor="let child of item.children"
+            [routerLink]="child.path"
+            routerLinkActive="active"
+            class="group-item"
+            (click)="closed.emit()"
+          >
+            {{ child.label }}
+          </a>
+        </div>
+      </div>
+    </ng-container>
   </nav>
 </aside>

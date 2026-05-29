@@ -127,6 +127,7 @@ export class DashboardPageComponent implements OnInit {
   readonly chartPoints = this.buildChartPoints();
 
   greetingName = 'Priya';
+  tenantName: string | null = null;
   isEmployeeView = false;
   employeeData: EmployeeDashboardData | null = null;
   isSuperAdmin = false;
@@ -299,8 +300,10 @@ export class DashboardPageComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.greetingName = this.auth.user()?.firstName || 'Priya';
-    const userRoles = this.auth.user()?.roles ?? [];
+    const currentUser = this.auth.user();
+    this.greetingName = currentUser?.firstName || 'Priya';
+    this.tenantName = currentUser?.tenantName?.trim() || null;
+    const userRoles = currentUser?.roles ?? [];
     this.isSuperAdmin = userRoles.includes('SUPER_ADMIN');
     this.isCompanyAdmin = userRoles.includes('COMPANY_ADMIN');
     this.isEmployeeView = false;

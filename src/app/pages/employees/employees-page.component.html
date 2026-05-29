@@ -36,26 +36,35 @@
         Role
         <select [(ngModel)]="form.role" name="role">
           <option value="EMPLOYEE">EMPLOYEE</option>
+          <option value="TEAM_LEAD">TEAM_LEAD</option>
+          <option value="HR_MANAGER">HR_MANAGER</option>
           <option value="COMPANY_ADMIN">COMPANY_ADMIN</option>
         </select>
       </label>
     </div>
     <p class="error" *ngIf="errorMessage">{{ errorMessage }}</p>
     <button type="button" class="add-btn" (click)="createEmployee()" [disabled]="creating">
-      {{ creating ? 'Inviting...' : 'Send Invitation' }}
+      {{ creating ? 'Creating...' : 'Create Employee' }}
     </button>
   </section>
 
   <p class="success" *ngIf="successMessage">{{ successMessage }}</p>
 
   <table>
-    <thead><tr><th>Name</th><th>Department</th><th>Designation</th><th>Status</th></tr></thead>
+    <thead><tr><th>Name</th><th>Department</th><th>Designation</th><th>Salary (LKR)</th><th>Status</th><th>Actions</th></tr></thead>
     <tbody>
       <tr *ngFor="let e of employees">
         <td>{{ e.user?.firstName }} {{ e.user?.lastName }}</td>
         <td>{{ e.department }}</td>
         <td>{{ e.designation }}</td>
+        <td>{{ e.salary ? ('LKR ' + e.salary) : '—' }}</td>
         <td><span class="badge">{{ e.employmentStatus }}</span></td>
+        <td class="row-actions" *ngIf="isCompanyAdmin">
+          <button type="button" class="action-btn edit" (click)="editEmployee(e)" [disabled]="isBusy(e.id)">Edit</button>
+          <button type="button" class="action-btn edit" (click)="editSalary(e)" [disabled]="isBusy(e.id)">Salary</button>
+          <button type="button" class="action-btn" (click)="exportEmployee(e)" [disabled]="isBusy(e.id)">Export</button>
+          <button type="button" class="action-btn delete" (click)="deleteEmployee(e)" [disabled]="isBusy(e.id)">Delete</button>
+        </td>
       </tr>
     </tbody>
   </table>

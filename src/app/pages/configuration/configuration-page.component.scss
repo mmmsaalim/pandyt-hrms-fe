@@ -1,0 +1,286 @@
+:host {
+  display: block;
+}
+
+.page-wrap {
+  display: grid;
+  gap: 1rem;
+}
+
+.tab-strip {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.tab-btn {
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--text);
+  border-radius: 999px;
+  padding: 0.42rem 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.tab-btn.active {
+  border-color: #2f5de0;
+  color: #2f5de0;
+}
+
+.config-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.panel {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.panel-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.panel-head h3 {
+  margin: 0;
+}
+
+.role-create,
+.assign-grid {
+  display: grid;
+  gap: 0.55rem;
+}
+
+label {
+  display: grid;
+  gap: 0.2rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+input,
+select {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.45rem 0.55rem;
+  background: #fff;
+}
+
+.primary {
+  border: 0;
+  border-radius: 10px;
+  background: #2f5de0;
+  color: #fff;
+  font-weight: 700;
+  padding: 0.5rem 0.85rem;
+  cursor: pointer;
+}
+
+.primary:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+.secondary {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--text);
+  padding: 0.3rem 0.65rem;
+  cursor: pointer;
+}
+
+.danger {
+  border: 0;
+  border-radius: 10px;
+  background: #b42318;
+  color: #fff;
+  font-weight: 700;
+  padding: 0.5rem 0.85rem;
+  cursor: pointer;
+}
+
+.danger:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+.role-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.user-list {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.user-row {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.55rem;
+  display: grid;
+  gap: 0.25rem;
+}
+
+.user-name {
+  font-weight: 700;
+  color: var(--text);
+}
+
+.user-email {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.user-roles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.role-pill {
+  font-size: 0.78rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.15rem 0.55rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.pill-remove {
+  border: 0;
+  background: transparent;
+  color: #b42318;
+  font-size: 0.8rem;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0;
+}
+
+.role-chip {
+  border: 1px solid var(--border);
+  background: #fff;
+  border-radius: 999px;
+  padding: 0.32rem 0.7rem;
+  cursor: pointer;
+}
+
+.role-chip.active {
+  border-color: #2f5de0;
+  color: #2f5de0;
+  font-weight: 700;
+}
+
+.module-list {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.module-block {
+  display: grid;
+  gap: 0.3rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.65rem;
+}
+
+.module-block h4 {
+  margin: 0 0 0.2rem;
+  font-size: 0.78rem;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+}
+
+.permission-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--text);
+}
+
+.existing-permission {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--text);
+}
+
+.error {
+  color: #b42318;
+  margin: 0.65rem 0;
+}
+
+.success {
+  color: #166534;
+  margin: 0.65rem 0;
+}
+
+.empty {
+  color: var(--muted);
+  margin: 0;
+}
+
+.help-text {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin: 0 0 0.65rem;
+  padding: 0.5rem;
+  background: #f8f9fb;
+  border-radius: 6px;
+  border-left: 3px solid #2f5de0;
+}
+
+.info-text {
+  font-size: 0.85rem;
+  color: #243b8a;
+  margin: 0 0 0.65rem;
+  padding: 0.5rem;
+  background: #e8edff;
+  border-radius: 6px;
+  border-left: 3px solid #2f5de0;
+}
+
+.action-ticks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fbfcff;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  display: grid;
+  place-items: center;
+  z-index: 50;
+  padding: 1rem;
+}
+
+.modal-card {
+  width: min(760px, 100%);
+  max-height: 90vh;
+  overflow: auto;
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  padding: 1rem;
+  display: grid;
+  gap: 0.85rem;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}

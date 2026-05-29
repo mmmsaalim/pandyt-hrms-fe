@@ -6,8 +6,12 @@ export const roleGuard: CanActivateFn = (route) => {
   const authService = inject(AuthService);
   const router = inject(Router);
   const roles = route.data?.['roles'] as string[] | undefined;
+  const permissions = route.data?.['permissions'] as string[] | undefined;
 
-  if (!roles || authService.hasAnyRole(roles)) {
+  const roleAllowed = !roles || authService.hasAnyRole(roles);
+  const permissionAllowed = !permissions || authService.hasAnyPermission(permissions);
+
+  if (roleAllowed && permissionAllowed) {
     return true;
   }
 

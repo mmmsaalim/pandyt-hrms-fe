@@ -3,55 +3,76 @@ import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { environment } from '../../../environments/environment';
 
-export type AppRole = 'SUPER_ADMIN' | 'COMPANY_ADMIN' | 'EMPLOYEE';
+export type AppRole = string;
 
 export interface AuthUser {
-  id: string;
+  id: number;
   email: string;
   firstName: string;
   lastName: string;
+  tenantId?: number | null;
+  tenantName?: string | null;
+  tenantCode?: string | null;
   roles: AppRole[];
+  permissions?: string[];
 }
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private readonly tokenKey = 'flowhr_token';
+  private readonly userKey = 'flowhr_user';
   readonly user = signal<AuthUser | null>(null);
 
   constructor(
     private readonly http: HttpClient,
     private readonly router: Router,
-  ) {}
+  ) {
+    const rawUser = localStorage.getItem(this.userKey);
+    if (!rawUser) {
+      return;
+    }
 
-  login(email: string, password: string) {
+    try {
+      const parsed = JSON.parse(rawUser) as AuthUser;
+      this.user.set(parsed);
+    } catch {
+      localStorage.removeItem(this.userKey);
+    }
+  }
+
+  login(email: string, password: string, companyCode?: string) {
     return this.http.post<{ accessToken: string; user: AuthUser }>(
       `${environment.apiUrl}/auth/login`,
-      { email, password },
+      { email, password, companyCode },
+      { withCredentials: true },
     );
   }
 
-  setSession(token: string, user: AuthUser) {
-    localStorage.setItem(this.tokenKey, token);
+  setSession(_token: string, user: AuthUser) {
+    localStorage.setItem(this.userKey, JSON.stringify(user));
     this.user.set(user);
   }
 
   logout() {
-    localStorage.removeItem(this.tokenKey);
+    this.http.post(`${environment.apiUrl}/auth/logout`, {}, { withCredentials: true }).subscribe();
+    localStorage.removeItem(this.userKey);
     this.user.set(null);
     this.router.navigate(['/login']);
   }
 
-  getToken() {
-    return localStorage.getItem(this.tokenKey);
-  }
-
   isAuthenticated() {
-    return !!this.getToken();
+    return !!this.user();
   }
 
   hasAnyRole(roles: string[]) {
     const current = this.user();
     if (!current) return false;
     return current.roles.some((r) => roles.includes(r));
+  }
+
+  hasAnyPermission(permissions: string[]) {
+    const current = this.user();
+    if (current?.roles?.includes('SUPER_ADMIN')) return true;
+    if (!current || !current.permissions?.length) return false;
+    return current.permissions.some((permission) => permissions.includes(permission));
   }
 }

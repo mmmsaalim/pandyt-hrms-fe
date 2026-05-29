@@ -1,10 +1,39 @@
 <section class="card table-card">
-  <div class="table-head"><h3>Attendance</h3><span class="badge">{{ rows.length }}</span></div>
+  <div class="table-head">
+    <h3>Attendance</h3>
+    <div class="table-actions">
+      <span class="badge">{{ rows.length }}</span>
+      <button type="button" class="add-btn" (click)="clockIn()" [disabled]="busy">Clock In</button>
+      <button type="button" class="add-btn secondary" (click)="clockOut()" [disabled]="busy">Clock Out</button>
+      <button *ngIf="isCompanyAdmin" type="button" class="add-btn outline" (click)="showOverrideForm = !showOverrideForm">
+        {{ showOverrideForm ? 'Cancel Override' : 'HR Override' }}
+      </button>
+    </div>
+  </div>
+
+  <p *ngIf="message" class="{{ messageType === 'success' ? 'success' : 'error' }}">{{ message }}</p>
+
+  <section class="create-panel" *ngIf="showOverrideForm">
+    <h4>HR Override</h4>
+    <div class="form-grid">
+      <label>Employee ID<input [(ngModel)]="overrideForm.employeeId" type="number" /></label>
+      <label>Date<input [(ngModel)]="overrideForm.date" type="date" /></label>
+      <label>Clock In<input [(ngModel)]="overrideForm.clockIn" type="datetime-local" /></label>
+      <label>Clock Out<input [(ngModel)]="overrideForm.clockOut" type="datetime-local" /></label>
+      <label style="grid-column: 1 / -1">Reason (required)<input [(ngModel)]="overrideForm.reason" type="text" /></label>
+    </div>
+    <button type="button" class="add-btn" (click)="submitOverride()" [disabled]="busy">Save Override</button>
+  </section>
+
   <table>
     <thead><tr><th>Date</th><th>Clock In</th><th>Clock Out</th><th>Hours</th><th>Status</th></tr></thead>
     <tbody>
       <tr *ngFor="let r of rows">
-        <td>{{ r.date | date }}</td><td>{{ r.clockIn | date:'shortTime' }}</td><td>{{ r.clockOut | date:'shortTime' }}</td><td>{{ r.hours }}</td><td><span class="badge">{{ r.status }}</span></td>
+        <td>{{ r.date | date }}</td>
+        <td>{{ r.clockIn | date:'shortTime' }}</td>
+        <td>{{ r.clockOut | date:'shortTime' }}</td>
+        <td>{{ r.hours }}</td>
+        <td><span class="badge" [ngClass]="r.status?.toLowerCase()?.split(':')[0]?.trim()">{{ r.status }}</span></td>
       </tr>
     </tbody>
   </table>

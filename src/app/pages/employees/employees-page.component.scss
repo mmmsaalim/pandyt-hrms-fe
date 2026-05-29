@@ -74,3 +74,52 @@ select {
 	margin: 0.6rem 0;
 	font-size: 0.85rem;
 }
+
+table {
+	width: 100%;
+	border-collapse: collapse;
+}
+
+th,
+td {
+	text-align: left;
+	padding: 0.65rem 0.6rem;
+	border-bottom: 1px solid var(--border);
+	font-size: 0.84rem;
+	vertical-align: middle;
+}
+
+th {
+	font-weight: 700;
+	white-space: nowrap;
+}
+
+.row-actions {
+	display: flex;
+	gap: 0.4rem;
+	min-width: 170px;
+}
+
+.action-btn {
+	border: 0;
+	border-radius: 8px;
+	padding: 0.35rem 0.6rem;
+	font-weight: 600;
+	cursor: pointer;
+	font-size: 0.78rem;
+}
+
+.action-btn.edit {
+	background: #dbeafe;
+	color: #1e40af;
+}
+
+.action-btn.delete {
+	background: #fee2e2;
+	color: #991b1b;
+}
+
+.action-btn:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+}

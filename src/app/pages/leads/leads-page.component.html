@@ -1,0 +1,58 @@
+<section class="page-header">
+  <h1>Leads</h1>
+  <p>Track tenant onboarding status and company admin invitation progress.</p>
+</section>
+
+<section class="filters card">
+  <label for="leadStatus">Status</label>
+  <select
+    id="leadStatus"
+    [(ngModel)]="statusFilter"
+    name="leadStatus"
+    (change)="loadRows()">
+    <option value="ALL">All</option>
+    <option value="PENDING">Pending</option>
+    <option value="CONVERTED">Converted</option>
+    <option value="DELETED">Deleted</option>
+  </select>
+</section>
+
+<p class="error" *ngIf="errorMsg()">{{ errorMsg() }}</p>
+<p class="loading" *ngIf="loading()">Loading leads...</p>
+
+<section class="card table-wrap" *ngIf="!loading()">
+  <table>
+    <thead>
+      <tr>
+        <th>Company</th>
+        <th>Plan</th>
+        <th>Seats</th>
+        <th>Lead Status</th>
+        <th>Tenant Status</th>
+        <th>Invitation</th>
+        <th>Pending Invites</th>
+        <th>Created</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let row of rows()">
+        <td>{{ row.name }}</td>
+        <td>{{ row.plan }}</td>
+        <td>{{ row.seats }}</td>
+        <td><span [class]="badgeClass(row.leadStatus)">{{ row.leadStatus }}</span></td>
+        <td><span [class]="badgeClass(row.status)">{{ row.status }}</span></td>
+        <td>
+          <ng-container *ngIf="row.latestAdminInvitation as inv; else noInvitation">
+            <span [class]="badgeClass(inv.status)">{{ inv.status }}</span>
+          </ng-container>
+          <ng-template #noInvitation>—</ng-template>
+        </td>
+        <td>{{ row.pendingAdminInvitations ?? 0 }}</td>
+        <td>{{ row.createdAt | date:'short' }}</td>
+      </tr>
+      <tr *ngIf="rows().length === 0">
+        <td colspan="8" class="empty">No leads found.</td>
+      </tr>
+    </tbody>
+  </table>
+</section>

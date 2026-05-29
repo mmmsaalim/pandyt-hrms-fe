@@ -17,6 +17,7 @@ export class LoginComponent {
   errorMessage = '';
 
   readonly form = this.fb.group({
+    companyCode: ['tnt1', [Validators.minLength(1)]],
     email: ['admin@flowhr.com', [Validators.required, Validators.email]],
     password: ['admin123', [Validators.required, Validators.minLength(6)]],
   });
@@ -32,9 +33,9 @@ export class LoginComponent {
 
     this.loading = true;
     this.errorMessage = '';
-    const { email, password } = this.form.getRawValue();
+    const { companyCode, email, password } = this.form.getRawValue();
 
-    this.auth.login(email!, password!).subscribe({
+    this.auth.login(email!, password!, companyCode?.trim() || undefined).subscribe({
       next: (res) => {
         this.auth.setSession(res.accessToken, res.user);
         this.router.navigate(['/dashboard']);

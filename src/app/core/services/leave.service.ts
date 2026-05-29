@@ -12,7 +12,20 @@ export class LeaveService {
     return this.http.get(`${environment.apiUrl}/leave`);
   }
 
+  apply(dto: { type: string; startDate: string; endDate: string; days: number; reason: string }) {
+    return this.http.post(`${environment.apiUrl}/leave`, dto);
+  }
+
   updateStatus(id: string, status: LeaveStatus) {
     return this.http.patch(`${environment.apiUrl}/leave/${id}`, { status });
+  }
+
+  getPolicies() {
+    return this.http.get(`${environment.apiUrl}/leave/policies`);
+  }
+
+  getBalances(employeeId?: number) {
+    const params = employeeId ? `?employeeId=${employeeId}` : '';
+    return this.http.get(`${environment.apiUrl}/leave/balances${params}`);
   }
 }

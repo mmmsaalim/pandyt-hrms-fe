@@ -1,45 +1,92 @@
 <section class="card table-card">
-  <div class="table-head"><h3>Leave Requests</h3><span class="badge">{{ rows.length }}</span></div>
-  <table>
-    <thead>
-      <tr>
-        <th *ngIf="isCompanyAdmin">Employee</th>
-        <th>Type</th>
-        <th>Dates</th>
-        <th>Days</th>
-        <th>Status</th>
-        <th *ngIf="isCompanyAdmin">Action</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr *ngFor="let r of rows">
-        <td *ngIf="isCompanyAdmin" class="employee-cell">
-          <strong>{{ employeeName(r) }}</strong>
-          <small>{{ r.employee?.employeeCode }} · {{ r.employee?.department }}</small>
-        </td>
-        <td>{{ r.type }}</td>
-        <td>{{ r.startDate | date }} - {{ r.endDate | date }}</td>
-        <td>{{ r.days }}</td>
-        <td><span class="badge" [ngClass]="r.status.toLowerCase()">{{ r.status }}</span></td>
-        <td *ngIf="isCompanyAdmin" class="actions-cell">
-          <button
-            type="button"
-            class="action-btn approve"
-            [disabled]="busyRowId === r.id || r.status === 'APPROVED'"
-            (click)="updateStatus(r, 'APPROVED')"
-          >
-            Approve
-          </button>
-          <button
-            type="button"
-            class="action-btn reject"
-            [disabled]="busyRowId === r.id || r.status === 'REJECTED'"
-            (click)="updateStatus(r, 'REJECTED')"
-          >
-            Reject
-          </button>
-        </td>
-      </tr>
-    </tbody>
-  </table>
+  <div class="table-head">
+    <h3>Leave</h3>
+    <div class="table-actions">
+      <button type="button" class="tab-btn" [ngClass]="{active: activeTab === 'requests'}" (click)="activeTab = 'requests'">Requests</button>
+      <button type="button" class="tab-btn" [ngClass]="{active: activeTab === 'balances'}" (click)="activeTab = 'balances'">Balances</button>
+      <button type="button" class="add-btn" (click)="openApplyForm()">+ Apply Leave</button>
+    </div>
+  </div>
+
+  <p *ngIf="message" class="{{ messageType === 'success' ? 'success' : 'error' }}">{{ message }}</p>
+
+  <section class="modal-backdrop" *ngIf="showApplyForm" (click)="closeApplyForm()">
+    <article class="modal-card" (click)="$event.stopPropagation()">
+      <div class="panel-head">
+        <h3>Apply for Leave</h3>
+        <button type="button" class="secondary" (click)="closeApplyForm()">Close</button>
+      </div>
+
+      <div class="form-grid modal-form-grid">
+        <label>
+          Leave Type
+          <select [(ngModel)]="applyForm.type">
+            <option *ngFor="let type of leaveTypes" [ngValue]="type">{{ type }}</option>
+          </select>
+        </label>
+        <label>Days<input [(ngModel)]="applyForm.days" type="number" min="1" /></label>
+        <label>Start Date<input [(ngModel)]="applyForm.startDate" type="date" /></label>
+        <label>End Date<input [(ngModel)]="applyForm.endDate" type="date" /></label>
+        <label class="full-width">Reason<input [(ngModel)]="applyForm.reason" type="text" /></label>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="secondary" (click)="closeApplyForm()">Cancel</button>
+        <button type="button" class="primary" (click)="applyLeave()" [disabled]="busy">
+          {{ busy ? 'Submitting...' : 'Submit Leave' }}
+        </button>
+      </div>
+    </article>
+  </section>
+
+  <!-- Requests Tab -->
+  <ng-container *ngIf="activeTab === 'requests'">
+    <table>
+      <thead>
+        <tr>
+          <th *ngIf="isCompanyAdmin">Employee</th>
+          <th>Type</th>
+          <th>Dates</th>
+          <th>Days</th>
+          <th>Status</th>
+          <th *ngIf="isCompanyAdmin">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let r of rows">
+          <td *ngIf="isCompanyAdmin" class="employee-cell">
+            <strong>{{ employeeName(r) }}</strong>
+            <small>{{ r.employee?.employeeCode }} · {{ r.employee?.department }}</small>
+          </td>
+          <td>{{ r.type }}</td>
+          <td>{{ r.startDate | date }} – {{ r.endDate | date }}</td>
+          <td>{{ r.days }}</td>
+          <td><span class="badge" [ngClass]="r.status.toLowerCase()">{{ r.status }}</span></td>
+          <td *ngIf="isCompanyAdmin" class="actions-cell">
+            <button type="button" class="action-btn approve"
+              [disabled]="busyRowId === r.id || r.status === 'APPROVED'"
+              (click)="updateStatus(r, 'APPROVED')">Approve</button>
+            <button type="button" class="action-btn reject"
+              [disabled]="busyRowId === r.id || r.status === 'REJECTED'"
+              (click)="updateStatus(r, 'REJECTED')">Reject</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </ng-container>
+
+  <!-- Balances Tab -->
+  <ng-container *ngIf="activeTab === 'balances'">
+    <table>
+      <thead><tr><th>Employee ID</th><th>Policy</th><th>Used</th><th>Available</th></tr></thead>
+      <tbody>
+        <tr *ngFor="let b of balances">
+          <td>{{ b.employeeId }}</td>
+          <td>{{ b.policy?.name ?? 'N/A' }}</td>
+          <td>{{ b.used }}</td>
+          <td>{{ b.available }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </ng-container>
 </section>

@@ -74,3 +74,74 @@ select {
 	margin: 0.6rem 0;
 	font-size: 0.85rem;
 }
+
+.code-success {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+table {
+	width: 100%;
+	border-collapse: collapse;
+}
+
+th,
+td {
+	text-align: left;
+	padding: 0.65rem 0.6rem;
+	border-bottom: 1px solid var(--border);
+	font-size: 0.84rem;
+	vertical-align: middle;
+}
+
+th {
+	font-weight: 700;
+	white-space: nowrap;
+}
+
+.row-actions {
+	display: flex;
+	gap: 0.4rem;
+	min-width: 220px;
+}
+
+.code-cell {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.4rem;
+}
+
+.action-btn {
+	border: 0;
+	border-radius: 8px;
+	padding: 0.35rem 0.6rem;
+	font-weight: 600;
+	cursor: pointer;
+	font-size: 0.78rem;
+}
+
+.action-btn.approve {
+	background: #d1fae5;
+	color: #065f46;
+}
+
+.action-btn.edit {
+	background: #dbeafe;
+	color: #1e40af;
+}
+
+.action-btn.delete {
+	background: #fee2e2;
+	color: #991b1b;
+}
+
+.action-btn.copy {
+	background: #f3f4f6;
+	color: #1f2937;
+}
+
+.action-btn:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+}

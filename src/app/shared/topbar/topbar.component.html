@@ -4,5 +4,14 @@
     <p class="eyebrow">FlowHR Workspace</p>
     <h1>{{ title }}</h1>
   </div>
-  <button class="ghost" (click)="auth.logout()">Logout</button>
+  <div class="actions">
+    <div class="profile-chip" *ngIf="auth.user() as user">
+      <span class="avatar">{{ user.firstName?.charAt(0) || 'U' }}</span>
+      <div class="profile-meta">
+        <p class="name">{{ displayName }}</p>
+        <p class="email">{{ displayEmail }}</p>
+      </div>
+    </div>
+    <button class="ghost" (click)="auth.logout()">Logout</button>
+  </div>
 </header>

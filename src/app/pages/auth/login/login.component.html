@@ -4,6 +4,9 @@
     <p>Sign in to your HRMS workspace</p>
     <form [formGroup]="form" (ngSubmit)="submit()">
       <p *ngIf="errorMessage" class="error">{{ errorMessage }}</p>
+      <label>Company code</label>
+      <input type="text" formControlName="companyCode" placeholder="tnt1" />
+      <small>For SUPER_ADMIN you can leave this blank. Tenant users must provide stored company code.</small>
       <label>Email</label>
       <input type="email" formControlName="email" placeholder="admin@flowhr.com" />
       <label>Password</label>

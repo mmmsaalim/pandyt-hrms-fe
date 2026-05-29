@@ -1,13 +1,31 @@
 <section class="card table-card">
   <div class="table-head"><h3>Payslips</h3><span class="badge">{{ rows.length }}</span></div>
   <table>
-    <thead><tr><th>Employee</th><th>Gross</th><th>Deductions</th><th>Net</th><th>Status</th></tr></thead>
+    <thead>
+      <tr>
+        <th>Employee</th>
+        <th>Period</th>
+        <th>Basic Pay</th>
+        <th>Gross</th>
+        <th>EPF (Emp 8%)</th>
+        <th>EPF (Emp 12%)</th>
+        <th>ETF (3%)</th>
+        <th>PAYE</th>
+        <th>Net Pay</th>
+        <th>Status</th>
+      </tr>
+    </thead>
     <tbody>
       <tr *ngFor="let r of rows">
         <td>{{ r.employee?.user?.firstName }} {{ r.employee?.user?.lastName }}</td>
-        <td>{{ r.grossPay | currency }}</td>
-        <td>{{ r.deductions | currency }}</td>
-        <td>{{ r.netPay | currency }}</td>
+        <td>{{ r.payrollRun?.period ?? '—' }}</td>
+        <td>{{ r.basicPay | currency:'LKR':'symbol':'1.2-2' }}</td>
+        <td>{{ r.grossPay | currency:'LKR':'symbol':'1.2-2' }}</td>
+        <td>{{ r.epfEmployee | currency:'LKR':'symbol':'1.2-2' }}</td>
+        <td>{{ r.epfEmployer | currency:'LKR':'symbol':'1.2-2' }}</td>
+        <td>{{ r.etfEmployer | currency:'LKR':'symbol':'1.2-2' }}</td>
+        <td>{{ r.payeTax | currency:'LKR':'symbol':'1.2-2' }}</td>
+        <td><strong>{{ r.netPay | currency:'LKR':'symbol':'1.2-2' }}</strong></td>
         <td><span class="badge">{{ r.status }}</span></td>
       </tr>
     </tbody>

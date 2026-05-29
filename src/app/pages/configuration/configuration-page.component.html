@@ -1,0 +1,261 @@
+<section *ngIf="!loading; else loadingTemplate" class="page-wrap">
+  <div class="tab-strip">
+    <button
+      type="button"
+      class="tab-btn"
+      [class.active]="activeTab === 'users-permissions'"
+      (click)="switchTab('users-permissions')"
+    >
+      Users & Permissions
+    </button>
+    <button
+      type="button"
+      class="tab-btn"
+      [class.active]="activeTab === 'access-configuration'"
+      (click)="switchTab('access-configuration')"
+    >
+      Access Configuration
+    </button>
+  </div>
+
+  <section class="config-grid" *ngIf="activeTab === 'users-permissions'">
+    <article class="card panel">
+      <div class="panel-head">
+        <h3>User Access Assignment</h3>
+        <span class="badge">{{ users.length }} users</span>
+      </div>
+
+      <div class="assign-grid">
+        <label>
+          User
+          <select [ngModel]="selectedUserId" (ngModelChange)="onUserSelectedForAccess($event)" name="assignUserId">
+            <option [ngValue]="null">Select user</option>
+            <option *ngFor="let user of users" [ngValue]="user.id">
+              {{ user.firstName }} {{ user.lastName }} - {{ user.email }}
+            </option>
+          </select>
+        </label>
+
+        <button
+          type="button"
+          class="primary"
+          (click)="openAccessModal(selectedUserId!)"
+          [disabled]="!selectedUserId"
+        >
+          Select Modules In Popup
+        </button>
+      </div>
+    </article>
+
+    <article class="card panel">
+      <div class="panel-head">
+        <h3>Users</h3>
+        <span class="badge">Tenant scope</span>
+      </div>
+
+      <div class="user-list" *ngIf="users.length; else noUsersTemplate">
+        <div class="user-row" *ngFor="let user of users">
+          <div class="user-name">{{ user.firstName }} {{ user.lastName }}</div>
+          <div class="user-email">{{ user.email }}</div>
+          <div class="user-roles">
+            <span class="role-pill" *ngFor="let row of user.roles">
+              {{ row.role.name }}
+              <button
+                type="button"
+                class="pill-remove"
+                *ngIf="canManageRole(row.role.id)"
+                (click)="removeSingleUserAccess(user.id, row.role.id)"
+                [disabled]="removingAccess"
+                aria-label="Remove access"
+              >
+                x
+              </button>
+            </span>
+          </div>
+          <div>
+            <button type="button" class="secondary" (click)="openAccessModal(user.id)">Edit Access</button>
+          </div>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <section class="config-grid" *ngIf="activeTab === 'access-configuration'">
+    <article class="card panel">
+      <div class="panel-head">
+        <h3>Tenant Roles</h3>
+        <span class="badge">{{ tenantRoles.length }} roles</span>
+      </div>
+
+      <p class="help-text">Only tenant roles created below are editable. Shared roles (system-wide) are view-only.</p>
+
+      <div class="role-create">
+        <label>
+          Role name
+          <input [(ngModel)]="roleForm.role" name="roleName" type="text" placeholder="Ex: LEAVE_MANAGER" />
+        </label>
+        <label>
+          Description
+          <input
+            [(ngModel)]="roleForm.description"
+            name="roleDescription"
+            type="text"
+            placeholder="Optional"
+          />
+        </label>
+        <button type="button" class="primary" (click)="createRole()" [disabled]="creatingRole">
+          {{ creatingRole ? 'Creating...' : 'Create Tenant Role' }}
+        </button>
+      </div>
+
+      <div class="role-list" *ngIf="tenantRoles.length; else noRolesTemplate">
+        <button
+          type="button"
+          class="role-chip"
+          *ngFor="let role of tenantRoles"
+          [class.active]="role.id === selectedAccessRoleId"
+          (click)="selectRole(role.id)"
+        >
+          {{ role.name }}
+        </button>
+      </div>
+    </article>
+
+    <article class="card panel">
+      <div class="panel-head">
+        <h3>Permissions Matrix</h3>
+        <span class="badge" *ngIf="selectedRole">{{ selectedRole.name }}</span>
+      </div>
+
+      <p class="info-text" *ngIf="selectedRole">
+        <strong>Who can edit:</strong> Only Company Admin can edit permissions for tenant roles. Super Admin manages system-wide permissions.
+      </p>
+
+      <div class="action-ticks" *ngIf="selectedRole">
+        <label class="permission-row" *ngFor="let action of actionFilters">
+          <input
+            type="checkbox"
+            [checked]="isActionFullySelected(action)"
+            [disabled]="!selectedRoleEditable"
+            (change)="toggleActionPermissions(action, $any($event.target).checked)"
+          />
+          <span>{{ actionLabel(action) }}</span>
+        </label>
+      </div>
+
+      <div *ngIf="selectedRole; else noRoleSelectedTemplate" class="module-list">
+        <section class="module-block" *ngFor="let group of permissionsByModule">
+          <h4>{{ group.module }}</h4>
+          <label class="permission-row" *ngFor="let permission of group.rows">
+            <input
+              type="checkbox"
+              [checked]="selectedPermissionIds.has(permission.id)"
+              [disabled]="!selectedRoleEditable"
+              (change)="togglePermission(permission.id, $any($event.target).checked)"
+            />
+            <span>{{ permission.permission }}</span>
+          </label>
+        </section>
+
+        <button
+          type="button"
+          class="primary"
+          (click)="savePermissions()"
+          [disabled]="savingPermissions || !selectedRoleEditable"
+        >
+          {{ savingPermissions ? 'Saving...' : 'Save Permission Matrix' }}
+        </button>
+
+        <button
+          type="button"
+          class="danger"
+          (click)="clearSelectedModulePermissions()"
+          [disabled]="savingPermissions || !selectedRoleEditable"
+        >
+          Clear Module Access
+        </button>
+      </div>
+    </article>
+
+    <article class="card panel">
+      <div class="panel-head">
+        <h3>Existing Permissions</h3>
+        <span class="badge">{{ permissions.length }} items</span>
+      </div>
+
+      <div class="module-list">
+        <section class="module-block" *ngFor="let group of permissionsByModule">
+          <h4>{{ group.module }}</h4>
+          <p class="existing-permission" *ngFor="let permission of group.rows">
+            {{ permission.permission }}
+          </p>
+        </section>
+      </div>
+    </article>
+  </section>
+</section>
+
+<p class="error" *ngIf="errorMessage">{{ errorMessage }}</p>
+<p class="success" *ngIf="successMessage">{{ successMessage }}</p>
+
+<section class="modal-backdrop" *ngIf="accessModalOpen">
+  <article class="modal-card">
+    <div class="panel-head">
+      <h3>Select Modules Access</h3>
+      <button type="button" class="secondary" (click)="closeAccessModal()">Close</button>
+    </div>
+
+    <p class="help-text" *ngIf="selectedUser">
+      User: {{ selectedUser.firstName }} {{ selectedUser.lastName }} ({{ selectedUser.email }})
+    </p>
+
+    <div class="module-list">
+      <section class="module-block">
+        <h4>Company Admin Manageable Modules</h4>
+        <label class="permission-row" *ngFor="let role of userSelectableModules">
+          <input
+            type="checkbox"
+            [checked]="selectedUserRoleIds.has(role.id)"
+            (change)="toggleUserRole(role.id, $any($event.target).checked)"
+          />
+          <span>{{ role.name }}</span>
+        </label>
+            <p class="empty" *ngIf="!userSelectableModules.length">No modules available to assign.</p>
+            <button
+              type="button"
+              class="secondary"
+              *ngIf="!userSelectableModules.length"
+              (click)="generateDefaultModules()"
+              [disabled]="bootstrappingModules"
+            >
+              {{ bootstrappingModules ? 'Generating...' : 'Generate Default Modules' }}
+            </button>
+      </section>
+    </div>
+
+    <div class="modal-actions">
+      <button type="button" class="secondary" (click)="closeAccessModal()">Cancel</button>
+      <button type="button" class="primary" (click)="saveUserAccess()" [disabled]="savingUserAccess">
+        {{ savingUserAccess ? 'Saving...' : 'Save User Access' }}
+      </button>
+    </div>
+  </article>
+</section>
+
+<ng-template #loadingTemplate>
+  <section class="card panel">
+    <h3>Loading configuration...</h3>
+  </section>
+</ng-template>
+
+<ng-template #noRolesTemplate>
+  <p class="empty">No roles available yet. Create your first tenant role above.</p>
+</ng-template>
+
+<ng-template #noRoleSelectedTemplate>
+  <p class="empty">Select a role to view or configure permissions.</p>
+</ng-template>
+
+<ng-template #noUsersTemplate>
+  <p class="empty">No users found for this tenant.</p>
+</ng-template>

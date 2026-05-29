@@ -15,6 +15,10 @@
         <input [(ngModel)]="form.companyName" name="companyName" type="text" placeholder="Acme HR" />
       </label>
       <label>
+        Company code (optional)
+        <input [(ngModel)]="form.companyCode" name="companyCode" type="text" placeholder="acme" />
+      </label>
+      <label>
         Admin name
         <input [(ngModel)]="form.adminName" name="adminName" type="text" placeholder="Aisha Khan" />
       </label>
@@ -38,12 +42,66 @@
   </section>
 
   <p class="success" *ngIf="successMessage">{{ successMessage }}</p>
+  <p class="success code-success" *ngIf="createdCompanyCode">
+    Company code: <strong>{{ createdCompanyCode }}</strong>
+    <button type="button" class="action-btn copy" (click)="copyCompanyCode(createdCompanyCode)">
+      Copy
+    </button>
+  </p>
 
   <table>
-    <thead><tr><th>Name</th><th>Plan</th><th>Seats</th><th>Status</th></tr></thead>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Company Code</th>
+        <th>Plan</th>
+        <th>Seats</th>
+        <th>Users</th>
+        <th>Lead Status</th>
+        <th>Tenant Status</th>
+        <th>Admin Email</th>
+        <th>Admin Status</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
     <tbody>
       <tr *ngFor="let r of rows">
-        <td>{{ r.name }}</td><td>{{ r.plan }}</td><td>{{ r.seats }}</td><td><span class="badge">{{ r.status }}</span></td>
+        <td>{{ r.name }}</td>
+        <td>
+          <div class="code-cell" *ngIf="r.companyCode; else noCode">
+            <span>{{ r.companyCode }}</span>
+            <button type="button" class="action-btn copy" (click)="copyCompanyCode(r.companyCode)">
+              Copy
+            </button>
+          </div>
+          <ng-template #noCode>-</ng-template>
+        </td>
+        <td>{{ r.plan }}</td>
+        <td>{{ r.seats }}</td>
+        <td>{{ r.usersCount ?? 0 }}</td>
+        <td><span class="badge">{{ r.leadStatus }}</span></td>
+        <td><span class="badge">{{ r.status }}</span></td>
+        <td>{{ r.companyAdmin?.email || '-' }}</td>
+        <td>{{ r.companyAdmin?.status || '-' }}</td>
+        <td class="row-actions">
+          <button
+            type="button"
+            class="action-btn approve"
+            (click)="approveTenant(r)"
+            [disabled]="isBusy(r.id)">
+            {{ isBusy(r.id) ? 'Working...' : 'Approve / Sync' }}
+          </button>
+          <button type="button" class="action-btn edit" (click)="editTenant(r)" [disabled]="isBusy(r.id)">
+            Edit
+          </button>
+          <button
+            type="button"
+            class="action-btn delete"
+            (click)="deleteTenant(r)"
+            [disabled]="isBusy(r.id)">
+            Delete
+          </button>
+        </td>
       </tr>
     </tbody>
   </table>

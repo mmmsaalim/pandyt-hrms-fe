@@ -9,4 +9,16 @@ export class PayrollService {
   list() {
     return this.http.get(`${environment.apiUrl}/payroll`);
   }
+
+  create(period: string) {
+    return this.http.post(`${environment.apiUrl}/payroll`, { period });
+  }
+
+  process(id: number) {
+    return this.http.post(`${environment.apiUrl}/payroll/${id}/process`, {});
+  }
+
+  remove(id: number) {
+    return this.http.delete(`${environment.apiUrl}/payroll/${id}`);
+  }
 }
