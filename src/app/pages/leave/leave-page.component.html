@@ -44,17 +44,17 @@
     <table>
       <thead>
         <tr>
-          <th *ngIf="isCompanyAdmin">Employee</th>
+          <th *ngIf="canApproveLeave">Employee</th>
           <th>Type</th>
           <th>Dates</th>
           <th>Days</th>
           <th>Status</th>
-          <th *ngIf="isCompanyAdmin">Action</th>
+          <th *ngIf="canApproveLeave">Action</th>
         </tr>
       </thead>
       <tbody>
         <tr *ngFor="let r of rows">
-          <td *ngIf="isCompanyAdmin" class="employee-cell">
+          <td *ngIf="canApproveLeave" class="employee-cell">
             <strong>{{ employeeName(r) }}</strong>
             <small>{{ r.employee?.employeeCode }} · {{ r.employee?.department }}</small>
           </td>
@@ -62,7 +62,7 @@
           <td>{{ r.startDate | date }} – {{ r.endDate | date }}</td>
           <td>{{ r.days }}</td>
           <td><span class="badge" [ngClass]="r.status.toLowerCase()">{{ r.status }}</span></td>
-          <td *ngIf="isCompanyAdmin" class="actions-cell">
+          <td *ngIf="canApproveLeave" class="actions-cell">
             <button type="button" class="action-btn approve"
               [disabled]="busyRowId === r.id || r.status === 'APPROVED'"
               (click)="updateStatus(r, 'APPROVED')">Approve</button>
@@ -77,6 +77,7 @@
 
   <!-- Balances Tab -->
   <ng-container *ngIf="activeTab === 'balances'">
+    <app-leave-balance-display></app-leave-balance-display>
     <table>
       <thead><tr><th>Employee ID</th><th>Policy</th><th>Used</th><th>Available</th></tr></thead>
       <tbody>

@@ -51,7 +51,10 @@ export class SidebarComponent {
     const userRoles = this.auth.user()?.roles ?? [];
     const isSuper = userRoles.includes('SUPER_ADMIN');
     const isCompany = userRoles.includes('COMPANY_ADMIN');
+    const isHrManager = userRoles.includes('HR_MANAGER');
+    const isTeamLead = userRoles.includes('TEAM_LEAD');
     const isEmployee = userRoles.includes('EMPLOYEE');
+    const isTenantUser = isCompany || isHrManager || isTeamLead || isEmployee;
     const can = (permission: string) => isSuper || this.auth.hasAnyPermission([permission]);
 
     const baseItems: NavItem[] = [
@@ -59,20 +62,20 @@ export class SidebarComponent {
       { path: '/tenants', label: 'Tenants', show: isSuper },
       { path: '/leads', label: 'Leads', show: isSuper },
       { path: '/company-payments', label: 'Company Payments', show: isSuper },
-      { path: '/employees', label: 'Employees', show: (isCompany || isEmployee) && can('employees.read') },
+      { path: '/employees', label: 'Employees', show: isTenantUser && can('employees.read') },
       { path: '/organisation', label: 'Organisation', show: isCompany },
-      { path: '/leave', label: 'Leave', show: (isCompany || isEmployee) && can('leave.read') },
-      { path: '/attendance', label: 'Attendance', show: (isCompany || isEmployee) && can('attendance.read') },
-      { path: '/payroll', label: 'Payroll', show: (isCompany || isEmployee) && can('payroll.manage') },
-      { path: '/payslips', label: 'Payslips', show: (isCompany || isEmployee) && can('payslips.manage') },
-      { path: '/recruitment', label: 'Recruitment', show: isCompany },
-      { path: '/reports', label: 'Reports', show: (isCompany || isEmployee) && can('reports.read') },
-      { path: '/invitations', label: 'Invitations', show: (isSuper || isCompany || isEmployee) && can('employees.invite') },
+      { path: '/leave', label: 'Leave', show: isTenantUser && can('leave.read') },
+      { path: '/attendance', label: 'Attendance', show: isTenantUser && can('attendance.read') },
+      { path: '/payroll', label: 'Payroll', show: isTenantUser && can('payroll.manage') },
+      { path: '/payslips', label: 'Payslips', show: isTenantUser && can('payslips.manage') },
+      { path: '/recruitment', label: 'Recruitment', show: isCompany || isHrManager },
+      { path: '/reports', label: 'Reports', show: isTenantUser && can('reports.read') },
+      { path: '/invitations', label: 'Invitations', show: (isSuper || isCompany || isHrManager) && can('employees.invite') },
     ];
 
     const items: NavElement[] = baseItems.filter((x) => x.show);
 
-    if (isCompany) {
+    if (isCompany || isHrManager) {
       items.push({
         type: 'group',
         key: 'configuration',

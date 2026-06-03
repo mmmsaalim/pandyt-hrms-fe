@@ -9,4 +9,11 @@ export class PayslipsService {
   list() {
     return this.http.get(`${environment.apiUrl}/payslips`);
   }
+
+  downloadPdf(id: number) {
+    return this.http.get(`${environment.apiUrl}/payslips/${id}/pdf`, {
+      responseType: 'blob',
+      observe: 'response',
+    });
+  }
 }

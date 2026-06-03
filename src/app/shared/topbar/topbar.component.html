@@ -6,7 +6,7 @@
   </div>
   <div class="actions">
     <div class="profile-chip" *ngIf="auth.user() as user">
-      <span class="avatar">{{ user.firstName?.charAt(0) || 'U' }}</span>
+      <span class="avatar">{{ user.firstName.charAt(0) || 'U' }}</span>
       <div class="profile-meta">
         <p class="name">{{ displayName }}</p>
         <p class="email">{{ displayEmail }}</p>

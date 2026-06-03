@@ -3,6 +3,7 @@ import { DatePipe, NgClass, NgFor, NgIf } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { LeaveService, LeaveStatus } from '../../core/services/leave.service';
 import { AuthService } from '../../core/services/auth.service';
+import { LeaveBalanceDisplayComponent } from './leave-balance-display.component';
 
 interface LeaveRow {
   id: string;
@@ -22,7 +23,7 @@ interface LeaveRow {
 @Component({
   selector: 'app-leave-page',
   standalone: true,
-  imports: [NgFor, NgIf, NgClass, DatePipe, FormsModule],
+  imports: [NgFor, NgIf, NgClass, DatePipe, FormsModule, LeaveBalanceDisplayComponent],
   templateUrl: './leave-page.component.html',
   styleUrl: './leave-page.component.scss',
 })
@@ -30,7 +31,7 @@ export class LeavePageComponent implements OnInit {
   rows: LeaveRow[] = [];
   balances: any[] = [];
   leaveTypes: string[] = ['Annual', 'Medical', 'Sick', 'Casual'];
-  isCompanyAdmin = false;
+  canApproveLeave = false;
   busyRowId: string | null = null;
   showApplyForm = false;
   busy = false;
@@ -46,7 +47,8 @@ export class LeavePageComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.isCompanyAdmin = this.auth.user()?.roles.includes('COMPANY_ADMIN') ?? false;
+    const roles = this.auth.user()?.roles ?? [];
+    this.canApproveLeave = roles.includes('COMPANY_ADMIN') || roles.includes('HR_MANAGER');
     this.loadRows();
     this.loadBalances();
     this.loadLeaveTypes();

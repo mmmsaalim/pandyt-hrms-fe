@@ -1,5 +1,8 @@
 <section class="card table-card">
-  <div class="table-head"><h3>Payslips</h3><span class="badge">{{ rows.length }}</span></div>
+  <div class="table-head">
+    <h3>Payslips</h3><span class="badge">{{ rows.length }}</span>
+    <p *ngIf="downloadError" class="error">{{ downloadError }}</p>
+  </div>
   <table>
     <thead>
       <tr>
@@ -13,6 +16,7 @@
         <th>PAYE</th>
         <th>Net Pay</th>
         <th>Status</th>
+        <th>Download</th>
       </tr>
     </thead>
     <tbody>
@@ -27,7 +31,18 @@
         <td>{{ r.payeTax | currency:'LKR':'symbol':'1.2-2' }}</td>
         <td><strong>{{ r.netPay | currency:'LKR':'symbol':'1.2-2' }}</strong></td>
         <td><span class="badge">{{ r.status }}</span></td>
+        <td>
+          <button
+            class="ghost"
+            (click)="download(r.id)"
+            [disabled]="downloadingId === r.id">
+            {{ downloadingId === r.id ? 'Downloading...' : '⬇ Download' }}
+          </button>
+        </td>
       </tr>
     </tbody>
   </table>
+  <p *ngIf="rows.length === 0" class="empty-state">
+    No payslips found. Process a payroll run first to generate payslips.
+  </p>
 </section>

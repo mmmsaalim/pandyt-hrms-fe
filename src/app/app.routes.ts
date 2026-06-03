@@ -53,7 +53,10 @@ export const appRoutes: Routes = [
         path: 'employees',
         component: EmployeesPageComponent,
         canActivate: [roleGuard],
-        data: { roles: ['COMPANY_ADMIN', 'EMPLOYEE'], permissions: ['employees.read'] },
+        data: {
+          roles: ['COMPANY_ADMIN', 'HR_MANAGER', 'TEAM_LEAD', 'EMPLOYEE'],
+          permissions: ['employees.read'],
+        },
       },
       {
         path: 'organisation',
@@ -65,51 +68,69 @@ export const appRoutes: Routes = [
         path: 'leave',
         component: LeavePageComponent,
         canActivate: [roleGuard],
-        data: { roles: ['COMPANY_ADMIN', 'EMPLOYEE'], permissions: ['leave.read'] },
+        data: {
+          roles: ['COMPANY_ADMIN', 'HR_MANAGER', 'TEAM_LEAD', 'EMPLOYEE'],
+          permissions: ['leave.read'],
+        },
       },
       {
         path: 'attendance',
         component: AttendancePageComponent,
         canActivate: [roleGuard],
-        data: { roles: ['COMPANY_ADMIN', 'EMPLOYEE'], permissions: ['attendance.read'] },
+        data: {
+          roles: ['COMPANY_ADMIN', 'HR_MANAGER', 'TEAM_LEAD', 'EMPLOYEE'],
+          permissions: ['attendance.read'],
+        },
       },
       {
         path: 'payroll',
         component: PayrollPageComponent,
         canActivate: [roleGuard],
-        data: { roles: ['COMPANY_ADMIN', 'EMPLOYEE'], permissions: ['payroll.manage'] },
+        data: {
+          roles: ['COMPANY_ADMIN', 'HR_MANAGER', 'TEAM_LEAD', 'EMPLOYEE'],
+          permissions: ['payroll.manage'],
+        },
       },
       {
         path: 'payslips',
         component: PayslipsPageComponent,
         canActivate: [roleGuard],
-        data: { roles: ['COMPANY_ADMIN', 'EMPLOYEE'], permissions: ['payslips.manage'] },
+        data: {
+          roles: ['COMPANY_ADMIN', 'HR_MANAGER', 'TEAM_LEAD', 'EMPLOYEE'],
+          permissions: ['payslips.manage'],
+        },
       },
       {
         path: 'recruitment',
         component: RecruitmentPageComponent,
         canActivate: [roleGuard],
-        data: { roles: ['COMPANY_ADMIN'] },
+        data: { roles: ['COMPANY_ADMIN', 'HR_MANAGER'] },
       },
       {
         path: 'reports',
         component: ReportsPageComponent,
         canActivate: [roleGuard],
-        data: { roles: ['COMPANY_ADMIN', 'EMPLOYEE'], permissions: ['reports.read'] },
+        data: {
+          roles: ['COMPANY_ADMIN', 'HR_MANAGER', 'TEAM_LEAD', 'EMPLOYEE'],
+          permissions: ['reports.read'],
+        },
       },
       {
         path: 'invitations',
         component: InvitationsPageComponent,
         canActivate: [roleGuard],
         data: {
-          roles: ['SUPER_ADMIN', 'COMPANY_ADMIN', 'EMPLOYEE'],
+          roles: ['SUPER_ADMIN', 'COMPANY_ADMIN', 'HR_MANAGER', 'TEAM_LEAD', 'EMPLOYEE'],
           permissions: ['employees.invite'],
         },
       },
       {
         path: 'configuration',
         canActivate: [roleGuard],
-        data: { roles: ['COMPANY_ADMIN'], permissions: ['configuration.manage'] },
+        data: {
+          roles: ['COMPANY_ADMIN', 'HR_MANAGER', 'TEAM_LEAD', 'EMPLOYEE'],
+          permissions: ['configuration.manage'],
+        },
         children: [
           { path: '', pathMatch: 'full', redirectTo: 'users-permissions' },
           {
