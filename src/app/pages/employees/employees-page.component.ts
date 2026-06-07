@@ -98,7 +98,7 @@ export class EmployeesPageComponent implements OnInit {
             employeeCode: '',
           };
           this.showCreateForm = false;
-          this.successMessage = `Employee created for ${res?.employee?.user?.email || 'employee'} with temporary password ${res?.temporaryPassword || 'admin@123'}.`;
+          this.successMessage = `Employee created for ${res?.employee?.user?.email || 'employee'}. Invitation email sent with the account setup link.`;
           this.loadEmployees();
         },
         error: (err) => {

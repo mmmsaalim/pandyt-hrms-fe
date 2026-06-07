@@ -47,6 +47,19 @@ export class AuthService {
     );
   }
 
+  requestPasswordReset(email: string) {
+    return this.http.post<{ message: string }>(`${environment.apiUrl}/auth/password/reset/request`, {
+      email,
+    });
+  }
+
+  resetPassword(token: string, password: string) {
+    return this.http.post<{ message: string }>(`${environment.apiUrl}/auth/password/reset/confirm`, {
+      token,
+      password,
+    });
+  }
+
   setSession(_token: string, user: AuthUser) {
     localStorage.setItem(this.userKey, JSON.stringify(user));
     this.user.set(user);

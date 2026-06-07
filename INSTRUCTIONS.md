@@ -51,6 +51,7 @@ Implemented and active:
 
 Core routes:
 - Public: `/login`, `/accept-invitation`, `/set-password`
+- Public: `/forgot-password`, `/reset-password`
 - Protected: app layout routes under authenticated shell
 
 ## 6) Core MVP Status (Complete)
@@ -81,10 +82,16 @@ Planned next roadmap items:
 Key backend integrations used by FE:
 - `POST /api/auth/login`
 - `POST /api/auth/logout`
+- `POST /api/auth/password/reset/request`
+- `POST /api/auth/password/reset/confirm`
 - `POST /api/tenants/onboard`
 - `POST /api/employees/invite`
 - `GET /api/invitations/resolve`
 - `POST /api/invitations/accept`
+
+Email testing behavior (important for QA/UAT):
+- If backend is configured with Mailtrap sandbox SMTP, invitation/reset emails appear in Mailtrap inbox, not in real recipient Gmail inbox.
+- Frontend invitation and reset flows are still valid in this mode; testers must open links from Mailtrap messages.
 
 ## 9) Build and Commands
 - `yarn start`

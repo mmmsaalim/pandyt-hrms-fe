@@ -7,3 +7,5 @@ form { display: grid; gap: .6rem; }
 input { border: 1px solid var(--border); border-radius: 12px; padding: .7rem .8rem; }
 button { margin-top: .6rem; background: var(--indigo); color: white; border: 0; border-radius: 12px; padding: .75rem; cursor: pointer; }
 button:disabled { opacity: .6; cursor: default; }
+.auth-links { display: flex; justify-content: space-between; gap: .75rem; margin-top: .75rem; font-size: .92rem; }
+.auth-links a { color: var(--indigo); text-decoration: none; font-weight: 600; }

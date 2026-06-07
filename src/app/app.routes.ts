@@ -16,12 +16,16 @@ import { LeadsPageComponent } from './pages/leads/leads-page.component';
 import { CompanyPaymentsPageComponent } from './pages/company-payments/company-payments-page.component';
 import { AcceptInvitationPageComponent } from './pages/auth/accept-invitation/accept-invitation-page.component';
 import { SetPasswordPageComponent } from './pages/auth/set-password/set-password-page.component';
+import { ForgotPasswordPageComponent } from './pages/auth/forgot-password/forgot-password-page.component';
+import { ResetPasswordPageComponent } from './pages/auth/reset-password/reset-password-page.component';
 import { InvitationsPageComponent } from './pages/invitations/invitations-page.component';
 import { ConfigurationPageComponent } from './pages/configuration/configuration-page.component';
 import { OrganisationPageComponent } from './pages/organisation/organisation-page.component';
 
 export const appRoutes: Routes = [
   { path: 'login', component: LoginComponent },
+  { path: 'forgot-password', component: ForgotPasswordPageComponent },
+  { path: 'reset-password', component: ResetPasswordPageComponent },
   { path: 'accept-invitation', component: AcceptInvitationPageComponent },
   { path: 'set-password', component: SetPasswordPageComponent },
   {

@@ -126,7 +126,7 @@ export class TenantsPageComponent implements OnInit {
           };
           this.showCreateForm = false;
           this.createdCompanyCode = createdCode;
-          this.successMessage = `Tenant created for ${res?.adminUser?.email || 'company admin'} with temporary password ${res?.temporaryPassword || 'admin@123'}. Super admin approval is required before login.`;
+          this.successMessage = `Tenant created for ${res?.adminUser?.email || 'company admin'}. An onboarding email with a password setup link has been sent. Super admin approval is still required before login.`;
           this.loadRows();
         },
         error: (err) => {

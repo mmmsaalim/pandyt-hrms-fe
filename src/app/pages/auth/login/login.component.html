@@ -13,5 +13,10 @@
       <input type="password" formControlName="password" placeholder="Enter password" />
       <button type="submit" [disabled]="form.invalid || loading">{{ loading ? 'Signing in...' : 'Sign in' }}</button>
     </form>
+
+    <div class="auth-links">
+      <a routerLink="/forgot-password">Forgot password?</a>
+      <a routerLink="/accept-invitation">Accept invitation</a>
+    </div>
   </div>
 </div>
