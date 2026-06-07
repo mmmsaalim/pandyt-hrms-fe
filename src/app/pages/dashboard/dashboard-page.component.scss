@@ -52,12 +52,12 @@
 .new-btn {
 	border: 0;
 	border-radius: 999px;
-	background: #4c58db;
+	background: linear-gradient(180deg, #f68d46 0%, #f47421 100%);
 	color: white;
 	padding: 0.58rem 1rem;
 	font-weight: 700;
 	cursor: pointer;
-	box-shadow: 0 8px 18px rgba(76, 88, 219, 0.32);
+	box-shadow: 0 10px 20px rgba(244, 116, 33, 0.24);
 }
 
 .stats-grid {
@@ -166,7 +166,7 @@
 	}
 
 	a {
-		color: #4c58db;
+		color: var(--brand-deep);
 		text-decoration: none;
 		font-size: 0.8rem;
 		font-weight: 700;
@@ -194,7 +194,7 @@
 
 	.line {
 		fill: none;
-		stroke: #4c58db;
+		stroke: var(--brand);
 		stroke-width: 0.45;
 		stroke-linejoin: round;
 		stroke-linecap: round;
@@ -281,8 +281,8 @@
 	width: min(72px, 88%);
 	min-height: 18px;
 	border-radius: 10px 10px 6px 6px;
-	background: linear-gradient(180deg, #5362e9 0%, #3d4cd7 100%);
-	box-shadow: 0 8px 16px rgba(74, 87, 223, 0.26);
+	background: linear-gradient(180deg, #f68d46 0%, #f47421 100%);
+	box-shadow: 0 8px 16px rgba(244, 116, 33, 0.24);
 }
 
 .approval-row {
@@ -307,7 +307,7 @@
 	button {
 		border: 0;
 		border-radius: 999px;
-		background: #4c58db;
+		background: linear-gradient(180deg, #f68d46 0%, #f47421 100%);
 		color: #fff;
 		font-size: 0.7rem;
 		padding: 0.35rem 0.65rem;

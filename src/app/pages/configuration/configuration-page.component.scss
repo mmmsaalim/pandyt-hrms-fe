@@ -24,8 +24,8 @@
 }
 
 .tab-btn.active {
-  border-color: #2f5de0;
-  color: #2f5de0;
+  border-color: var(--brand);
+  color: var(--brand-strong);
 }
 
 .config-grid {
@@ -73,7 +73,7 @@ select {
 .primary {
   border: 0;
   border-radius: 10px;
-  background: #2f5de0;
+  background: linear-gradient(135deg, var(--brand) 0%, var(--brand-strong) 100%);
   color: #fff;
   font-weight: 700;
   padding: 0.5rem 0.85rem;
@@ -173,8 +173,8 @@ select {
 }
 
 .role-chip.active {
-  border-color: #2f5de0;
-  color: #2f5de0;
+  border-color: var(--brand);
+  color: var(--brand-strong);
   font-weight: 700;
 }
 
@@ -234,17 +234,17 @@ select {
   padding: 0.5rem;
   background: #f8f9fb;
   border-radius: 6px;
-  border-left: 3px solid #2f5de0;
+  border-left: 3px solid var(--brand);
 }
 
 .info-text {
   font-size: 0.85rem;
-  color: #243b8a;
+  color: var(--brand-deep);
   margin: 0 0 0.65rem;
   padding: 0.5rem;
-  background: #e8edff;
+  background: var(--brand-soft);
   border-radius: 6px;
-  border-left: 3px solid #2f5de0;
+  border-left: 3px solid var(--brand);
 }
 
 .action-ticks {

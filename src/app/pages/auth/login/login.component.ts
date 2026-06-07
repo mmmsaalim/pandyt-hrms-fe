@@ -18,7 +18,7 @@ export class LoginComponent {
 
   readonly form = this.fb.group({
     companyCode: ['tnt1', [Validators.minLength(1)]],
-    email: ['admin@flowhr.com', [Validators.required, Validators.email]],
+    email: ['admin@company.com', [Validators.required, Validators.email]],
     password: ['admin123', [Validators.required, Validators.minLength(6)]],
   });
 

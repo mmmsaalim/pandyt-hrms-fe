@@ -1,8 +1,41 @@
-.topbar { display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.25rem; border-bottom: 1px solid var(--border); background: rgba(255,255,255,0.85); backdrop-filter: blur(10px); position: sticky; top: 0; z-index: 3; }
-h1 { margin: 0; font-size: 1.1rem; font-family: var(--font-display); }
-.eyebrow { margin: 0; font-size: .75rem; color: var(--muted); }
-.ghost { border: 1px solid var(--border); border-radius: 10px; padding: .5rem .8rem; background: white; cursor: pointer; }
-.menu-btn { display: none; border: 1px solid var(--border); background: white; border-radius: 10px; padding: .5rem .7rem; }
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.35rem;
+  border-bottom: 1px solid rgba(236, 216, 203, 0.92);
+  background: rgba(255, 251, 247, 0.84);
+  backdrop-filter: blur(12px);
+  position: sticky;
+  top: 0;
+  z-index: 3;
+}
+h1 { margin: 0; font-size: 1.15rem; font-family: var(--font-display); }
+.eyebrow {
+  margin: 0 0 0.2rem;
+  font-size: .72rem;
+  color: var(--brand-deep);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+.ghost {
+  border: 1px solid rgba(236, 216, 203, 0.95);
+  border-radius: 999px;
+  padding: .58rem .9rem;
+  background: white;
+  cursor: pointer;
+  font-weight: 700;
+  color: #4d3b31;
+}
+.menu-btn {
+  display: none;
+  border: 1px solid rgba(236, 216, 203, 0.95);
+  background: white;
+  border-radius: 12px;
+  padding: .5rem .7rem;
+}
 
 .actions { display: flex; align-items: center; gap: .65rem; }
 .profile-chip {
@@ -10,7 +43,7 @@ h1 { margin: 0; font-size: 1.1rem; font-family: var(--font-display); }
   align-items: center;
   gap: .5rem;
   padding: .35rem .55rem;
-  border: 1px solid var(--border);
+  border: 1px solid rgba(236, 216, 203, 0.95);
   border-radius: 999px;
   background: #fff;
 }
@@ -18,8 +51,8 @@ h1 { margin: 0; font-size: 1.1rem; font-family: var(--font-display); }
   width: 28px;
   height: 28px;
   border-radius: 999px;
-  background: #e8edff;
-  color: #243b8a;
+  background: var(--brand-soft);
+  color: var(--brand-deep);
   font-weight: 700;
   display: grid;
   place-items: center;

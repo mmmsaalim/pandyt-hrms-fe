@@ -104,7 +104,7 @@ export class DashboardPageComponent implements OnInit {
   ];
 
   readonly split_company = [
-    { label: 'Engineering', value: 86, color: '#4c58db' },
+    { label: 'Engineering', value: 86, color: '#f47421' },
     { label: 'Sales', value: 42, color: '#10b7c7' },
     { label: 'Design', value: 28, color: '#55bf67' },
     { label: 'People', value: 19, color: '#f6a912' },
@@ -113,7 +113,7 @@ export class DashboardPageComponent implements OnInit {
   ];
 
   readonly split_super = [
-    { label: 'BASIC Plan', value: 8, color: '#4c58db' },
+    { label: 'BASIC Plan', value: 8, color: '#f47421' },
     { label: 'STANDARD Plan', value: 5, color: '#10b7c7' },
     { label: 'PRO Plan', value: 3, color: '#55bf67' },
     { label: 'ENTERPRISE', value: 2, color: '#f6a912' },

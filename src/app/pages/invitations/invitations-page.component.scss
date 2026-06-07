@@ -105,7 +105,7 @@ table {
   }
 
   &:hover:not(:disabled) {
-    background: #1d4ed8;
+    background: var(--brand-deep);
   }
 }
 

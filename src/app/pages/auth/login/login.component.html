@@ -1,14 +1,26 @@
 <div class="auth-shell">
+  <section class="brand-panel">
+    <span class="brand-pill">Pandyt SaaS</span>
+    <h1>PANDYT</h1>
+    <p class="lead">HR operations software delivered to your company as a Pandyt-managed platform.</p>
+    <ul>
+      <li>Attendance, payroll, recruitment, and reporting in one workspace.</li>
+      <li>Built for client companies using Pandyt services, not white-labeled away.</li>
+      <li>Secure role-based access for every company team.</li>
+    </ul>
+  </section>
+
   <div class="auth-card">
-    <h1>FlowHR</h1>
-    <p>Sign in to your HRMS workspace</p>
+    <span class="mini-brand">PANDYT HR CLOUD</span>
+    <h2>Sign in to your company workspace</h2>
+    <p>Access your organisation's HR tools powered by Pandyt.</p>
     <form [formGroup]="form" (ngSubmit)="submit()">
       <p *ngIf="errorMessage" class="error">{{ errorMessage }}</p>
       <label>Company code</label>
       <input type="text" formControlName="companyCode" placeholder="tnt1" />
       <small>For SUPER_ADMIN you can leave this blank. Tenant users must provide stored company code.</small>
       <label>Email</label>
-      <input type="email" formControlName="email" placeholder="admin@flowhr.com" />
+      <input type="email" formControlName="email" placeholder="name@company.com" />
       <label>Password</label>
       <input type="password" formControlName="password" placeholder="Enter password" />
       <button type="submit" [disabled]="form.invalid || loading">{{ loading ? 'Signing in...' : 'Sign in' }}</button>
