@@ -3,6 +3,7 @@ import { DatePipe, NgClass, NgFor, NgIf } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AttendanceService } from '../../core/services/attendance.service';
 import { AuthService } from '../../core/services/auth.service';
+import { EmployeesService } from '../../core/services/employees.service';
 
 @Component({
   selector: 'app-attendance-page',
@@ -13,7 +14,8 @@ import { AuthService } from '../../core/services/auth.service';
 })
 export class AttendancePageComponent implements OnInit {
   rows: any[] = [];
-  isCompanyAdmin = false;
+  employeeDirectory = new Map<number, { name: string; email: string }>();
+  canOverrideAttendance = false;
   busy = false;
   message = '';
   messageType: 'success' | 'error' = 'success';
@@ -24,15 +26,64 @@ export class AttendancePageComponent implements OnInit {
   constructor(
     private readonly attendanceService: AttendanceService,
     private readonly auth: AuthService,
+    private readonly employeesService: EmployeesService,
   ) {}
 
   ngOnInit(): void {
-    this.isCompanyAdmin = this.auth.user()?.roles.includes('COMPANY_ADMIN') ?? false;
+    const roles = this.auth.user()?.roles ?? [];
+    this.canOverrideAttendance = roles.includes('COMPANY_ADMIN') || roles.includes('HR_MANAGER');
+    this.loadEmployeeDirectory();
     this.load();
+  }
+
+  employeeName(row: any): string {
+    const fn = row?.employee?.user?.firstName ?? '';
+    const nestedName = fn.trim();
+    if (nestedName) {
+      return nestedName;
+    }
+
+    const mapped = this.employeeDirectory.get(Number(row?.employeeId ?? 0));
+    return mapped?.name || `Employee #${row?.employeeId ?? '-'}`;
+  }
+
+  employeeEmail(row: any): string {
+    const nestedEmail = row?.employee?.user?.email?.trim();
+    if (nestedEmail) {
+      return nestedEmail;
+    }
+
+    const mapped = this.employeeDirectory.get(Number(row?.employeeId ?? 0));
+    return mapped?.email || 'No email';
   }
 
   load(): void {
     this.attendanceService.list().subscribe((res: any) => (this.rows = res));
+  }
+
+  private loadEmployeeDirectory(): void {
+    this.employeesService.list().subscribe({
+      next: (rows: any) => {
+        const nextMap = new Map<number, { name: string; email: string }>();
+
+        for (const row of Array.isArray(rows) ? rows : []) {
+          const id = Number(row?.id);
+          if (!Number.isFinite(id)) {
+            continue;
+          }
+
+          const fn = row?.user?.firstName ?? '';
+          const name = fn.trim() || `Employee #${id}`;
+          const email = row?.user?.email?.trim() || 'No email';
+          nextMap.set(id, { name, email });
+        }
+
+        this.employeeDirectory = nextMap;
+      },
+      error: () => {
+        this.employeeDirectory = new Map();
+      },
+    });
   }
 
   clockIn(): void {

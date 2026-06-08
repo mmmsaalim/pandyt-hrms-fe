@@ -4,11 +4,13 @@ import { FormsModule } from '@angular/forms';
 import { EmployeesService, InviteRole } from '../../core/services/employees.service';
 import { ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
+import { ConfirmDialogComponent } from '../../shared/dialogs/confirm-dialog.component';
+import { EditDialogShellComponent } from '../../shared/dialogs/edit-dialog-shell.component';
 
 @Component({
   selector: 'app-employees-page',
   standalone: true,
-  imports: [NgFor, NgIf, FormsModule],
+  imports: [NgFor, NgIf, FormsModule, ConfirmDialogComponent, EditDialogShellComponent],
   templateUrl: './employees-page.component.html',
   styleUrl: './employees-page.component.scss',
 })
@@ -20,6 +22,20 @@ export class EmployeesPageComponent implements OnInit {
   mutatingEmployeeId: number | null = null;
   errorMessage = '';
   successMessage = '';
+  editingEmployeeId: number | null = null;
+  editBusy = false;
+  editForm = {
+    department: '',
+    designation: '',
+    employmentStatus: 'ACTIVE' as 'ACTIVE' | 'ON_PROBATION' | 'INACTIVE',
+  };
+  salaryEmployeeId: number | null = null;
+  salaryBusy = false;
+  salaryForm = {
+    salary: 0,
+  };
+  deleteTarget: any | null = null;
+  confirmBusy = false;
   form = {
     name: '',
     workEmail: '',
@@ -48,6 +64,25 @@ export class EmployeesPageComponent implements OnInit {
 
   loadEmployees(): void {
     this.employeesService.list().subscribe((rows: any) => (this.employees = rows));
+  }
+
+  private roleNames(employee: any): string[] {
+    const roles = employee?.user?.roles;
+    if (!Array.isArray(roles)) {
+      return [];
+    }
+
+    return roles
+      .map((entry: any) => entry?.role?.name)
+      .filter((value: unknown) => typeof value === 'string');
+  }
+
+  isCompanyAdminTarget(employee: any): boolean {
+    return this.roleNames(employee).includes('COMPANY_ADMIN');
+  }
+
+  canDeleteEmployee(employee: any): boolean {
+    return !this.isCompanyAdminTarget(employee);
   }
 
   isBusy(id: number): boolean {
@@ -116,37 +151,43 @@ export class EmployeesPageComponent implements OnInit {
       return;
     }
 
-    const nextDepartment = window.prompt('Department', employee?.department ?? '');
-    if (nextDepartment === null) {
+    this.editingEmployeeId = employee.id;
+    this.editBusy = false;
+    this.editForm = {
+      department: employee?.department ?? '',
+      designation: employee?.designation ?? '',
+      employmentStatus: (employee?.employmentStatus ?? 'ACTIVE') as 'ACTIVE' | 'ON_PROBATION' | 'INACTIVE',
+    };
+  }
+
+  closeEmployeeEditDialog(): void {
+    if (this.editBusy) {
       return;
     }
 
-    const nextDesignation = window.prompt('Designation', employee?.designation ?? '');
-    if (nextDesignation === null) {
+    this.editingEmployeeId = null;
+  }
+
+  submitEmployeeEdit(): void {
+    if (this.editingEmployeeId === null) {
       return;
     }
 
-    const nextStatus = window.prompt(
-      'Employment status (ACTIVE, ON_PROBATION, INACTIVE)',
-      employee?.employmentStatus ?? 'ACTIVE',
-    );
-    if (nextStatus === null) {
-      return;
-    }
-
-    this.mutatingEmployeeId = employee.id;
+    this.mutatingEmployeeId = this.editingEmployeeId;
+    this.editBusy = true;
     this.errorMessage = '';
     this.successMessage = '';
 
     this.employeesService
-      .updateEmployee(employee.id, {
-        department: nextDepartment.trim(),
-        designation: nextDesignation.trim(),
-        employmentStatus: nextStatus.trim() as 'ACTIVE' | 'ON_PROBATION' | 'INACTIVE',
+      .updateEmployee(this.editingEmployeeId, {
+        department: this.editForm.department.trim(),
+        designation: this.editForm.designation.trim(),
+        employmentStatus: this.editForm.employmentStatus,
       })
       .subscribe({
         next: () => {
-          this.successMessage = `${employee?.user?.firstName || 'Employee'} updated successfully.`;
+          this.successMessage = 'Employee updated successfully.';
+          this.editingEmployeeId = null;
           this.loadEmployees();
         },
         error: (err) => {
@@ -154,6 +195,7 @@ export class EmployeesPageComponent implements OnInit {
         },
         complete: () => {
           this.mutatingEmployeeId = null;
+          this.editBusy = false;
         },
       });
   }
@@ -163,12 +205,29 @@ export class EmployeesPageComponent implements OnInit {
       return;
     }
 
-    const confirmed = window.confirm(
-      `Delete ${employee?.user?.firstName || 'this employee'}? This will remove the employee record.`,
-    );
-    if (!confirmed) {
+    if (!this.canDeleteEmployee(employee)) {
+      this.errorMessage = 'Only SUPER_ADMIN can delete a COMPANY_ADMIN user.';
       return;
     }
+
+    this.deleteTarget = employee;
+  }
+
+  closeDeleteDialog(): void {
+    if (this.confirmBusy) {
+      return;
+    }
+
+    this.deleteTarget = null;
+  }
+
+  confirmDeleteEmployee(): void {
+    if (!this.deleteTarget) {
+      return;
+    }
+
+    const employee = this.deleteTarget;
+    this.confirmBusy = true;
 
     this.mutatingEmployeeId = employee.id;
     this.errorMessage = '';
@@ -177,6 +236,7 @@ export class EmployeesPageComponent implements OnInit {
     this.employeesService.deleteEmployee(employee.id).subscribe({
       next: () => {
         this.successMessage = `${employee?.user?.firstName || 'Employee'} deleted successfully.`;
+        this.deleteTarget = null;
         this.loadEmployees();
       },
       error: (err) => {
@@ -184,21 +244,57 @@ export class EmployeesPageComponent implements OnInit {
       },
       complete: () => {
         this.mutatingEmployeeId = null;
+        this.confirmBusy = false;
       },
     });
   }
 
   editSalary(employee: any): void {
-    if (!this.isCompanyAdmin) { return; }
-    const input = window.prompt(`Set salary (LKR) for ${employee?.user?.firstName || 'Employee'}`, String(employee?.salary ?? 0));
-    if (input === null) { return; }
-    const salary = parseFloat(input);
-    if (isNaN(salary) || salary < 0) { this.errorMessage = 'Invalid salary value.'; return; }
-    this.mutatingEmployeeId = employee.id;
-    this.employeesService.updateSalary(employee.id, salary).subscribe({
-      next: () => { this.successMessage = 'Salary updated.'; this.loadEmployees(); },
-      error: (err) => { this.errorMessage = err?.error?.message || 'Failed to update salary.'; },
-      complete: () => { this.mutatingEmployeeId = null; },
+    if (!this.isCompanyAdmin) {
+      return;
+    }
+
+    this.salaryEmployeeId = employee.id;
+    this.salaryBusy = false;
+    this.salaryForm = {
+      salary: Number(employee?.salary ?? 0),
+    };
+  }
+
+  closeSalaryDialog(): void {
+    if (this.salaryBusy) {
+      return;
+    }
+
+    this.salaryEmployeeId = null;
+  }
+
+  submitSalary(): void {
+    if (this.salaryEmployeeId === null) {
+      return;
+    }
+
+    const salary = Number(this.salaryForm.salary);
+    if (!Number.isFinite(salary) || salary < 0) {
+      this.errorMessage = 'Invalid salary value.';
+      return;
+    }
+
+    this.mutatingEmployeeId = this.salaryEmployeeId;
+    this.salaryBusy = true;
+    this.employeesService.updateSalary(this.salaryEmployeeId, salary).subscribe({
+      next: () => {
+        this.successMessage = 'Salary updated.';
+        this.salaryEmployeeId = null;
+        this.loadEmployees();
+      },
+      error: (err) => {
+        this.errorMessage = err?.error?.message || 'Failed to update salary.';
+      },
+      complete: () => {
+        this.mutatingEmployeeId = null;
+        this.salaryBusy = false;
+      },
     });
   }
 

@@ -5,7 +5,7 @@
       <span class="badge">{{ rows.length }}</span>
       <button type="button" class="add-btn" (click)="clockIn()" [disabled]="busy">Clock In</button>
       <button type="button" class="add-btn secondary" (click)="clockOut()" [disabled]="busy">Clock Out</button>
-      <button *ngIf="isCompanyAdmin" type="button" class="add-btn outline" (click)="showOverrideForm = !showOverrideForm">
+      <button *ngIf="canOverrideAttendance" type="button" class="add-btn outline" (click)="showOverrideForm = !showOverrideForm">
         {{ showOverrideForm ? 'Cancel Override' : 'HR Override' }}
       </button>
     </div>
@@ -26,9 +26,13 @@
   </section>
 
   <table>
-    <thead><tr><th>Date</th><th>Clock In</th><th>Clock Out</th><th>Hours</th><th>Status</th></tr></thead>
+    <thead><tr><th>Employee</th><th>Date</th><th>Clock In</th><th>Clock Out</th><th>Hours</th><th>Status</th></tr></thead>
     <tbody>
       <tr *ngFor="let r of rows">
+        <td class="employee-cell">
+          <div><strong>{{ employeeName(r) }}</strong></div>
+          <div><small>{{ employeeEmail(r) }}</small></div>
+        </td>
         <td>{{ r.date | date }}</td>
         <td>{{ r.clockIn | date:'shortTime' }}</td>
         <td>{{ r.clockOut | date:'shortTime' }}</td>

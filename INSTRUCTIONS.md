@@ -111,3 +111,30 @@ For deeper detail (optional), see:
 - `../docs/PROJECT_STATUS.md`
 - `../docs/RBAC_PERMISSION_MATRIX.md`
 - `../docs/SETUP_STEPS.md`
+
+## 12) Operational Rules (Latest)
+These are enforced UX behaviors and should not be regressed:
+
+- Public auth/signup UX:
+	- `/signup` is public and submits to `POST /api/auth/signup`.
+	- Login page links to signup route.
+
+- Tenant/lead status wording:
+	- Pending lead rows must appear in approvable sections (not archived/deleted sections).
+	- Use friendly labels:
+		- `Pending Approval`
+		- `Suspended - Payment Due`
+	- Keep user-friendly status labels across tenants, leads, invitations, and company payments pages.
+
+- Leave and attendance identity rendering:
+	- For approval/list views, render clear employee identity using first name + unique email.
+	- Attendance page must use fallback employee directory mapping when nested user data is missing.
+	- Name display is first-name focused (avoid role-like suffixes in display text).
+
+- HR Manager/Team Lead workflow UX:
+	- `HR_MANAGER` must see Leave and Attendance navigation.
+	- Leave approvals available for `COMPANY_ADMIN`, `HR_MANAGER`, and `TEAM_LEAD` (with backend scope checks).
+
+- Employee delete UX guard:
+	- In employee table, delete action for `COMPANY_ADMIN` targets is disabled for company admin users.
+	- Tooltip/message must clearly state only super admin can delete company admin users.

@@ -53,3 +53,14 @@
     </tbody>
   </table>
 </section>
+
+<app-confirm-dialog
+  *ngIf="pendingAction"
+  [title]="confirmDialogTitle"
+  [message]="confirmDialogMessage"
+  [confirmText]="confirmDialogText"
+  [tone]="confirmDialogTone"
+  [busy]="confirmBusy"
+  (cancel)="closeConfirmDialog()"
+  (confirm)="confirmAction()">
+</app-confirm-dialog>

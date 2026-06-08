@@ -1,11 +1,19 @@
 <section class="header">
   <div>
     <h1>Company Payments</h1>
-    <p>Billing overview across all tenant companies.</p>
+    <p>Seat-based billing overview across all tenant companies in Sri Lankan rupees.</p>
   </div>
-  <button class="refresh" (click)="loadData()" [disabled]="loading()">
-    {{ loading() ? 'Refreshing...' : 'Refresh' }}
-  </button>
+  <div class="header-actions">
+    <button class="refresh" (click)="runDailySchedule()" [disabled]="runningDailySchedule()">
+      {{ runningDailySchedule() ? 'Running...' : 'Run Daily Reminder Job' }}
+    </button>
+    <button class="refresh" (click)="openAllReminderDialog()" [disabled]="overdueRows().length === 0 || sendingAll()">
+      {{ sendingAll() ? 'Sending...' : 'Send All Overdue Reminders' }}
+    </button>
+    <button class="refresh" (click)="loadData()" [disabled]="loading()">
+      {{ loading() ? 'Refreshing...' : 'Refresh' }}
+    </button>
+  </div>
 </section>
 
 <div class="summary" *ngIf="!loading() && rows().length > 0">
@@ -15,11 +23,18 @@
   </div>
   <div class="card">
     <span class="label">Total due this cycle</span>
-    <strong>{{ totalRevenueDue() | currency:'USD':'symbol':'1.2-2' }}</strong>
+    <strong>{{ totalRevenueDue() | currency:'LKR':'symbol':'1.0-0' }}</strong>
+  </div>
+  <div class="card">
+    <span class="label">Overdue companies</span>
+    <strong>{{ overdueRows().length }}</strong>
   </div>
 </div>
 
 <div class="alert error" *ngIf="errorMessage()">{{ errorMessage() }}</div>
+<div class="alert" [class.error]="actionType() === 'error'" [class.success]="actionType() === 'success'" *ngIf="actionMessage()">
+  {{ actionMessage() }}
+</div>
 <div class="loading" *ngIf="loading()">Loading payment data...</div>
 
 <div class="table-shell" *ngIf="!loading()">
@@ -33,10 +48,12 @@
         <th>Seats</th>
         <th>Employees</th>
         <th>Overage</th>
+        <th>Seat Price</th>
         <th>Subtotal</th>
-        <th>Tax</th>
+        <th>VAT</th>
         <th>Total Due</th>
         <th>Renewal</th>
+        <th>Actions</th>
       </tr>
     </thead>
     <tbody>
@@ -46,19 +63,94 @@
           <div class="muted">{{ row.tenantId }}</div>
         </td>
         <td>{{ row.plan }}</td>
-        <td>{{ row.status }}</td>
-        <td><span [class]="statusClass(row.billingStatus)">{{ row.billingStatus }}</span></td>
+        <td>{{ tenantStatusLabel(row.status) }}</td>
+        <td><span [class]="statusClass(row.billingStatus)">{{ billingStatusLabel(row.billingStatus) }}</span></td>
         <td>{{ row.includedSeats }}</td>
         <td>{{ row.activeEmployees }}</td>
         <td>{{ row.overageSeats }}</td>
-        <td>{{ row.subtotal | currency:'USD':'symbol':'1.2-2' }}</td>
-        <td>{{ row.tax | currency:'USD':'symbol':'1.2-2' }}</td>
-        <td class="due">{{ row.totalDue | currency:'USD':'symbol':'1.2-2' }}</td>
+        <td>{{ row.seatPrice | currency:'LKR':'symbol':'1.0-0' }}</td>
+        <td>{{ row.subtotal | currency:'LKR':'symbol':'1.0-0' }}</td>
+        <td>{{ row.tax | currency:'LKR':'symbol':'1.0-0' }}</td>
+        <td class="due">{{ row.totalDue | currency:'LKR':'symbol':'1.0-0' }}</td>
         <td>{{ row.renewalDate | date:'mediumDate' }}</td>
+        <td>
+          <button
+            type="button"
+            class="settings-btn"
+            (click)="openSettingsDialog(row)">
+            Settings
+          </button>
+          <button
+            type="button"
+            class="reminder-btn"
+            *ngIf="row.billingStatus === 'OVERDUE'"
+            [disabled]="remindingTenantId() === row.tenantId"
+            (click)="openSingleReminderDialog(row)">
+            {{ remindingTenantId() === row.tenantId ? 'Sending...' : 'Send Reminder' }}
+          </button>
+          <span *ngIf="row.billingStatus !== 'OVERDUE'">-</span>
+        </td>
       </tr>
       <tr *ngIf="rows().length === 0">
-        <td colspan="11" class="empty">No tenants found.</td>
+        <td colspan="13" class="empty">No tenants found.</td>
       </tr>
     </tbody>
   </table>
 </div>
+
+<app-confirm-dialog
+  *ngIf="confirmDialog()"
+  [title]="confirmDialog()?.mode === 'all' ? 'Send overdue reminders to all?' : 'Send overdue reminder?'"
+  [message]="confirmDialog()?.mode === 'all'
+    ? ('Send payment reminders to all overdue companies (' + overdueRows().length + ')?')
+    : ('Send overdue payment reminder to ' + (confirmDialog()?.row?.companyName || 'this company') + '?')"
+  [detail]="'This sends reminder emails to company admin users.'"
+  confirmText="Send reminder"
+  tone="primary"
+  [busy]="sendingAll() || remindingTenantId() !== null"
+  (cancel)="closeConfirmDialog()"
+  (confirm)="confirmReminderAction()">
+</app-confirm-dialog>
+
+<app-edit-dialog-shell
+  *ngIf="settingsTenant()"
+  title="Billing Reminder Settings"
+  [subtitle]="'Customize reminder contacts and templates for ' + (settingsTenant()?.companyName || '')"
+  submitText="Save settings"
+  [busy]="settingsSaving()"
+  [disableSubmit]="settingsLoading()"
+  (cancel)="closeSettingsDialog()"
+  (submitForm)="saveSettings()">
+  <div class="settings-grid" *ngIf="!settingsLoading(); else settingsLoadingTpl">
+    <label class="switch-row">
+      <input [(ngModel)]="settingsForm.enabled" name="billingEnabled" type="checkbox" />
+      Enable automatic reminders
+    </label>
+
+    <label>
+      Reminder days (comma separated, example: 7,3,1,0)
+      <input [(ngModel)]="settingsForm.reminderDaysCsv" name="reminderDaysCsv" type="text" />
+    </label>
+
+    <label>
+      Custom recipient emails (comma separated)
+      <input [(ngModel)]="settingsForm.recipientEmailsCsv" name="recipientEmailsCsv" type="text" />
+    </label>
+
+    <label>
+      Subject template (optional)
+      <input [(ngModel)]="settingsForm.subjectTemplate" name="subjectTemplate" type="text" />
+      <small>Placeholders: {{ '{{companyName}}' }}, {{ '{{fullName}}' }}, {{ '{{totalDue}}' }}, {{ '{{renewalDate}}' }}, {{ '{{loginUrl}}' }}, {{ '{{daysLeft}}' }}</small>
+    </label>
+
+    <label>
+      Body template (optional HTML/text)
+      <textarea [(ngModel)]="settingsForm.bodyTemplate" name="bodyTemplate" rows="6"></textarea>
+      <small>Supports same placeholders as subject.</small>
+    </label>
+  </div>
+
+  <ng-template #settingsLoadingTpl>
+    <p class="loading">Loading settings...</p>
+  </ng-template>
+</app-edit-dialog-shell>

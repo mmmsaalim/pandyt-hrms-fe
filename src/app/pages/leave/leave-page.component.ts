@@ -16,7 +16,7 @@ interface LeaveRow {
     employeeCode?: string;
     department?: string;
     designation?: string;
-    user?: { firstName?: string; lastName?: string };
+    user?: { firstName?: string; lastName?: string; email?: string };
   };
 }
 
@@ -48,7 +48,7 @@ export class LeavePageComponent implements OnInit {
 
   ngOnInit(): void {
     const roles = this.auth.user()?.roles ?? [];
-    this.canApproveLeave = roles.includes('COMPANY_ADMIN') || roles.includes('HR_MANAGER');
+    this.canApproveLeave = roles.includes('COMPANY_ADMIN') || roles.includes('HR_MANAGER') || roles.includes('TEAM_LEAD');
     this.loadRows();
     this.loadBalances();
     this.loadLeaveTypes();
@@ -67,8 +67,11 @@ export class LeavePageComponent implements OnInit {
 
   employeeName(row: LeaveRow): string {
     const fn = row.employee?.user?.firstName ?? '';
-    const ln = row.employee?.user?.lastName ?? '';
-    return `${fn} ${ln}`.trim() || 'Employee';
+    return fn.trim() || 'Employee';
+  }
+
+  employeeEmail(row: LeaveRow): string {
+    return row.employee?.user?.email?.trim() || 'No email';
   }
 
   applyLeave(): void {

@@ -1,6 +1,5 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
-import { FormsModule } from '@angular/forms';
 import { TenantsService } from '../../core/services/tenants.service';
 
 type LeadStatus = 'PENDING' | 'CONVERTED' | 'DELETED';
@@ -26,7 +25,7 @@ type LeadRow = {
 @Component({
   selector: 'app-leads-page',
   standalone: true,
-  imports: [CommonModule, DatePipe, FormsModule],
+  imports: [CommonModule, DatePipe],
   templateUrl: './leads-page.component.html',
   styleUrl: './leads-page.component.scss',
 })
@@ -34,7 +33,6 @@ export class LeadsPageComponent implements OnInit {
   readonly rows = signal<LeadRow[]>([]);
   readonly loading = signal(true);
   readonly errorMsg = signal('');
-  statusFilter: 'ALL' | LeadStatus = 'ALL';
 
   constructor(private readonly tenantsService: TenantsService) {}
 
@@ -46,8 +44,7 @@ export class LeadsPageComponent implements OnInit {
     this.loading.set(true);
     this.errorMsg.set('');
 
-    const status = this.statusFilter === 'ALL' ? undefined : this.statusFilter;
-    this.tenantsService.leads(status).subscribe({
+    this.tenantsService.leads().subscribe({
       next: (res) => {
         this.rows.set(res as LeadRow[]);
         this.loading.set(false);
@@ -59,6 +56,69 @@ export class LeadsPageComponent implements OnInit {
     });
   }
 
+  activeRows(): LeadRow[] {
+    return this.rows().filter((row) => row.leadStatus === 'PENDING' || row.status === 'ACTIVE');
+  }
+
+  deletedRows(): LeadRow[] {
+    return this.rows().filter((row) => row.leadStatus === 'DELETED' || (row.status === 'SUSPENDED' && row.leadStatus !== 'PENDING'));
+  }
+
+  private friendlyStatus(value: string): string {
+    switch (value) {
+      case 'ACTIVE':
+        return 'Active';
+      case 'PENDING':
+        return 'Pending';
+      case 'CONVERTED':
+        return 'Approved';
+      case 'DELETED':
+        return 'Deleted';
+      case 'SUSPENDED':
+        return 'Suspended';
+      case 'ACCEPTED':
+        return 'Accepted';
+      case 'EXPIRED':
+        return 'Expired';
+      case 'REVOKED':
+        return 'Revoked';
+      default:
+        return value;
+    }
+  }
+
+  leadStatusLabel(status: LeadStatus): string {
+    return this.friendlyStatus(status);
+  }
+
+  invitationStatusLabel(status: 'PENDING' | 'ACCEPTED' | 'EXPIRED' | 'REVOKED'): string {
+    return this.friendlyStatus(status);
+  }
+
+  tenantStatusLabel(row: Pick<LeadRow, 'status' | 'leadStatus'>): string {
+    if (row.leadStatus === 'PENDING') {
+      return 'Pending Approval';
+    }
+
+    if (row.status === 'SUSPENDED' && row.leadStatus === 'CONVERTED') {
+      return 'Suspended - Payment Due';
+    }
+
+    return this.friendlyStatus(row.status);
+  }
+
+  tenantStatusToken(row: Pick<LeadRow, 'status' | 'leadStatus'>): string {
+    if (row.leadStatus === 'PENDING') {
+      return 'PENDING';
+    }
+
+    if (row.status === 'SUSPENDED' && row.leadStatus === 'CONVERTED') {
+      return 'SUSPENDED_PAYMENT';
+    }
+
+    return row.status;
+  }
+
   badgeClass(value: string): string {
     switch (value) {
       case 'CONVERTED':
@@ -66,10 +126,13 @@ export class LeadsPageComponent implements OnInit {
       case 'ACTIVE':
         return 'badge success';
       case 'PENDING':
+      case 'Pending Approval':
         return 'badge pending';
       case 'DELETED':
       case 'REVOKED':
       case 'SUSPENDED':
+      case 'Suspended - Payment Due':
+      case 'SUSPENDED_PAYMENT':
         return 'badge danger';
       default:
         return 'badge neutral';

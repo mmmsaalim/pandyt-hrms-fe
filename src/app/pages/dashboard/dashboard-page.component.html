@@ -133,7 +133,7 @@
       <div class="panel-head">
         <div>
           <h3>This week attendance</h3>
-          <p>Present vs baseline capacity</p>
+          <p>Recorded attendance entries by weekday</p>
         </div>
       </div>
 
@@ -141,6 +141,22 @@
         <div class="bar-col" *ngFor="let value of attendance; let i = index">
           <span class="bar" [style.height.px]="attendanceHeight(value)"></span>
           <label>{{ attendanceLabels[i] }}</label>
+        </div>
+      </div>
+    </article>
+
+    <article class="panel attendance-panel">
+      <div class="panel-head">
+        <div>
+          <h3>Payroll activity</h3>
+          <p>Processed payroll runs by month</p>
+        </div>
+      </div>
+
+      <div class="bars">
+        <div class="bar-col" *ngFor="let value of payrollSeries; let i = index">
+          <span class="bar payroll-bar" [style.height.px]="attendanceHeight(value * 28 + 24)"></span>
+          <label>{{ payrollLabels[i] }}</label>
         </div>
       </div>
     </article>

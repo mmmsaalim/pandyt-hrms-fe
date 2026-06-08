@@ -1,0 +1,23 @@
+<div class="dialog-backdrop" (click)="onBackdropClick()">
+  <section class="dialog" (click)="$event.stopPropagation()">
+    <header class="dialog-head">
+      <h3>{{ title }}</h3>
+    </header>
+
+    <p class="message">{{ message }}</p>
+    <p class="detail" *ngIf="detail">{{ detail }}</p>
+
+    <footer class="actions">
+      <button type="button" class="btn cancel" (click)="cancel.emit()" [disabled]="busy">{{ cancelText }}</button>
+      <button
+        type="button"
+        class="btn"
+        [class.danger]="tone === 'danger'"
+        [class.primary]="tone === 'primary'"
+        (click)="confirm.emit()"
+        [disabled]="busy">
+        {{ busy ? 'Working...' : confirmText }}
+      </button>
+    </footer>
+  </section>
+</div>

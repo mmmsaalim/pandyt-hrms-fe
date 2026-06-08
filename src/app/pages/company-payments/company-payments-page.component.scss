@@ -11,12 +11,17 @@
 
   p {
     margin: 0.25rem 0 0;
-    color: #6b7280;
+    color: #7a4f2f;
   }
 }
 
+.header-actions {
+  display: flex;
+  gap: 0.55rem;
+}
+
 .refresh {
-  border: 1px solid #d1d5db;
+  border: 1px solid #f3c9ab;
   background: #fff;
   border-radius: 0.5rem;
   padding: 0.5rem 0.9rem;
@@ -37,21 +42,21 @@
 }
 
 .card {
-  border: 1px solid #e5e7eb;
+  border: 1px solid #f3dcc8;
   border-radius: 0.75rem;
   padding: 0.75rem 0.9rem;
-  background: #fff;
+  background: linear-gradient(180deg, #fff9f4 0%, #fff 100%);
 
   .label {
     display: block;
     font-size: 0.8rem;
-    color: #6b7280;
+    color: #7a4f2f;
     margin-bottom: 0.35rem;
   }
 
   strong {
     font-size: 1.1rem;
-    color: #111827;
+    color: #1f130d;
   }
 }
 
@@ -69,9 +74,18 @@
   margin-bottom: 0.75rem;
 }
 
+.alert.success {
+  border: 1px solid #bbf7d0;
+  background: #dcfce7;
+  color: #166534;
+  border-radius: 0.5rem;
+  padding: 0.65rem 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
 .table-shell {
   overflow-x: auto;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #f3dcc8;
   border-radius: 0.75rem;
   background: #fff;
 }
@@ -91,8 +105,8 @@ table {
   }
 
   th {
-    background: #f9fafb;
-    color: #374151;
+    background: #fff4eb;
+    color: #6f3f1b;
     font-weight: 700;
   }
 }
@@ -102,7 +116,7 @@ table {
 }
 
 .muted {
-  color: #9ca3af;
+  color: #a06a45;
   font-size: 0.75rem;
 }
 
@@ -131,6 +145,66 @@ table {
 
 .due {
   font-weight: 700;
+}
+
+.reminder-btn {
+  border: 0;
+  border-radius: 8px;
+  padding: 0.35rem 0.6rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-size: 0.78rem;
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.reminder-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.settings-btn {
+  border: 0;
+  border-radius: 8px;
+  padding: 0.35rem 0.6rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-size: 0.78rem;
+  background: #f3f4f6;
+  color: #1f2937;
+  margin-right: 0.4rem;
+}
+
+.settings-grid {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.settings-grid label {
+  display: grid;
+  gap: 0.32rem;
+  color: #374151;
+  font-size: 0.84rem;
+}
+
+.settings-grid input,
+.settings-grid textarea {
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 0.45rem 0.55rem;
+  background: #fff;
+}
+
+.settings-grid small {
+  color: #6b7280;
+  font-size: 0.75rem;
+}
+
+.switch-row {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
 }
 
 .empty {

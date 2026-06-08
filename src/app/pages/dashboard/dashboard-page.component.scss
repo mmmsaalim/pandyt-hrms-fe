@@ -285,6 +285,11 @@
 	box-shadow: 0 8px 16px rgba(244, 116, 33, 0.24);
 }
 
+.payroll-bar {
+	background: linear-gradient(180deg, #ffb26e 0%, #f46f21 100%);
+	box-shadow: 0 8px 16px rgba(244, 111, 33, 0.2);
+}
+
 .approval-row {
 	display: grid;
 	grid-template-columns: auto 1fr auto;

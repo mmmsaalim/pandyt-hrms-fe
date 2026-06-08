@@ -25,9 +25,9 @@
       <tr *ngFor="let row of invitations()">
         <td>{{ row.name }}</td>
         <td>{{ row.email }}</td>
-        <td>{{ row.role }}</td>
+        <td>{{ roleLabel(row.role) }}</td>
         <td>{{ row.company?.name ?? '—' }}</td>
-        <td><span [class]="statusClass(row.status)">{{ row.status }}</span></td>
+        <td><span [class]="statusClass(row.status)">{{ statusLabel(row.status) }}</span></td>
         <td>{{ row.invitedAt | date:'short' }}</td>
         <td>{{ row.expiresAt | date:'short' }}</td>
         <td>

@@ -57,15 +57,79 @@
         <td>{{ e.user?.firstName }} {{ e.user?.lastName }}</td>
         <td>{{ e.department }}</td>
         <td>{{ e.designation }}</td>
-        <td>{{ e.salary ? ('LKR ' + e.salary) : '—' }}</td>
+        <td>{{ e.salary !== null && e.salary !== undefined ? ('LKR ' + e.salary) : '—' }}</td>
         <td><span class="badge">{{ e.employmentStatus }}</span></td>
         <td class="row-actions" *ngIf="isCompanyAdmin">
           <button type="button" class="action-btn edit" (click)="editEmployee(e)" [disabled]="isBusy(e.id)">Edit</button>
           <button type="button" class="action-btn edit" (click)="editSalary(e)" [disabled]="isBusy(e.id)">Salary</button>
           <button type="button" class="action-btn" (click)="exportEmployee(e)" [disabled]="isBusy(e.id)">Export</button>
-          <button type="button" class="action-btn delete" (click)="deleteEmployee(e)" [disabled]="isBusy(e.id)">Delete</button>
+          <button
+            type="button"
+            class="action-btn delete"
+            (click)="deleteEmployee(e)"
+            [disabled]="isBusy(e.id) || !canDeleteEmployee(e)"
+            [title]="!canDeleteEmployee(e) ? 'Only SUPER_ADMIN can delete COMPANY_ADMIN users.' : 'Delete employee'">
+            Delete
+          </button>
         </td>
       </tr>
     </tbody>
   </table>
 </section>
+
+<app-edit-dialog-shell
+  *ngIf="editingEmployeeId !== null"
+  title="Edit Employee"
+  subtitle="Update department, designation and status"
+  submitText="Save changes"
+  [busy]="editBusy"
+  [disableSubmit]="!editForm.department.trim() || !editForm.designation.trim()"
+  (cancel)="closeEmployeeEditDialog()"
+  (submitForm)="submitEmployeeEdit()">
+  <div class="dialog-grid">
+    <label>
+      Department
+      <input [(ngModel)]="editForm.department" name="editDepartment" type="text" />
+    </label>
+    <label>
+      Designation
+      <input [(ngModel)]="editForm.designation" name="editDesignation" type="text" />
+    </label>
+    <label>
+      Employment status
+      <select [(ngModel)]="editForm.employmentStatus" name="editEmploymentStatus">
+        <option value="ACTIVE">ACTIVE</option>
+        <option value="ON_PROBATION">ON_PROBATION</option>
+        <option value="INACTIVE">INACTIVE</option>
+      </select>
+    </label>
+  </div>
+</app-edit-dialog-shell>
+
+<app-edit-dialog-shell
+  *ngIf="salaryEmployeeId !== null"
+  title="Update Salary"
+  subtitle="Set monthly salary in LKR"
+  submitText="Update salary"
+  [busy]="salaryBusy"
+  [disableSubmit]="salaryForm.salary < 0"
+  (cancel)="closeSalaryDialog()"
+  (submitForm)="submitSalary()">
+  <div class="dialog-grid">
+    <label>
+      Salary (LKR)
+      <input [(ngModel)]="salaryForm.salary" name="editSalaryAmount" type="number" min="0" step="0.01" />
+    </label>
+  </div>
+</app-edit-dialog-shell>
+
+<app-confirm-dialog
+  *ngIf="deleteTarget"
+  title="Delete employee?"
+  [message]="'Delete ' + (deleteTarget?.user?.firstName || 'this employee') + '? This removes the employee record.'"
+  confirmText="Delete employee"
+  tone="danger"
+  [busy]="confirmBusy"
+  (cancel)="closeDeleteDialog()"
+  (confirm)="confirmDeleteEmployee()">
+</app-confirm-dialog>

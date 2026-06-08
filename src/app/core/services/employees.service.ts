@@ -44,7 +44,7 @@ export class EmployeesService {
   }
 
   exportEmployee(id: number) {
-    return this.http.get(`${environment.apiUrl}/employees/${id}/export`);
+    return this.http.get(`${environment.apiUrl}/employees/${id}/export-data`);
   }
 
   updateSalary(id: number, salary: number) {

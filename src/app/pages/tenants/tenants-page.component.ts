@@ -3,11 +3,13 @@ import { NgFor, NgIf } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TenantsService } from '../../core/services/tenants.service';
 import { ActivatedRoute } from '@angular/router';
+import { ConfirmDialogComponent } from '../../shared/dialogs/confirm-dialog.component';
+import { EditDialogShellComponent } from '../../shared/dialogs/edit-dialog-shell.component';
 
 @Component({
   selector: 'app-tenants-page',
   standalone: true,
-  imports: [NgFor, NgIf, FormsModule],
+  imports: [NgFor, NgIf, FormsModule, ConfirmDialogComponent, EditDialogShellComponent],
   templateUrl: './tenants-page.component.html',
   styleUrl: './tenants-page.component.scss',
 })
@@ -19,6 +21,24 @@ export class TenantsPageComponent implements OnInit {
   errorMessage = '';
   successMessage = '';
   createdCompanyCode = '';
+  tenantEditBusy = false;
+  editingTenantId: number | null = null;
+  editTenantForm = {
+    name: '',
+    companyCode: '',
+    plan: '',
+    seats: 1,
+  };
+  confirmBusy = false;
+  confirmDialog: {
+    mode: 'approve' | 'delete';
+    tenant: any;
+    title: string;
+    message: string;
+    detail: string;
+    confirmText: string;
+    tone: 'primary' | 'danger';
+  } | null = null;
   form = {
     companyName: '',
     companyCode: '',
@@ -43,6 +63,57 @@ export class TenantsPageComponent implements OnInit {
 
   loadRows(): void {
     this.tenantsService.list().subscribe((res: any) => (this.rows = res));
+  }
+
+  get activeRows(): any[] {
+    return this.rows.filter((row) => row.leadStatus === 'PENDING' || row.status === 'ACTIVE');
+  }
+
+  get archivedRows(): any[] {
+    return this.rows.filter((row) => row.leadStatus === 'DELETED' || (row.status === 'SUSPENDED' && row.leadStatus !== 'PENDING'));
+  }
+
+  private friendlyStatus(value: string): string {
+    switch (value) {
+      case 'ACTIVE':
+        return 'Active';
+      case 'PENDING':
+        return 'Pending';
+      case 'INACTIVE':
+        return 'Inactive';
+      case 'CONVERTED':
+        return 'Approved';
+      case 'DELETED':
+        return 'Deleted';
+      case 'SUSPENDED':
+        return 'Suspended';
+      default:
+        return value;
+    }
+  }
+
+  leadStatusLabel(leadStatus: string): string {
+    return this.friendlyStatus(leadStatus);
+  }
+
+  tenantStatusLabel(row: { status: string; leadStatus: string }): string {
+    if (row.leadStatus === 'PENDING') {
+      return 'Pending Approval';
+    }
+
+    if (row.status === 'SUSPENDED' && row.leadStatus === 'CONVERTED') {
+      return 'Suspended - Payment Due';
+    }
+
+    return this.friendlyStatus(row.status);
+  }
+
+  adminStatusLabel(status?: string): string {
+    if (!status) {
+      return '-';
+    }
+
+    return this.friendlyStatus(status);
   }
 
   isBusy(id: number): boolean {
@@ -140,6 +211,18 @@ export class TenantsPageComponent implements OnInit {
   }
 
   approveTenant(row: any): void {
+    this.confirmDialog = {
+      mode: 'approve',
+      tenant: row,
+      title: 'Approve tenant and sync access?',
+      message: `Approve ${row?.name}? Tenant admin accounts will be activated and access will be synced.`,
+      detail: 'After approval, tenant users can sign in normally.',
+      confirmText: 'Approve / Sync',
+      tone: 'primary',
+    };
+  }
+
+  private runApproveTenant(row: any): void {
     this.mutatingTenantId = row.id;
     this.errorMessage = '';
     this.successMessage = '';
@@ -147,6 +230,7 @@ export class TenantsPageComponent implements OnInit {
     this.tenantsService.approveTenant(row.id).subscribe({
       next: () => {
         this.successMessage = `${row.name} approved and access synced. Tenant admin can now log in.`;
+        this.confirmDialog = null;
         this.loadRows();
       },
       error: (err) => {
@@ -154,51 +238,57 @@ export class TenantsPageComponent implements OnInit {
       },
       complete: () => {
         this.mutatingTenantId = null;
+        this.confirmBusy = false;
       },
     });
   }
 
   editTenant(row: any): void {
-    const nextName = window.prompt('Tenant name', row?.name ?? '');
-    if (nextName === null) {
+    this.editingTenantId = row.id;
+    this.tenantEditBusy = false;
+    this.editTenantForm = {
+      name: row?.name ?? '',
+      companyCode: row?.companyCode ?? '',
+      plan: row?.plan ?? '',
+      seats: Number(row?.seats ?? 1),
+    };
+  }
+
+  closeTenantEditDialog(): void {
+    if (this.tenantEditBusy) {
       return;
     }
 
-    const nextPlan = window.prompt('Subscription plan', row?.plan ?? '');
-    if (nextPlan === null) {
+    this.editingTenantId = null;
+  }
+
+  submitTenantEdit(): void {
+    if (this.editingTenantId === null) {
       return;
     }
 
-    const nextCompanyCode = window.prompt('Company code', row?.companyCode ?? '');
-    if (nextCompanyCode === null) {
-      return;
-    }
-
-    const nextSeatsRaw = window.prompt('Seats', String(row?.seats ?? 1));
-    if (nextSeatsRaw === null) {
-      return;
-    }
-
-    const nextSeats = Number(nextSeatsRaw);
+    const nextSeats = Number(this.editTenantForm.seats);
     if (!Number.isFinite(nextSeats) || nextSeats < 1) {
       this.errorMessage = 'Seats must be a valid number greater than 0.';
       return;
     }
 
-    this.mutatingTenantId = row.id;
+    this.mutatingTenantId = this.editingTenantId;
+    this.tenantEditBusy = true;
     this.errorMessage = '';
     this.successMessage = '';
 
     this.tenantsService
-      .updateTenant(row.id, {
-        name: nextName.trim(),
-        companyCode: nextCompanyCode.trim() || undefined,
-        plan: nextPlan.trim(),
+      .updateTenant(this.editingTenantId, {
+        name: this.editTenantForm.name.trim(),
+        companyCode: this.editTenantForm.companyCode.trim() || undefined,
+        plan: this.editTenantForm.plan.trim(),
         seats: Math.floor(nextSeats),
       })
       .subscribe({
         next: () => {
-          this.successMessage = `${row.name} updated successfully.`;
+          this.successMessage = `${this.editTenantForm.name || 'Tenant'} updated successfully.`;
+          this.editingTenantId = null;
           this.loadRows();
         },
         error: (err) => {
@@ -206,15 +296,41 @@ export class TenantsPageComponent implements OnInit {
         },
         complete: () => {
           this.mutatingTenantId = null;
+          this.tenantEditBusy = false;
         },
       });
   }
 
   deleteTenant(row: any): void {
-    const confirmed = window.confirm(
-      `Delete ${row?.name}? This will suspend the tenant and mark lead status as deleted.`,
-    );
-    if (!confirmed) {
+    this.confirmDialog = {
+      mode: 'delete',
+      tenant: row,
+      title: 'Delete tenant?',
+      message: `Delete ${row?.name}? This action suspends the tenant and marks lead status as deleted.`,
+      detail: 'Suspended tenant users cannot sign in.',
+      confirmText: 'Delete tenant',
+      tone: 'danger',
+    };
+  }
+
+  closeConfirmDialog(): void {
+    if (this.confirmBusy) {
+      return;
+    }
+
+    this.confirmDialog = null;
+  }
+
+  confirmAction(): void {
+    if (!this.confirmDialog) {
+      return;
+    }
+
+    this.confirmBusy = true;
+    const row = this.confirmDialog.tenant;
+
+    if (this.confirmDialog.mode === 'approve') {
+      this.runApproveTenant(row);
       return;
     }
 
@@ -224,7 +340,8 @@ export class TenantsPageComponent implements OnInit {
 
     this.tenantsService.deleteTenant(row.id).subscribe({
       next: () => {
-        this.successMessage = `${row.name} deleted successfully.`;
+        this.successMessage = `${row.name} deleted successfully. Tenant users are now suspended from sign-in.`;
+        this.confirmDialog = null;
         this.loadRows();
       },
       error: (err) => {
@@ -232,6 +349,7 @@ export class TenantsPageComponent implements OnInit {
       },
       complete: () => {
         this.mutatingTenantId = null;
+        this.confirmBusy = false;
       },
     });
   }

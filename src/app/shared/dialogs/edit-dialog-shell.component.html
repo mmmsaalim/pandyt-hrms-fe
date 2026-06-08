@@ -1,0 +1,18 @@
+<div class="dialog-backdrop" (click)="cancel.emit()">
+  <section class="dialog" (click)="$event.stopPropagation()">
+    <header class="dialog-head">
+      <h3>{{ title }}</h3>
+      <p *ngIf="subtitle">{{ subtitle }}</p>
+    </header>
+
+    <form (ngSubmit)="submitForm.emit()">
+      <div class="content">
+        <ng-content></ng-content>
+      </div>
+      <footer class="actions">
+        <button type="button" class="btn cancel" (click)="cancel.emit()" [disabled]="busy">{{ cancelText }}</button>
+        <button type="submit" class="btn primary" [disabled]="busy || disableSubmit">{{ busy ? 'Saving...' : submitText }}</button>
+      </footer>
+    </form>
+  </section>
+</div>

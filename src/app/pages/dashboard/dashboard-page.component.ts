@@ -63,10 +63,12 @@ interface ApprovalCard {
   styleUrl: './dashboard-page.component.scss',
 })
 export class DashboardPageComponent implements OnInit {
-  readonly months = ['Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr', 'May'];
-  readonly growthSeries = [182, 189, 197, 205, 214, 228, 238];
-  readonly attendance = [223, 226, 224, 220, 216];
-  readonly attendanceLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+  months = ['Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr', 'May'];
+  growthSeries = [182, 189, 197, 205, 214, 228, 238];
+  attendance = [223, 226, 224, 220, 216];
+  attendanceLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+  payrollSeries = [0, 0, 0, 0, 0, 0, 0];
+  payrollLabels = ['Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr', 'May'];
 
   stats: StatCard[] = [
     {
@@ -113,18 +115,23 @@ export class DashboardPageComponent implements OnInit {
   ];
 
   readonly split_super = [
-    { label: 'BASIC Plan', value: 8, color: '#f47421' },
-    { label: 'STANDARD Plan', value: 5, color: '#10b7c7' },
-    { label: 'PRO Plan', value: 3, color: '#55bf67' },
-    { label: 'ENTERPRISE', value: 2, color: '#f6a912' },
+    { label: 'Freemium', value: 8, color: '#f47421' },
+    { label: 'Starter', value: 5, color: '#10b7c7' },
+    { label: 'Growth', value: 3, color: '#55bf67' },
+    { label: 'Enterprise', value: 2, color: '#f6a912' },
   ];
 
-  split: typeof this.split_company = this.split_company;
+  split: Array<{ label: string; value: number; color: string }> = [...this.split_company];
 
   approvals: ApprovalCard[] = [];
 
-  readonly donutGradient = this.buildDonutGradient();
-  readonly chartPoints = this.buildChartPoints();
+  get donutGradient(): string {
+    return this.buildDonutGradient(this.split);
+  }
+
+  get chartPoints(): string {
+    return this.buildChartPoints(this.growthSeries);
+  }
 
   greetingName = 'Priya';
   tenantName: string | null = null;
@@ -177,7 +184,13 @@ export class DashboardPageComponent implements OnInit {
     const totalEmployees = Number(data.totalEmployees ?? 0);
     const totalRevenue = Number(data.totalRevenue ?? 0);
 
-    this.split = this.split_super;
+    this.months = Array.isArray(data.months) ? data.months : this.months;
+    this.growthSeries = Array.isArray(data.growthSeries) ? data.growthSeries : this.growthSeries;
+    this.split = Array.isArray(data.splitSeries) ? data.splitSeries : [...this.split_super];
+    this.payrollLabels = Array.isArray(data.payrollLabels) ? data.payrollLabels : this.payrollLabels;
+    this.payrollSeries = Array.isArray(data.payrollRunsSeries)
+      ? data.payrollRunsSeries
+      : this.payrollSeries;
 
     this.stats = [
       {
@@ -220,7 +233,15 @@ export class DashboardPageComponent implements OnInit {
     const payrollRuns = Number(data.payrollRuns ?? 0);
     const leavePending = Number(data.leavePending ?? 0);
 
-    this.split = this.split_company;
+    this.months = Array.isArray(data.months) ? data.months : this.months;
+    this.growthSeries = Array.isArray(data.growthSeries) ? data.growthSeries : this.growthSeries;
+    this.split = Array.isArray(data.splitSeries) ? data.splitSeries : [...this.split_company];
+    this.attendanceLabels = Array.isArray(data.attendanceLabels) ? data.attendanceLabels : this.attendanceLabels;
+    this.attendance = Array.isArray(data.attendanceSeries) ? data.attendanceSeries : this.attendance;
+    this.payrollLabels = Array.isArray(data.payrollLabels) ? data.payrollLabels : this.payrollLabels;
+    this.payrollSeries = Array.isArray(data.payrollRunsSeries)
+      ? data.payrollRunsSeries
+      : this.payrollSeries;
 
     this.stats = [
       {
@@ -362,15 +383,15 @@ export class DashboardPageComponent implements OnInit {
     }
   }
 
-  private buildChartPoints(): string {
-    const max = Math.max(...this.growthSeries);
-    const min = Math.min(...this.growthSeries);
+  private buildChartPoints(series: number[]): string {
+    const max = Math.max(...series);
+    const min = Math.min(...series);
     const width = 100;
     const height = 46;
 
-    return this.growthSeries
+    return series
       .map((value, index) => {
-        const x = (index / (this.growthSeries.length - 1)) * width;
+        const x = series.length > 1 ? (index / (series.length - 1)) * width : 0;
         const normalized = (value - min) / Math.max(max - min, 1);
         const y = height - normalized * (height - 4) - 2;
         return `${x},${y}`;
@@ -378,11 +399,11 @@ export class DashboardPageComponent implements OnInit {
       .join(' ');
   }
 
-  private buildDonutGradient(): string {
-    const total = this.split.reduce((acc, item) => acc + item.value, 0);
+  private buildDonutGradient(items: Array<{ value: number; color: string }>): string {
+    const total = items.reduce((acc, item) => acc + item.value, 0);
     let running = 0;
 
-    return this.split
+    return items
       .map((item) => {
         const start = (running / total) * 100;
         running += item.value;

@@ -52,6 +52,16 @@
   overflow-x: auto;
 }
 
+.section-title {
+  margin: 0.25rem 0 0.7rem;
+  font-size: 0.94rem;
+  color: #6f3f1b;
+}
+
+.section-title.archived {
+  margin-top: 1.2rem;
+}
+
 table {
   width: 100%;
   border-collapse: collapse;

@@ -1,0 +1,68 @@
+:host {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+}
+
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+}
+
+.dialog {
+  width: min(560px, 95vw);
+  border-radius: 14px;
+  border: 1px solid #f1d9c6;
+  background: #ffffff;
+  box-shadow: 0 22px 48px rgba(72, 35, 11, 0.24);
+  padding: 1rem;
+}
+
+.dialog-head h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.dialog-head p {
+  margin: 0.35rem 0 0;
+  font-size: 0.84rem;
+  color: #7a4f2f;
+}
+
+.content {
+  margin-top: 0.9rem;
+}
+
+.actions {
+  margin-top: 1rem;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.btn {
+  border: 0;
+  border-radius: 10px;
+  padding: 0.48rem 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn.cancel {
+  background: #f4f4f5;
+  color: #1f2937;
+}
+
+.btn.primary {
+  background: linear-gradient(180deg, #f68d46 0%, #f47421 100%);
+  color: #fff;
+}
+
+.btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}

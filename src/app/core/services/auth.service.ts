@@ -47,6 +47,18 @@ export class AuthService {
     );
   }
 
+  signup(dto: {
+    companyName: string;
+    companyCode?: string;
+    adminName: string;
+    adminEmail: string;
+  }) {
+    return this.http.post<{ message: string; companyCode: string; requiresApproval: boolean }>(
+      `${environment.apiUrl}/auth/signup`,
+      dto,
+    );
+  }
+
   requestPasswordReset(email: string) {
     return this.http.post<{ message: string }>(`${environment.apiUrl}/auth/password/reset/request`, {
       email,

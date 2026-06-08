@@ -1,0 +1,43 @@
+<div class="auth-shell">
+  <section class="brand-panel">
+    <span class="brand-pill">Pandyt SaaS</span>
+    <h1>Start Free</h1>
+    <p class="lead">Create your FlowHR workspace and submit it for review in minutes.</p>
+    <ul>
+      <li>Free setup request with no payment details required.</li>
+      <li>Your company appears in the lead queue for review.</li>
+      <li>Super admin approval activates your workspace for sign in.</li>
+    </ul>
+  </section>
+
+  <div class="auth-card">
+    <span class="mini-brand">FREE SIGNUP</span>
+    <h2>Create a free workspace request</h2>
+    <p>Your request will go to the lead queue, then super admin approves activation.</p>
+
+    <form [formGroup]="form" (ngSubmit)="submit()">
+      <p *ngIf="errorMessage" class="error">{{ errorMessage }}</p>
+      <p *ngIf="successMessage" class="success">{{ successMessage }}</p>
+
+      <label>Company name</label>
+      <input type="text" formControlName="companyName" placeholder="Acme Holdings" />
+
+      <label>Preferred company code (optional)</label>
+      <input type="text" formControlName="companyCode" placeholder="acme" />
+
+      <label>Admin full name</label>
+      <input type="text" formControlName="adminName" placeholder="Amaal Perera" />
+
+      <label>Admin work email</label>
+      <input type="email" formControlName="adminEmail" placeholder="admin@acme.com" />
+
+      <button type="submit" [disabled]="form.invalid || loading">
+        {{ loading ? 'Submitting...' : 'Submit free signup' }}
+      </button>
+    </form>
+
+    <div class="auth-links">
+      <a routerLink="/login">Back to sign in</a>
+    </div>
+  </div>
+</div>

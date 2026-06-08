@@ -66,6 +66,29 @@ export class InvitationsPageComponent implements OnInit {
     });
   }
 
+  roleLabel(role: string): string {
+    return role
+      .toLowerCase()
+      .split('_')
+      .map((chunk) => chunk.charAt(0).toUpperCase() + chunk.slice(1))
+      .join(' ');
+  }
+
+  statusLabel(status: string): string {
+    switch (status) {
+      case 'PENDING':
+        return 'Pending';
+      case 'ACCEPTED':
+        return 'Accepted';
+      case 'EXPIRED':
+        return 'Expired';
+      case 'REVOKED':
+        return 'Revoked';
+      default:
+        return status;
+    }
+  }
+
   statusClass(status: string): string {
     switch (status) {
       case 'ACCEPTED': return 'badge accepted';

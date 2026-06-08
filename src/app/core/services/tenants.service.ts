@@ -14,6 +14,35 @@ export class TenantsService {
     return this.http.get(`${environment.apiUrl}/tenants/payments/overview`);
   }
 
+  sendOverdueReminder(tenantId: number) {
+    return this.http.post(`${environment.apiUrl}/tenants/payments/${tenantId}/reminder`, {});
+  }
+
+  sendAllOverdueReminders() {
+    return this.http.post(`${environment.apiUrl}/tenants/payments/reminders/overdue`, {});
+  }
+
+  runDailyBillingReminderSchedule() {
+    return this.http.post(`${environment.apiUrl}/tenants/payments/reminders/daily-run`, {});
+  }
+
+  getBillingSettings(tenantId: number) {
+    return this.http.get(`${environment.apiUrl}/tenants/payments/${tenantId}/settings`);
+  }
+
+  updateBillingSettings(
+    tenantId: number,
+    dto: {
+      enabled?: boolean;
+      reminderDays?: number[];
+      recipientEmails?: string[];
+      subjectTemplate?: string;
+      bodyTemplate?: string;
+    },
+  ) {
+    return this.http.patch(`${environment.apiUrl}/tenants/payments/${tenantId}/settings`, dto);
+  }
+
   leads(status?: 'PENDING' | 'CONVERTED' | 'DELETED') {
     const query = status ? `?status=${encodeURIComponent(status)}` : '';
     return this.http.get<any[]>(`${environment.apiUrl}/tenants/leads${query}`);

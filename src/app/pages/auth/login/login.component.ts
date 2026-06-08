@@ -17,9 +17,9 @@ export class LoginComponent {
   errorMessage = '';
 
   readonly form = this.fb.group({
-    companyCode: ['tnt1', [Validators.minLength(1)]],
-    email: ['admin@company.com', [Validators.required, Validators.email]],
-    password: ['admin123', [Validators.required, Validators.minLength(6)]],
+    companyCode: ['', [Validators.minLength(1)]],
+    email: ['', [Validators.required, Validators.email]],
+    password: ['', [Validators.required, Validators.minLength(6)]],
   });
 
   constructor(
