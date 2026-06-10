@@ -18,6 +18,10 @@ interface LeaveRow {
     designation?: string;
     user?: { firstName?: string; lastName?: string; email?: string };
   };
+  approvedBy?: {
+    designation?: string;
+    user?: { firstName?: string; lastName?: string; email?: string };
+  };
 }
 
 @Component({
@@ -72,6 +76,14 @@ export class LeavePageComponent implements OnInit {
 
   employeeEmail(row: LeaveRow): string {
     return row.employee?.user?.email?.trim() || 'No email';
+  }
+
+  actionedByName(row: LeaveRow): string {
+    const user = row.approvedBy?.user;
+    if (!user) return '';
+    const first = user.firstName ?? '';
+    const last = user.lastName ?? '';
+    return `${first} ${last}`.trim() || 'User';
   }
 
   applyLeave(): void {

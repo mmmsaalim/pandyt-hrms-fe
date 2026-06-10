@@ -186,3 +186,22 @@ thead th {
 		grid-template-columns: 1fr;
 	}
 }
+
+.actioned-by-cell {
+	strong {
+		display: block;
+		font-size: 0.9rem;
+		color: #1e293b;
+	}
+
+	small {
+		display: block;
+		margin-top: 0.12rem;
+		color: #6f7f9a;
+		font-size: 0.76rem;
+	}
+}
+
+.text-muted {
+	color: #94a3b8;
+}
