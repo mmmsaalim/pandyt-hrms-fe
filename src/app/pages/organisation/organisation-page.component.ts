@@ -3,11 +3,15 @@ import { NgClass, NgFor, NgIf } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { OrganisationService } from '../../core/services/organisation.service';
 import { AuthService } from '../../core/services/auth.service';
+import { ConfirmDialogComponent } from '../../shared/dialogs/confirm-dialog.component';
+import { EditDialogShellComponent } from '../../shared/dialogs/edit-dialog-shell.component';
+
+type DeleteTarget = { type: 'location' | 'department' | 'team'; item: any };
 
 @Component({
   selector: 'app-organisation-page',
   standalone: true,
-  imports: [NgFor, NgIf, NgClass, FormsModule],
+  imports: [NgFor, NgIf, NgClass, FormsModule, ConfirmDialogComponent, EditDialogShellComponent],
   templateUrl: './organisation-page.component.html',
   styleUrl: './organisation-page.component.scss',
 })
@@ -21,6 +25,7 @@ export class OrganisationPageComponent implements OnInit {
   message = '';
   messageType: 'success' | 'error' = 'success';
   activeTab: 'tree' | 'locations' | 'departments' | 'teams' = 'tree';
+  mutatingId: number | null = null;
 
   showLocationForm = false;
   locationForm = { name: '', address: '' };
@@ -30,6 +35,18 @@ export class OrganisationPageComponent implements OnInit {
 
   showTeamForm = false;
   teamForm = { name: '', departmentId: 0 };
+
+  editingLocation: any | null = null;
+  editingDepartment: any | null = null;
+  editingTeam: any | null = null;
+  editBusy = false;
+
+  locationEditForm = { name: '', address: '' };
+  departmentEditForm = { name: '', locationId: 0 };
+  teamEditForm = { name: '', departmentId: 0 };
+
+  deleteTarget: DeleteTarget | null = null;
+  confirmBusy = false;
 
   constructor(
     private readonly orgService: OrganisationService,
@@ -48,28 +65,207 @@ export class OrganisationPageComponent implements OnInit {
     this.orgService.getTeams().subscribe((res: any) => (this.teams = res));
   }
 
+  isBusy(id: number): boolean {
+    return this.mutatingId === id;
+  }
+
   createLocation(): void {
-    if (!this.locationForm.name.trim()) { this.showMsg('Name is required.', 'error'); return; }
-    this.orgService.createLocation({ name: this.locationForm.name.trim(), address: this.locationForm.address.trim() || undefined }).subscribe({
-      next: () => { this.showMsg('Location created.', 'success'); this.locationForm = { name: '', address: '' }; this.showLocationForm = false; this.loadAll(); },
-      error: (err) => this.showMsg(err?.error?.message || 'Failed.', 'error'),
-    });
+    if (!this.locationForm.name.trim()) {
+      this.showMsg('Name is required.', 'error');
+      return;
+    }
+    this.orgService
+      .createLocation({ name: this.locationForm.name.trim(), address: this.locationForm.address.trim() || undefined })
+      .subscribe({
+        next: () => {
+          this.showMsg('Location created.', 'success');
+          this.locationForm = { name: '', address: '' };
+          this.showLocationForm = false;
+          this.loadAll();
+        },
+        error: (err) => this.showMsg(err?.error?.message || 'Failed.', 'error'),
+      });
   }
 
   createDepartment(): void {
-    if (!this.departmentForm.name.trim()) { this.showMsg('Name is required.', 'error'); return; }
-    this.orgService.createDepartment({ name: this.departmentForm.name.trim(), locationId: this.departmentForm.locationId || undefined }).subscribe({
-      next: () => { this.showMsg('Department created.', 'success'); this.departmentForm = { name: '', locationId: 0 }; this.showDepartmentForm = false; this.loadAll(); },
-      error: (err) => this.showMsg(err?.error?.message || 'Failed.', 'error'),
-    });
+    if (!this.departmentForm.name.trim()) {
+      this.showMsg('Name is required.', 'error');
+      return;
+    }
+    this.orgService
+      .createDepartment({
+        name: this.departmentForm.name.trim(),
+        locationId: this.departmentForm.locationId || undefined,
+      })
+      .subscribe({
+        next: () => {
+          this.showMsg('Department created.', 'success');
+          this.departmentForm = { name: '', locationId: 0 };
+          this.showDepartmentForm = false;
+          this.loadAll();
+        },
+        error: (err) => this.showMsg(err?.error?.message || 'Failed.', 'error'),
+      });
   }
 
   createTeam(): void {
-    if (!this.teamForm.name.trim() || !this.teamForm.departmentId) { this.showMsg('Name and department are required.', 'error'); return; }
-    this.orgService.createTeam({ name: this.teamForm.name.trim(), departmentId: this.teamForm.departmentId }).subscribe({
-      next: () => { this.showMsg('Team created.', 'success'); this.teamForm = { name: '', departmentId: 0 }; this.showTeamForm = false; this.loadAll(); },
-      error: (err) => this.showMsg(err?.error?.message || 'Failed.', 'error'),
+    if (!this.teamForm.name.trim() || !this.teamForm.departmentId) {
+      this.showMsg('Name and department are required.', 'error');
+      return;
+    }
+    this.orgService
+      .createTeam({ name: this.teamForm.name.trim(), departmentId: this.teamForm.departmentId })
+      .subscribe({
+        next: () => {
+          this.showMsg('Team created.', 'success');
+          this.teamForm = { name: '', departmentId: 0 };
+          this.showTeamForm = false;
+          this.loadAll();
+        },
+        error: (err) => this.showMsg(err?.error?.message || 'Failed.', 'error'),
+      });
+  }
+
+  openEditLocation(item: any): void {
+    this.editingLocation = item;
+    this.locationEditForm = { name: item.name ?? '', address: item.address ?? '' };
+  }
+
+  closeLocationEdit(): void {
+    if (!this.editBusy) this.editingLocation = null;
+  }
+
+  submitLocationEdit(): void {
+    if (!this.editingLocation || !this.locationEditForm.name.trim()) return;
+    this.mutatingId = this.editingLocation.id;
+    this.editBusy = true;
+    this.orgService
+      .updateLocation(this.editingLocation.id, {
+        name: this.locationEditForm.name.trim(),
+        address: this.locationEditForm.address.trim() || undefined,
+      })
+      .subscribe({
+        next: () => {
+          this.showMsg('Location updated.', 'success');
+          this.editingLocation = null;
+          this.loadAll();
+        },
+        error: (err) => this.showMsg(err?.error?.message || 'Failed to update location.', 'error'),
+        complete: () => {
+          this.mutatingId = null;
+          this.editBusy = false;
+        },
+      });
+  }
+
+  openEditDepartment(item: any): void {
+    this.editingDepartment = item;
+    this.departmentEditForm = { name: item.name ?? '', locationId: item.locationId ?? item.location?.id ?? 0 };
+  }
+
+  closeDepartmentEdit(): void {
+    if (!this.editBusy) this.editingDepartment = null;
+  }
+
+  submitDepartmentEdit(): void {
+    if (!this.editingDepartment || !this.departmentEditForm.name.trim()) return;
+    this.mutatingId = this.editingDepartment.id;
+    this.editBusy = true;
+    this.orgService
+      .updateDepartment(this.editingDepartment.id, {
+        name: this.departmentEditForm.name.trim(),
+        locationId: this.departmentEditForm.locationId || null,
+      })
+      .subscribe({
+        next: () => {
+          this.showMsg('Department updated.', 'success');
+          this.editingDepartment = null;
+          this.loadAll();
+        },
+        error: (err) => this.showMsg(err?.error?.message || 'Failed to update department.', 'error'),
+        complete: () => {
+          this.mutatingId = null;
+          this.editBusy = false;
+        },
+      });
+  }
+
+  openEditTeam(item: any): void {
+    this.editingTeam = item;
+    this.teamEditForm = { name: item.name ?? '', departmentId: item.departmentId ?? item.department?.id ?? 0 };
+  }
+
+  closeTeamEdit(): void {
+    if (!this.editBusy) this.editingTeam = null;
+  }
+
+  submitTeamEdit(): void {
+    if (!this.editingTeam || !this.teamEditForm.name.trim() || !this.teamEditForm.departmentId) return;
+    this.mutatingId = this.editingTeam.id;
+    this.editBusy = true;
+    this.orgService
+      .updateTeam(this.editingTeam.id, {
+        name: this.teamEditForm.name.trim(),
+        departmentId: this.teamEditForm.departmentId,
+      })
+      .subscribe({
+        next: () => {
+          this.showMsg('Team updated.', 'success');
+          this.editingTeam = null;
+          this.loadAll();
+        },
+        error: (err) => this.showMsg(err?.error?.message || 'Failed to update team.', 'error'),
+        complete: () => {
+          this.mutatingId = null;
+          this.editBusy = false;
+        },
+      });
+  }
+
+  promptDelete(type: DeleteTarget['type'], item: any): void {
+    this.deleteTarget = { type, item };
+  }
+
+  closeDeleteDialog(): void {
+    if (!this.confirmBusy) this.deleteTarget = null;
+  }
+
+  confirmDelete(): void {
+    if (!this.deleteTarget) return;
+    const { type, item } = this.deleteTarget;
+    this.confirmBusy = true;
+    this.mutatingId = item.id;
+
+    const request =
+      type === 'location'
+        ? this.orgService.deleteLocation(item.id)
+        : type === 'department'
+          ? this.orgService.deleteDepartment(item.id)
+          : this.orgService.deleteTeam(item.id);
+
+    request.subscribe({
+      next: () => {
+        this.showMsg(`${type.charAt(0).toUpperCase() + type.slice(1)} deleted.`, 'success');
+        this.deleteTarget = null;
+        this.loadAll();
+      },
+      error: (err) => this.showMsg(err?.error?.message || 'Delete failed.', 'error'),
+      complete: () => {
+        this.mutatingId = null;
+        this.confirmBusy = false;
+      },
     });
+  }
+
+  deleteDialogTitle(): string {
+    if (!this.deleteTarget) return 'Delete?';
+    const label = this.deleteTarget.type;
+    return `Delete ${label}?`;
+  }
+
+  deleteDialogMessage(): string {
+    if (!this.deleteTarget) return '';
+    return `Delete "${this.deleteTarget.item?.name}"? This cannot be undone.`;
   }
 
   private showMsg(msg: string, type: 'success' | 'error'): void {

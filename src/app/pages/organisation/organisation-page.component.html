@@ -9,9 +9,8 @@
     </div>
   </div>
 
-  <p *ngIf="message" class="{{ messageType === 'success' ? 'success' : 'error' }}">{{ message }}</p>
+  <p *ngIf="message" [class]="messageType === 'success' ? 'success' : 'error'">{{ message }}</p>
 
-  <!-- Tree Tab -->
   <ng-container *ngIf="activeTab === 'tree'">
     <div class="org-tree">
       <div *ngFor="let loc of tree" class="tree-location">
@@ -28,7 +27,6 @@
     </div>
   </ng-container>
 
-  <!-- Locations Tab -->
   <ng-container *ngIf="activeTab === 'locations'">
     <div *ngIf="isCompanyAdmin" class="table-actions" style="margin-bottom:12px">
       <button type="button" class="add-btn" (click)="showLocationForm = !showLocationForm">
@@ -44,16 +42,21 @@
       <button type="button" class="add-btn" (click)="createLocation()">Create</button>
     </section>
     <table>
-      <thead><tr><th>ID</th><th>Name</th><th>Address</th></tr></thead>
+      <thead><tr><th>ID</th><th>Name</th><th>Address</th><th *ngIf="isCompanyAdmin">Actions</th></tr></thead>
       <tbody>
         <tr *ngFor="let l of locations">
-          <td>{{ l.id }}</td><td>{{ l.name }}</td><td>{{ l.address ?? '—' }}</td>
+          <td>{{ l.id }}</td>
+          <td>{{ l.name }}</td>
+          <td>{{ l.address ?? '—' }}</td>
+          <td class="row-actions" *ngIf="isCompanyAdmin">
+            <button type="button" class="action-btn edit" (click)="openEditLocation(l)" [disabled]="isBusy(l.id)">Edit</button>
+            <button type="button" class="action-btn delete" (click)="promptDelete('location', l)" [disabled]="isBusy(l.id)">Delete</button>
+          </td>
         </tr>
       </tbody>
     </table>
   </ng-container>
 
-  <!-- Departments Tab -->
   <ng-container *ngIf="activeTab === 'departments'">
     <div *ngIf="isCompanyAdmin" class="table-actions" style="margin-bottom:12px">
       <button type="button" class="add-btn" (click)="showDepartmentForm = !showDepartmentForm">
@@ -74,16 +77,21 @@
       <button type="button" class="add-btn" (click)="createDepartment()">Create</button>
     </section>
     <table>
-      <thead><tr><th>ID</th><th>Name</th><th>Location</th></tr></thead>
+      <thead><tr><th>ID</th><th>Name</th><th>Location</th><th *ngIf="isCompanyAdmin">Actions</th></tr></thead>
       <tbody>
         <tr *ngFor="let d of departments">
-          <td>{{ d.id }}</td><td>{{ d.name }}</td><td>{{ d.location?.name ?? '—' }}</td>
+          <td>{{ d.id }}</td>
+          <td>{{ d.name }}</td>
+          <td>{{ d.location?.name ?? '—' }}</td>
+          <td class="row-actions" *ngIf="isCompanyAdmin">
+            <button type="button" class="action-btn edit" (click)="openEditDepartment(d)" [disabled]="isBusy(d.id)">Edit</button>
+            <button type="button" class="action-btn delete" (click)="promptDelete('department', d)" [disabled]="isBusy(d.id)">Delete</button>
+          </td>
         </tr>
       </tbody>
     </table>
   </ng-container>
 
-  <!-- Teams Tab -->
   <ng-container *ngIf="activeTab === 'teams'">
     <div *ngIf="isCompanyAdmin" class="table-actions" style="margin-bottom:12px">
       <button type="button" class="add-btn" (click)="showTeamForm = !showTeamForm">
@@ -104,12 +112,84 @@
       <button type="button" class="add-btn" (click)="createTeam()">Create</button>
     </section>
     <table>
-      <thead><tr><th>ID</th><th>Name</th><th>Department</th></tr></thead>
+      <thead><tr><th>ID</th><th>Name</th><th>Department</th><th *ngIf="isCompanyAdmin">Actions</th></tr></thead>
       <tbody>
         <tr *ngFor="let t of teams">
-          <td>{{ t.id }}</td><td>{{ t.name }}</td><td>{{ t.department?.name ?? '—' }}</td>
+          <td>{{ t.id }}</td>
+          <td>{{ t.name }}</td>
+          <td>{{ t.department?.name ?? '—' }}</td>
+          <td class="row-actions" *ngIf="isCompanyAdmin">
+            <button type="button" class="action-btn edit" (click)="openEditTeam(t)" [disabled]="isBusy(t.id)">Edit</button>
+            <button type="button" class="action-btn delete" (click)="promptDelete('team', t)" [disabled]="isBusy(t.id)">Delete</button>
+          </td>
         </tr>
       </tbody>
     </table>
   </ng-container>
 </section>
+
+<app-edit-dialog-shell
+  *ngIf="editingLocation"
+  title="Edit Location"
+  subtitle="Update office branch details"
+  submitText="Save changes"
+  [busy]="editBusy"
+  [disableSubmit]="!locationEditForm.name.trim()"
+  (cancel)="closeLocationEdit()"
+  (submitForm)="submitLocationEdit()">
+  <div class="dialog-grid">
+    <label>Name<input [(ngModel)]="locationEditForm.name" type="text" /></label>
+    <label>Address<input [(ngModel)]="locationEditForm.address" type="text" /></label>
+  </div>
+</app-edit-dialog-shell>
+
+<app-edit-dialog-shell
+  *ngIf="editingDepartment"
+  title="Edit Department"
+  subtitle="Update department name and location"
+  submitText="Save changes"
+  [busy]="editBusy"
+  [disableSubmit]="!departmentEditForm.name.trim()"
+  (cancel)="closeDepartmentEdit()"
+  (submitForm)="submitDepartmentEdit()">
+  <div class="dialog-grid">
+    <label>Name<input [(ngModel)]="departmentEditForm.name" type="text" /></label>
+    <label>Location
+      <select [(ngModel)]="departmentEditForm.locationId">
+        <option [ngValue]="0">— None —</option>
+        <option *ngFor="let l of locations" [ngValue]="l.id">{{ l.name }}</option>
+      </select>
+    </label>
+  </div>
+</app-edit-dialog-shell>
+
+<app-edit-dialog-shell
+  *ngIf="editingTeam"
+  title="Edit Team"
+  subtitle="Update team name and parent department"
+  submitText="Save changes"
+  [busy]="editBusy"
+  [disableSubmit]="!teamEditForm.name.trim() || !teamEditForm.departmentId"
+  (cancel)="closeTeamEdit()"
+  (submitForm)="submitTeamEdit()">
+  <div class="dialog-grid">
+    <label>Name<input [(ngModel)]="teamEditForm.name" type="text" /></label>
+    <label>Department
+      <select [(ngModel)]="teamEditForm.departmentId">
+        <option [ngValue]="0">— Select —</option>
+        <option *ngFor="let d of departments" [ngValue]="d.id">{{ d.name }}</option>
+      </select>
+    </label>
+  </div>
+</app-edit-dialog-shell>
+
+<app-confirm-dialog
+  *ngIf="deleteTarget"
+  [title]="deleteDialogTitle()"
+  [message]="deleteDialogMessage()"
+  confirmText="Delete"
+  tone="danger"
+  [busy]="confirmBusy"
+  (cancel)="closeDeleteDialog()"
+  (confirm)="confirmDelete()">
+</app-confirm-dialog>

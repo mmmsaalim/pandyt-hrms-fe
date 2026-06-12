@@ -75,7 +75,7 @@ export class SidebarComponent {
 
     const items: NavElement[] = baseItems.filter((x) => x.show);
 
-    if (isCompany || isHrManager) {
+    if (isCompany) {
       items.push({
         type: 'group',
         key: 'configuration',

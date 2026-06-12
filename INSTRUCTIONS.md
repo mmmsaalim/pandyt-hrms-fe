@@ -64,14 +64,63 @@ Implemented and active:
 - Attendance clock-in/out and admin override UX
 - Payroll run create/process UX
 - Payslip statutory columns UX
-- Organisation tree and location/department/team forms
+- Organisation page (BRD 6.3): Tree/Locations/Departments/Teams tabs + create forms — see Section 12 for step-by-step status
 - Reports and recruitment pages connected to backend APIs
+
+## 13) Recruitment / ATS — BRD 6.6 (HR Manager Focus)
+
+Active implementation target. Read before touching `pages/recruitment`.
+
+### 13.1 Who Sees This Page
+
+| Role | Route `/recruitment` | Manage jobs/candidates |
+|------|---------------------|------------------------|
+| HR_MANAGER | ✅ Yes | ✅ Yes |
+| COMPANY_ADMIN | ✅ Yes | ✅ Yes |
+| TEAM_LEAD | ❌ Hidden | — |
+| EMPLOYEE | ❌ Hidden | — |
+
+### 13.2 Page Layout (3 Tabs)
+
+1. **Job Posts** — create/edit/delete openings (title, department, description, status)
+2. **Candidates** — add candidates, filter by job, upload CV (stored only — no AI yet)
+3. **Pipeline** — kanban-style columns by stage; move candidates between stages
+
+### 13.3 API (`recruitment.service.ts`)
+
+- `listJobs`, `createJob`, `updateJob`, `deleteJob`
+- `listCandidates`, `createCandidate`, `updateCandidate`, `deleteCandidate`
+- `uploadResume(candidateId, file)` — FormData POST
+- `publicOpenJobs(companyCode)`, `publicApply(companyCode, jobId, dto, resume)` for external applicants
+- Resume file URL: `fileBase + candidate.resumeUrl` (served from BE `/uploads/`)
+
+### 13.4 HR Manager Workflow
+
+1. Login with company code as HR_MANAGER
+2. Open **Recruitment** in sidebar
+3. **Job Posts** → Post Job → set status OPEN
+4. **Candidates** → Add Candidate → link to job
+5. Upload CV (PDF/DOCX) — file stored, AI parsing message shown
+6. **Pipeline** → move candidate through stages
+
+### 13.5 Implementation Status
+
+| Step | Task | Status |
+|------|------|--------|
+| 1 | Route + sidebar for HR_MANAGER | ✅ Done |
+| 2 | Jobs tab CRUD | ✅ Done |
+| 3 | Candidates tab + CV upload stub | ✅ Done |
+| 4 | Pipeline board | ✅ Done |
+| 5 | Public careers page `/careers/:companyCode` | ✅ Done |
+| 6 | AI match % badge / parsing | ⏳ Phase 3 |
+
+---
 
 ## 7) Next Scope (Planned)
 Planned next roadmap items:
 - richer manager-focused dashboards
 - advanced analytics and AI-driven insights
-- deeper recruitment intelligence UX
+- deeper recruitment intelligence UX (AI parsing — Phase 3)
 - real-time notification UX
 - usability polish, filters, pagination, and stronger test coverage
 
@@ -112,7 +161,103 @@ For deeper detail (optional), see:
 - `../docs/RBAC_PERMISSION_MATRIX.md`
 - `../docs/SETUP_STEPS.md`
 
-## 12) Operational Rules (Latest)
+## 12) Organisation Structure — BRD 6.3 (Company Admin Focus)
+
+This section is the **active implementation target**. Read this before touching `pages/organisation` or `core/services/organisation.service.ts`.
+
+### 12.1 Who Sees This Page
+
+| Role | Route `/organisation` | Create buttons | Notes |
+|------|----------------------|----------------|-------|
+| COMPANY_ADMIN | ✅ Yes | ✅ Yes | Primary org structure owner (BRD 4.1) |
+| HR_MANAGER | ❌ Hidden | — | Backend allows write; FE not wired yet |
+| TEAM_LEAD | ❌ Hidden | — | — |
+| EMPLOYEE | ❌ Hidden | — | — |
+
+Sidebar: Organisation menu shown when `roles.includes('COMPANY_ADMIN')`.
+
+### 12.2 Page Layout (4 Tabs)
+
+1. **Tree** — visual hierarchy: Location → Department → Team (with employee count badge)
+2. **Locations** — table + "Add Location" form (name, address)
+3. **Departments** — table + "Add Department" form (name, location dropdown)
+4. **Teams** — table + "Add Team" form (name, department dropdown — required)
+
+Recommended setup order for a new tenant:
+`Location` → `Department` (pick location) → `Team` (pick department) → assign employees (step 7, not yet in UI)
+
+### 12.3 API Integration (`organisation.service.ts`)
+
+Currently wired:
+- `GET /organisation/tree`
+- `GET/POST /organisation/locations`
+- `GET/POST /organisation/departments`
+- `GET/POST /organisation/teams`
+
+**Tree response** the UI expects:
+```typescript
+tree: Array<{
+  id: number;
+  name: string;           // location name
+  departments: Array<{
+    id: number;
+    name: string;
+    teams: Array<{
+      id: number;
+      name: string;
+      _count: { employees: number };
+    }>;
+  }>;
+}>;
+```
+
+Also wired in FE service:
+- `PATCH /organisation/locations/:id`
+- `DELETE /organisation/locations/:id`
+- `PATCH /organisation/departments/:id`
+- `DELETE /organisation/departments/:id`
+- `PATCH /organisation/teams/:id`
+- `DELETE /organisation/teams/:id`
+
+### 12.4 Sri Lanka / Multi-Tenant UX Notes
+
+- Each company admin manages **only their tenant's** org structure
+- Location names are free text (e.g. "Colombo Head Office", "Kandy Branch") — no global Sri Lanka location list
+- Tenant context comes from login `companyCode` + `X-Tenant-ID` header (interceptor handles this)
+- Employee invite/provisioning is on `/employees` — org structure is the container employees get assigned to (future step)
+
+### 12.5 Implementation Status (step-by-step)
+
+| Step | Task | Status | Files |
+|------|------|--------|-------|
+| 1 | Route + role guard for Company Admin | ✅ Done | `app.routes.ts` |
+| 2 | Sidebar Organisation link | ✅ Done | `sidebar.component.ts` |
+| 3 | 4-tab page shell | ✅ Done | `organisation-page.component.*` |
+| 4 | Create location/department/team forms | ✅ Done | same |
+| 5 | Tree tab renders location-centric API | ✅ Done | depends on BE `getTree()` shape |
+| 6 | Edit/delete actions in tables | ✅ Done | `organisation.service.ts`, `organisation-page.component.*` |
+| 7 | Employee form: pick department/team/location | ✅ Done | `employees-page.component.*` |
+| 8 | Department manager picker | ⏳ Next | after employee FK wiring |
+
+### 12.6 Rules for AI Agents Working on Org UI
+
+1. **Keep `isCompanyAdmin` guard** on all write actions (`*ngIf="isCompanyAdmin"`)
+2. **Reload all lists after create** — call `loadAll()` which refreshes tree + 3 tables
+3. **Match backend tree shape** — do not change template to department-centric without updating BE
+4. **Use existing card/table patterns** — same styles as employees, leave pages
+5. **Do not add unrelated modules** — focus org section only per BRD phase plan
+
+### 12.7 Quick Verification (Company Admin)
+
+1. Login with company code (e.g. `tnt1` for seed tenant 1)
+2. Navigate to Organisation in sidebar
+3. Add Location → Add Department → Add Team
+4. Tree tab shows hierarchy with team employee counts (0 until employees linked)
+5. Tables on Locations/Departments/Teams tabs list created records
+
+---
+
+## 13) Operational Rules (Latest)
 These are enforced UX behaviors and should not be regressed:
 
 - Public auth/signup UX:

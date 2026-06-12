@@ -22,6 +22,7 @@ import { SignupPageComponent } from './pages/auth/signup/signup-page.component';
 import { InvitationsPageComponent } from './pages/invitations/invitations-page.component';
 import { ConfigurationPageComponent } from './pages/configuration/configuration-page.component';
 import { OrganisationPageComponent } from './pages/organisation/organisation-page.component';
+import { CareersPageComponent } from './pages/careers-page.component';
 
 export const appRoutes: Routes = [
   { path: 'login', component: LoginComponent },
@@ -30,6 +31,7 @@ export const appRoutes: Routes = [
   { path: 'reset-password', component: ResetPasswordPageComponent },
   { path: 'accept-invitation', component: AcceptInvitationPageComponent },
   { path: 'set-password', component: SetPasswordPageComponent },
+  { path: 'careers/:companyCode', component: CareersPageComponent },
   {
     path: '',
     component: MainLayoutComponent,
@@ -134,7 +136,7 @@ export const appRoutes: Routes = [
         path: 'configuration',
         canActivate: [roleGuard],
         data: {
-          roles: ['COMPANY_ADMIN', 'HR_MANAGER'],
+          roles: ['COMPANY_ADMIN'],
           permissions: ['configuration.manage'],
         },
         children: [

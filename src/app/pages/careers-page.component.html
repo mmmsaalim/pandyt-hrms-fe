@@ -1,0 +1,72 @@
+<div class="careers-shell">
+  <header class="careers-hero">
+    <span class="brand-pill">Pandyt Careers</span>
+    <h1>{{ company?.name || 'Careers' }}</h1>
+    <p>Explore open roles and submit your CV. The HR team will review your application.</p>
+    <a routerLink="/login">Company sign in</a>
+  </header>
+
+  <main class="careers-card">
+    <div class="card-head">
+      <div>
+        <h2>Open Jobs</h2>
+        <p *ngIf="company">Company code: {{ company.companyCode }}</p>
+      </div>
+      <span class="badge">{{ jobs.length }} open</span>
+    </div>
+
+    <p *ngIf="loading">Loading open roles...</p>
+    <p class="error" *ngIf="errorMessage">{{ errorMessage }}</p>
+    <p class="success" *ngIf="successMessage">{{ successMessage }}</p>
+
+    <section *ngIf="!loading && jobs.length === 0" class="empty-state">
+      No open roles are available right now.
+    </section>
+
+    <section class="jobs-list">
+      <article *ngFor="let job of jobs" class="job-card">
+        <div>
+          <h3>{{ job.title }}</h3>
+          <p class="muted">{{ job.department || 'General' }}</p>
+          <p>{{ job.description || 'No description added yet.' }}</p>
+          <div class="skill-list" *ngIf="job.requiredSkills?.length">
+            <span *ngFor="let skill of job.requiredSkills">{{ skill }}</span>
+          </div>
+        </div>
+        <button type="button" (click)="openApply(job)">Apply</button>
+      </article>
+    </section>
+  </main>
+
+  <section class="apply-overlay" *ngIf="selectedJob">
+    <form class="apply-card" (ngSubmit)="submitApplication()">
+      <div class="card-head">
+        <div>
+          <h2>Apply for {{ selectedJob.title }}</h2>
+          <p>{{ selectedJob.department || company?.name }}</p>
+        </div>
+        <button type="button" class="ghost-btn" (click)="closeApply()">Close</button>
+      </div>
+
+      <label>Full name</label>
+      <input [(ngModel)]="form.name" name="name" type="text" />
+
+      <label>Email</label>
+      <input [(ngModel)]="form.email" name="email" type="email" />
+
+      <label>Phone</label>
+      <input [(ngModel)]="form.phone" name="phone" type="text" />
+
+      <label>CV / Resume (PDF, DOC, DOCX)</label>
+      <input name="resume" type="file" accept=".pdf,.doc,.docx" (change)="onResumeSelected($event)" />
+
+      <label>Cover note (optional)</label>
+      <textarea [(ngModel)]="form.coverLetter" name="coverLetter" rows="4"></textarea>
+
+      <p class="error" *ngIf="errorMessage">{{ errorMessage }}</p>
+      <button type="submit" [disabled]="applyingJobId === selectedJob.id">
+        {{ applyingJobId === selectedJob.id ? 'Submitting...' : 'Submit application' }}
+      </button>
+    </form>
+  </section>
+</div>

@@ -15,7 +15,9 @@ export class EmployeesService {
   inviteEmployee(dto: {
     name: string;
     workEmail: string;
-    department: string;
+    departmentId: number;
+    teamId?: number;
+    locationId?: number;
     designation: string;
     role: InviteRole;
     employeeCode?: string;
@@ -26,7 +28,9 @@ export class EmployeesService {
   updateEmployee(
     id: number,
     dto: {
-      department?: string;
+      departmentId?: number;
+      teamId?: number | null;
+      locationId?: number | null;
       designation?: string;
       joinedDate?: string;
       employmentStatus?: 'ACTIVE' | 'ON_PROBATION' | 'INACTIVE';

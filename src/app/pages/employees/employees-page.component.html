@@ -26,7 +26,24 @@
       </label>
       <label>
         Department
-        <input [(ngModel)]="form.department" name="department" type="text" />
+        <select [(ngModel)]="form.departmentId" name="departmentId" (ngModelChange)="onCreateDepartmentChange()">
+          <option [ngValue]="0">— Select department —</option>
+          <option *ngFor="let d of departments" [ngValue]="d.id">{{ d.name }}</option>
+        </select>
+      </label>
+      <label>
+        Team
+        <select [(ngModel)]="form.teamId" name="teamId">
+          <option [ngValue]="0">— None —</option>
+          <option *ngFor="let t of teamsForDepartment(form.departmentId)" [ngValue]="t.id">{{ t.name }}</option>
+        </select>
+      </label>
+      <label>
+        Location
+        <select [(ngModel)]="form.locationId" name="locationId">
+          <option [ngValue]="0">— Auto from department —</option>
+          <option *ngFor="let l of locations" [ngValue]="l.id">{{ l.name }}</option>
+        </select>
       </label>
       <label>
         Designation
@@ -55,7 +72,7 @@
     <tbody>
       <tr *ngFor="let e of employees">
         <td>{{ e.user?.firstName }} {{ e.user?.lastName }}</td>
-        <td>{{ e.department }}</td>
+        <td>{{ departmentLabel(e) }}</td>
         <td>{{ e.designation }}</td>
         <td>{{ e.salary !== null && e.salary !== undefined ? ('LKR ' + e.salary) : '—' }}</td>
         <td><span class="badge">{{ e.employmentStatus }}</span></td>
@@ -83,13 +100,30 @@
   subtitle="Update department, designation and status"
   submitText="Save changes"
   [busy]="editBusy"
-  [disableSubmit]="!editForm.department.trim() || !editForm.designation.trim()"
+  [disableSubmit]="!editForm.departmentId || !editForm.designation.trim()"
   (cancel)="closeEmployeeEditDialog()"
   (submitForm)="submitEmployeeEdit()">
   <div class="dialog-grid">
     <label>
       Department
-      <input [(ngModel)]="editForm.department" name="editDepartment" type="text" />
+      <select [(ngModel)]="editForm.departmentId" name="editDepartmentId" (ngModelChange)="onEditDepartmentChange()">
+        <option [ngValue]="0">— Select department —</option>
+        <option *ngFor="let d of departments" [ngValue]="d.id">{{ d.name }}</option>
+      </select>
+    </label>
+    <label>
+      Team
+      <select [(ngModel)]="editForm.teamId" name="editTeamId">
+        <option [ngValue]="0">— None —</option>
+        <option *ngFor="let t of teamsForDepartment(editForm.departmentId)" [ngValue]="t.id">{{ t.name }}</option>
+      </select>
+    </label>
+    <label>
+      Location
+      <select [(ngModel)]="editForm.locationId" name="editLocationId">
+        <option [ngValue]="0">— Auto from department —</option>
+        <option *ngFor="let l of locations" [ngValue]="l.id">{{ l.name }}</option>
+      </select>
     </label>
     <label>
       Designation

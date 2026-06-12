@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { NgFor, NgIf } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { EmployeesService, InviteRole } from '../../core/services/employees.service';
+import { OrganisationService } from '../../core/services/organisation.service';
 import { ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { ConfirmDialogComponent } from '../../shared/dialogs/confirm-dialog.component';
@@ -16,6 +17,10 @@ import { EditDialogShellComponent } from '../../shared/dialogs/edit-dialog-shell
 })
 export class EmployeesPageComponent implements OnInit {
   employees: any[] = [];
+  departments: any[] = [];
+  teams: any[] = [];
+  locations: any[] = [];
+
   isCompanyAdmin = false;
   showCreateForm = false;
   creating = false;
@@ -25,7 +30,9 @@ export class EmployeesPageComponent implements OnInit {
   editingEmployeeId: number | null = null;
   editBusy = false;
   editForm = {
-    department: '',
+    departmentId: 0,
+    teamId: 0,
+    locationId: 0,
     designation: '',
     employmentStatus: 'ACTIVE' as 'ACTIVE' | 'ON_PROBATION' | 'INACTIVE',
   };
@@ -39,7 +46,9 @@ export class EmployeesPageComponent implements OnInit {
   form = {
     name: '',
     workEmail: '',
-    department: '',
+    departmentId: 0,
+    teamId: 0,
+    locationId: 0,
     designation: '',
     role: 'EMPLOYEE' as InviteRole,
     employeeCode: '',
@@ -47,6 +56,7 @@ export class EmployeesPageComponent implements OnInit {
 
   constructor(
     private readonly employeesService: EmployeesService,
+    private readonly organisationService: OrganisationService,
     private readonly route: ActivatedRoute,
     private readonly auth: AuthService,
   ) {}
@@ -59,11 +69,44 @@ export class EmployeesPageComponent implements OnInit {
       this.showCreateForm = this.isCompanyAdmin && params.get('new') === '1';
     });
 
+    this.loadOrgData();
     this.loadEmployees();
+  }
+
+  loadOrgData(): void {
+    this.organisationService.getDepartments().subscribe((rows: any) => (this.departments = rows));
+    this.organisationService.getTeams().subscribe((rows: any) => (this.teams = rows));
+    this.organisationService.getLocations().subscribe((rows: any) => (this.locations = rows));
   }
 
   loadEmployees(): void {
     this.employeesService.list().subscribe((rows: any) => (this.employees = rows));
+  }
+
+  teamsForDepartment(departmentId: number): any[] {
+    if (!departmentId) return [];
+    return this.teams.filter((team) => team.departmentId === departmentId);
+  }
+
+  onCreateDepartmentChange(): void {
+    this.form.teamId = 0;
+    const department = this.departments.find((d) => d.id === this.form.departmentId);
+    this.form.locationId = department?.locationId ?? department?.location?.id ?? 0;
+  }
+
+  onEditDepartmentChange(): void {
+    const currentTeam = this.teams.find((t) => t.id === this.editForm.teamId);
+    if (!currentTeam || currentTeam.departmentId !== this.editForm.departmentId) {
+      this.editForm.teamId = 0;
+    }
+    const department = this.departments.find((d) => d.id === this.editForm.departmentId);
+    this.editForm.locationId = department?.locationId ?? department?.location?.id ?? 0;
+  }
+
+  departmentLabel(employee: any): string {
+    const dept = employee?.departmentRelation?.name ?? employee?.department ?? '—';
+    const team = employee?.team?.name;
+    return team ? `${dept} / ${team}` : dept;
   }
 
   private roleNames(employee: any): string[] {
@@ -104,7 +147,7 @@ export class EmployeesPageComponent implements OnInit {
       return;
     }
 
-    if (!this.form.workEmail.trim() || !this.form.name.trim() || !this.form.department.trim()) {
+    if (!this.form.workEmail.trim() || !this.form.name.trim() || !this.form.departmentId) {
       this.errorMessage = 'Name, work email, and department are required.';
       return;
     }
@@ -117,7 +160,9 @@ export class EmployeesPageComponent implements OnInit {
       .inviteEmployee({
         name: this.form.name.trim(),
         workEmail: this.form.workEmail.trim(),
-        department: this.form.department.trim(),
+        departmentId: this.form.departmentId,
+        teamId: this.form.teamId || undefined,
+        locationId: this.form.locationId || undefined,
         designation: this.form.designation.trim(),
         role: this.form.role,
         employeeCode: this.form.employeeCode.trim() || undefined,
@@ -127,7 +172,9 @@ export class EmployeesPageComponent implements OnInit {
           this.form = {
             name: '',
             workEmail: '',
-            department: '',
+            departmentId: 0,
+            teamId: 0,
+            locationId: 0,
             designation: '',
             role: 'EMPLOYEE',
             employeeCode: '',
@@ -154,7 +201,9 @@ export class EmployeesPageComponent implements OnInit {
     this.editingEmployeeId = employee.id;
     this.editBusy = false;
     this.editForm = {
-      department: employee?.department ?? '',
+      departmentId: employee?.departmentId ?? employee?.departmentRelation?.id ?? 0,
+      teamId: employee?.teamId ?? employee?.team?.id ?? 0,
+      locationId: employee?.locationId ?? employee?.location?.id ?? 0,
       designation: employee?.designation ?? '',
       employmentStatus: (employee?.employmentStatus ?? 'ACTIVE') as 'ACTIVE' | 'ON_PROBATION' | 'INACTIVE',
     };
@@ -173,6 +222,11 @@ export class EmployeesPageComponent implements OnInit {
       return;
     }
 
+    if (!this.editForm.departmentId || !this.editForm.designation.trim()) {
+      this.errorMessage = 'Department and designation are required.';
+      return;
+    }
+
     this.mutatingEmployeeId = this.editingEmployeeId;
     this.editBusy = true;
     this.errorMessage = '';
@@ -180,7 +234,9 @@ export class EmployeesPageComponent implements OnInit {
 
     this.employeesService
       .updateEmployee(this.editingEmployeeId, {
-        department: this.editForm.department.trim(),
+        departmentId: this.editForm.departmentId,
+        teamId: this.editForm.teamId || null,
+        locationId: this.editForm.locationId || null,
         designation: this.editForm.designation.trim(),
         employmentStatus: this.editForm.employmentStatus,
       })
@@ -299,7 +355,9 @@ export class EmployeesPageComponent implements OnInit {
   }
 
   exportEmployee(employee: any): void {
-    if (!this.isCompanyAdmin) { return; }
+    if (!this.isCompanyAdmin) {
+      return;
+    }
     this.mutatingEmployeeId = employee.id;
     this.employeesService.exportEmployee(employee.id).subscribe({
       next: (data) => {
@@ -312,8 +370,12 @@ export class EmployeesPageComponent implements OnInit {
         URL.revokeObjectURL(url);
         this.successMessage = 'Export downloaded.';
       },
-      error: (err) => { this.errorMessage = err?.error?.message || 'Export failed.'; },
-      complete: () => { this.mutatingEmployeeId = null; },
+      error: (err) => {
+        this.errorMessage = err?.error?.message || 'Export failed.';
+      },
+      complete: () => {
+        this.mutatingEmployeeId = null;
+      },
     });
   }
 }
