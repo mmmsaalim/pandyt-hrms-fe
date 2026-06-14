@@ -2,6 +2,7 @@ import { Injectable, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { environment } from '../../../environments/environment';
+import { tap } from 'rxjs/operators';
 
 export type AppRole = string;
 
@@ -15,6 +16,7 @@ export interface AuthUser {
   tenantCode?: string | null;
   roles: AppRole[];
   permissions?: string[];
+  accessToken?: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -44,6 +46,8 @@ export class AuthService {
       `${environment.apiUrl}/auth/login`,
       { email, password, companyCode },
       { withCredentials: true },
+    ).pipe(
+      tap(response => this.setSession(response.accessToken, response.user))
     );
   }
 
@@ -72,9 +76,10 @@ export class AuthService {
     });
   }
 
-  setSession(_token: string, user: AuthUser) {
-    localStorage.setItem(this.userKey, JSON.stringify(user));
-    this.user.set(user);
+  setSession(token: string, user: AuthUser) {
+    const userWithToken = { ...user, accessToken: token };
+    localStorage.setItem(this.userKey, JSON.stringify(userWithToken));
+    this.user.set(userWithToken);
   }
 
   logout() {
@@ -84,8 +89,26 @@ export class AuthService {
     this.router.navigate(['/login']);
   }
 
-  isAuthenticated() {
-    return !!this.user();
+  private isTokenExpired(token: string): boolean {
+    try {
+      const decoded = JSON.parse(atob(token.split('.')[1]));
+      if (decoded.exp === undefined) {
+        return false;
+      }
+      const date = new Date(0);
+      date.setUTCSeconds(decoded.exp);
+      return !(date.valueOf() > new Date().valueOf());
+    } catch (e) {
+      return true;
+    }
+  }
+
+  isAuthenticated(): boolean {
+    const user = this.user();
+    if (!user || !user.accessToken) {
+      return false;
+    }
+    return !this.isTokenExpired(user.accessToken);
   }
 
   hasAnyRole(roles: string[]) {

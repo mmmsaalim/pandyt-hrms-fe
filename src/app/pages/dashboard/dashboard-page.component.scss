@@ -138,9 +138,50 @@
 
 .middle-grid,
 .bottom-grid {
-	display: grid;
-	grid-template-columns: 2.15fr 1.05fr;
-	gap: 0.9rem;
+  display: grid;
+  grid-template-columns: 2.15fr 1.05fr;
+  gap: 0.9rem;
+}
+
+.tenant-list-panel {
+  grid-column: 1 / -1;
+}
+
+.tenant-list {
+  display: grid;
+  border-top: 1px solid var(--border);
+
+  .tenant-list-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr 1fr auto;
+    align-items: center;
+    gap: 0.8rem;
+    padding: 0.55rem 0;
+    border-bottom: 1px solid #edf0f7;
+
+    &.header {
+      font-weight: 700;
+      color: var(--muted);
+      font-size: 0.8rem;
+      padding: 0.8rem 0 0.55rem;
+      border-bottom: 2px solid #edf0f7;
+    }
+
+    span {
+      font-size: 0.8rem;
+    }
+
+    button {
+      border: 0;
+      border-radius: 999px;
+      background: linear-gradient(180deg, #f68d46 0%, #f47421 100%);
+      color: #fff;
+      font-size: 0.7rem;
+      padding: 0.35rem 0.65rem;
+      cursor: pointer;
+      font-weight: 700;
+    }
+  }
 }
 
 .panel {

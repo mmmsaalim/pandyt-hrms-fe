@@ -24,6 +24,7 @@ Main folders used in frontend:
 - `src/app/pages/auth` - login and invitation acceptance flows
 - `src/app/pages/dashboard` - role-based dashboard views
 - `src/app/pages/tenants` - super admin tenant onboarding UI
+- `src/app/pages/cross-tenant-reports` - super admin cross-tenant reporting UI
 - `src/app/pages/employees` - employee list, invite, salary update, export
 - `src/app/pages/leave` - request, approval, balances, policies
 - `src/app/pages/attendance` - clock-in/out and overrides
@@ -32,6 +33,7 @@ Main folders used in frontend:
 - `src/app/pages/organisation` - org tree and CRUD forms
 - `src/app/pages/recruitment` - ATS screens
 - `src/app/pages/reports` - reporting screens
+- `src/app/pages/cross-tenant-reports` - super admin cross-tenant reporting UI
 - `src/environments/environment.ts` - API base URL config
 
 ## 4) Role Model (Current)
@@ -65,6 +67,7 @@ Implemented and active:
 - Payroll run create/process UX
 - Payslip statutory columns UX
 - Organisation page (BRD 6.3): Tree/Locations/Departments/Teams tabs + create forms — see Section 12 for step-by-step status
+- Cross-Tenant Reports (Super Admin): Leave, Attendance, and Payroll summaries across all or selected tenants.
 - Reports and recruitment pages connected to backend APIs
 
 ## 13) Recruitment / ATS — BRD 6.6 (HR Manager Focus)

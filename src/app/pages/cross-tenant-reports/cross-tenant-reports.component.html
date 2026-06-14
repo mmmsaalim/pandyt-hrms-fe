@@ -1,0 +1,116 @@
+<section class="card table-card cross-tenant-reports">
+  <div class="table-head">
+    <h3>Cross-Tenant Reports</h3>
+    <div class="table-actions">
+      <button type="button" class="add-btn" (click)="generateReport()" [disabled]="loading">
+        {{ loading ? 'Generating...' : 'Generate Report' }}
+      </button>
+    </div>
+  </div>
+
+  <section class="report-controls">
+    <div class="controls-grid">
+      <div class="control-item">
+        <label>Report Type</label>
+        <select [(ngModel)]="reportType">
+          <option value="leave">Leave Summary</option>
+          <option value="attendance">Attendance Summary</option>
+          <option value="payroll">Payroll Summary</option>
+        </select>
+      </div>
+
+      <div class="control-item full-width">
+        <label>Select Tenants</label>
+        <div class="tenant-selector">
+          <div class="tenant-checkbox" *ngFor="let tenant of availableTenants">
+            <label>
+              <input type="checkbox" 
+                     [checked]="selectedTenantIds.includes(tenant.id)"
+                     (change)="toggleTenantSelection(tenant.id)">
+              <span>{{ tenant.name }} <small>({{ tenant.companyCode }})</small></span>
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <p class="error" *ngIf="error">{{ error }}</p>
+
+  <div *ngIf="reportData && reportData.length > 0" class="report-results">
+    <div class="results-head">
+      <h4>Report Results</h4>
+      <button class="action-btn copy" (click)="exportToExcel()">
+        <span class="icon">📊</span> Export to Excel
+      </button>
+    </div>
+
+    <div class="table-wrap">
+      <!-- Leave Summary Table -->
+      <table *ngIf="reportType === 'leave'">
+        <thead>
+          <tr>
+            <th>Company Name</th>
+            <th>Code</th>
+            <th>Total Requests</th>
+            <th>Total Days</th>
+            <th>Approved</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let item of reportData">
+            <td>{{ item.name }}</td>
+            <td><code>{{ item.companyCode }}</code></td>
+            <td>{{ item.totalRequests }}</td>
+            <td>{{ item.totalDays }}</td>
+            <td><span class="badge">{{ item.statusBreakdown?.APPROVED || 0 }}</span></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Attendance Summary Table -->
+      <table *ngIf="reportType === 'attendance'">
+        <thead>
+          <tr>
+            <th>Company Name</th>
+            <th>Code</th>
+            <th>Employees Count</th>
+            <th>Total Hours</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let item of reportData">
+            <td>{{ item.name }}</td>
+            <td><code>{{ item.companyCode }}</code></td>
+            <td>{{ item.totalEmployeesWithAttendance }}</td>
+            <td>{{ item.totalHours | number:'1.1-1' }}h</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Payroll Summary Table -->
+      <table *ngIf="reportType === 'payroll'">
+        <thead>
+          <tr>
+            <th>Company Name</th>
+            <th>Code</th>
+            <th>Gross Amount</th>
+            <th>Net Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let item of reportData">
+            <td>{{ item.name }}</td>
+            <td><code>{{ item.companyCode }}</code></td>
+            <td><strong>{{ item.totalGrossAmount | number:'1.2-2' }}</strong></td>
+            <td><strong>{{ item.totalNetAmount | number:'1.2-2' }}</strong></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div *ngIf="reportData && reportData.length === 0 && !loading" class="empty-state">
+    <p>No data found for the selected tenants and report type.</p>
+  </div>
+</section>

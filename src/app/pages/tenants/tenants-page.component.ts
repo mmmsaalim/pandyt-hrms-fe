@@ -1,15 +1,16 @@
 import { Component, OnInit } from '@angular/core';
-import { NgFor, NgIf } from '@angular/common';
+import { DatePipe, NgFor, NgIf } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TenantsService } from '../../core/services/tenants.service';
 import { ActivatedRoute } from '@angular/router';
 import { ConfirmDialogComponent } from '../../shared/dialogs/confirm-dialog.component';
 import { EditDialogShellComponent } from '../../shared/dialogs/edit-dialog-shell.component';
+import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-tenants-page',
   standalone: true,
-  imports: [NgFor, NgIf, FormsModule, ConfirmDialogComponent, EditDialogShellComponent],
+  imports: [NgFor, NgIf, FormsModule, ConfirmDialogComponent, EditDialogShellComponent, CommonModule, DatePipe],
   templateUrl: './tenants-page.component.html',
   styleUrl: './tenants-page.component.scss',
 })
@@ -56,13 +57,25 @@ export class TenantsPageComponent implements OnInit {
   ngOnInit(): void {
     this.route.queryParamMap.subscribe((params) => {
       this.showCreateForm = params.get('new') === '1';
+      const id = params.get('id');
+      if (id) {
+        this.loadRows(() => {
+          const tenant = this.rows.find(r => r.id === Number(id));
+          if (tenant) {
+            this.editTenant(tenant);
+          }
+        });
+      } else {
+        this.loadRows();
+      }
     });
-
-    this.loadRows();
   }
 
-  loadRows(): void {
-    this.tenantsService.list().subscribe((res: any) => (this.rows = res));
+  loadRows(callback?: () => void): void {
+    this.tenantsService.list().subscribe((res: any) => {
+      this.rows = res;
+      if (callback) callback();
+    });
   }
 
   get activeRows(): any[] {

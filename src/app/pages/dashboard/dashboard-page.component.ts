@@ -139,6 +139,7 @@ export class DashboardPageComponent implements OnInit {
   employeeData: EmployeeDashboardData | null = null;
   isSuperAdmin = false;
   isCompanyAdmin = false;
+  tenantsList: Array<any> = [];
 
   constructor(
     private readonly dashboardService: DashboardService,
@@ -187,6 +188,7 @@ export class DashboardPageComponent implements OnInit {
     this.months = Array.isArray(data.months) ? data.months : this.months;
     this.growthSeries = Array.isArray(data.growthSeries) ? data.growthSeries : this.growthSeries;
     this.split = Array.isArray(data.splitSeries) ? data.splitSeries : [...this.split_super];
+    this.tenantsList = Array.isArray(data.tenantsList) ? data.tenantsList : [];
     this.payrollLabels = Array.isArray(data.payrollLabels) ? data.payrollLabels : this.payrollLabels;
     this.payrollSeries = Array.isArray(data.payrollRunsSeries)
       ? data.payrollRunsSeries
@@ -326,7 +328,7 @@ export class DashboardPageComponent implements OnInit {
     this.tenantName = currentUser?.tenantName?.trim() || null;
     const userRoles = currentUser?.roles ?? [];
     this.isSuperAdmin = userRoles.includes('SUPER_ADMIN');
-    this.isCompanyAdmin = userRoles.includes('COMPANY_ADMIN');
+    this.isCompanyAdmin = userRoles.includes('COMPANY_ADMIN') || userRoles.includes('HR_MANAGER') || userRoles.includes('TEAM_LEAD');
     this.isEmployeeView = false;
     this.employeeData = null;
 
@@ -337,7 +339,7 @@ export class DashboardPageComponent implements OnInit {
       return;
     }
 
-    if (userRoles.includes('COMPANY_ADMIN')) {
+    if (userRoles.includes('COMPANY_ADMIN') || userRoles.includes('HR_MANAGER') || userRoles.includes('TEAM_LEAD')) {
       this.dashboardService.companyAdmin().subscribe({
         next: (data: any) => {
           this.setCompanyAdminStats(data);

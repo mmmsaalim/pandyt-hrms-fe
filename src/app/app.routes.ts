@@ -23,6 +23,7 @@ import { InvitationsPageComponent } from './pages/invitations/invitations-page.c
 import { ConfigurationPageComponent } from './pages/configuration/configuration-page.component';
 import { OrganisationPageComponent } from './pages/organisation/organisation-page.component';
 import { CareersPageComponent } from './pages/careers-page.component';
+import { CrossTenantReportsComponent } from './pages/cross-tenant-reports/cross-tenant-reports.component';
 
 export const appRoutes: Routes = [
   { path: 'login', component: LoginComponent },
@@ -54,6 +55,12 @@ export const appRoutes: Routes = [
       {
         path: 'company-payments',
         component: CompanyPaymentsPageComponent,
+        canActivate: [roleGuard],
+        data: { roles: ['SUPER_ADMIN'] },
+      },
+      {
+        path: 'cross-tenant-reports',
+        component: CrossTenantReportsComponent,
         canActivate: [roleGuard],
         data: { roles: ['SUPER_ADMIN'] },
       },

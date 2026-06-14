@@ -77,6 +77,37 @@
     </article>
   </section>
 
+  <section class="bottom-grid" *ngIf="isSuperAdmin">
+    <article class="panel tenant-list-panel">
+      <div class="panel-head">
+        <div>
+          <h3>All Tenants</h3>
+          <p>Manage all registered tenants</p>
+        </div>
+        <a routerLink="/tenants">View all</a>
+      </div>
+
+      <div class="tenant-list">
+        <div class="tenant-list-row header">
+          <span>Company Name</span>
+          <span>Code</span>
+          <span>Plan</span>
+          <span>Status</span>
+          <span>Lead Status</span>
+          <span></span>
+        </div>
+        <div class="tenant-list-row" *ngFor="let tenant of tenantsList">
+          <span>{{ tenant.name }}</span>
+          <span>{{ tenant.companyCode }}</span>
+          <span>{{ tenant.plan }}</span>
+          <span>{{ tenant.status }}</span>
+          <span>{{ tenant.leadStatus }}</span>
+          <button type="button" class="action-btn" [routerLink]="['/tenants']" [queryParams]="{ id: tenant.id }">View</button>
+        </div>
+      </div>
+    </article>
+  </section>
+
   <!-- Company Admin HR Dashboard -->
   <section class="middle-grid" *ngIf="isCompanyAdmin">
     <article class="panel growth-panel">

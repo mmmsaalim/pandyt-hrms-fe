@@ -60,6 +60,7 @@ export class SidebarComponent {
     const baseItems: NavItem[] = [
       { path: '/dashboard', label: 'Dashboard', show: true },
       { path: '/tenants', label: 'Tenants', show: isSuper },
+      { path: '/cross-tenant-reports', label: 'Cross-Tenant Reports', show: isSuper },
       { path: '/leads', label: 'Leads', show: isSuper },
       { path: '/company-payments', label: 'Company Payments', show: isSuper },
       { path: '/employees', label: 'Employees', show: isTenantUser && can('employees.read') },
