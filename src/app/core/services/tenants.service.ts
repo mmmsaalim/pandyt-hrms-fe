@@ -55,6 +55,9 @@ export class TenantsService {
     adminEmail: string;
     subscriptionPlan: string;
     seats?: number;
+    enabledModules?: string[];
+    moduleFeatures?: Record<string, Record<string, { enabled?: boolean; required?: boolean }>>;
+    config?: { locale?: string; currency?: string; fiscalYearStartMonth?: number };
   }) {
     return this.http.post(`${environment.apiUrl}/tenants/onboard`, dto);
   }
@@ -73,11 +76,35 @@ export class TenantsService {
     return this.http.patch(`${environment.apiUrl}/tenants/${id}`, dto);
   }
 
+  getTenantConfiguration(tenantId: number) {
+    return this.http.get(`${environment.apiUrl}/tenants/${tenantId}/configuration`);
+  }
+
+  saveTenantConfiguration(
+    tenantId: number,
+    dto: {
+      plan?: string;
+      enabledModules?: string[];
+      moduleFeatures?: Record<string, Record<string, { enabled?: boolean; required?: boolean; sortOrder?: number }>>;
+      config?: { locale?: string; currency?: string; fiscalYearStartMonth?: number };
+    },
+  ) {
+    return this.http.put(`${environment.apiUrl}/tenants/${tenantId}/configuration`, dto);
+  }
+
   approveTenant(id: number) {
     return this.http.patch(`${environment.apiUrl}/tenants/${id}/approve`, {});
   }
 
   deleteTenant(id: number) {
     return this.http.delete(`${environment.apiUrl}/tenants/${id}`);
+  }
+
+  deactivateTenantForPayment(id: number) {
+    return this.http.patch(`${environment.apiUrl}/tenants/${id}/deactivate-payment`, {});
+  }
+
+  reactivateTenant(id: number) {
+    return this.http.patch(`${environment.apiUrl}/tenants/${id}/reactivate`, {});
   }
 }

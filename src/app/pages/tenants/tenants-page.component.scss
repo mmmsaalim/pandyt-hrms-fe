@@ -116,10 +116,10 @@ th {
 	min-width: 220px;
 }
 
-.code-cell {
-	display: inline-flex;
-	align-items: center;
-	gap: 0.4rem;
+.row-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.35rem;
 }
 
 .action-btn {
@@ -146,6 +146,11 @@ th {
 	color: #991b1b;
 }
 
+.action-btn.warn {
+	background: #ffedd5;
+	color: #c2410c;
+}
+
 .action-btn.copy {
 	background: #f3f4f6;
 	color: #1f2937;
@@ -165,4 +170,36 @@ th {
 	display: grid;
 	grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
 	gap: 0.7rem;
+}
+
+.config-panel {
+	margin-top: 0.75rem;
+	padding: 0.75rem;
+	border: 1px solid var(--border);
+	border-radius: 10px;
+	background: #fff;
+}
+
+.module-block {
+	margin-bottom: 0.75rem;
+}
+
+.module-toggle,
+.field-toggle {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	margin-bottom: 0.35rem;
+	color: #1f2937;
+}
+
+.field-grid {
+	margin-left: 1rem;
+}
+
+.field-hint {
+	display: block;
+	margin-top: 0.25rem;
+	font-size: 0.78rem;
+	color: #6b7280;
 }

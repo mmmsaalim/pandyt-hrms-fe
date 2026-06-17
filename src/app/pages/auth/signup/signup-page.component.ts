@@ -3,6 +3,7 @@ import { Component } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
+import { SUBSCRIPTION_PLANS } from '../../../core/constants/subscription-plans';
 
 @Component({
   selector: 'app-signup-page',
@@ -15,6 +16,7 @@ export class SignupPageComponent {
   loading = false;
   successMessage = '';
   errorMessage = '';
+  readonly freemiumPlan = SUBSCRIPTION_PLANS.find((plan) => plan.key === 'FREEMIUM');
 
   readonly form = this.fb.group({
     companyName: ['', [Validators.required, Validators.minLength(2)]],

@@ -226,6 +226,7 @@
           <h3>Employee details</h3>
           <p>Your profile information</p>
         </div>
+        <a routerLink="/profile">Edit profile</a>
       </div>
 
       <div class="profile-grid">
@@ -245,8 +246,14 @@
           <span>Joined date</span>
           <strong>{{ employeeData.joinedDate | date: 'mediumDate' }}</strong>
         </div>
+        <div class="profile-item" *ngFor="let field of profileFieldDefs">
+          <span>{{ field.label }}</span>
+          <strong>{{ employeeProfile?.customFields?.[field.fieldKey] || '—' }}</strong>
+        </div>
       </div>
     </article>
+
+    <app-leave-balance-display></app-leave-balance-display>
 
     <article class="panel employee-list-panel">
       <div class="panel-head">

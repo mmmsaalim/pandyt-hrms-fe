@@ -5,6 +5,7 @@
     <p class="lead">Create your FlowHR workspace and submit it for review in minutes.</p>
     <ul>
       <li>Free setup request with no payment details required.</li>
+      <li>Freemium plan: up to {{ freemiumPlan?.seats }} employees with Core HR + Leave modules.</li>
       <li>Your company appears in the lead queue for review.</li>
       <li>Super admin approval activates your workspace for sign in.</li>
     </ul>
@@ -14,6 +15,11 @@
     <span class="mini-brand">FREE SIGNUP</span>
     <h2>Create a free workspace request</h2>
     <p>Your request will go to the lead queue, then super admin approves activation.</p>
+
+    <div class="plan-summary" *ngIf="freemiumPlan">
+      <strong>{{ freemiumPlan.label }} plan</strong>
+      <span>{{ freemiumPlan.description }}</span>
+    </div>
 
     <form [formGroup]="form" (ngSubmit)="submit()">
       <p *ngIf="errorMessage" class="error">{{ errorMessage }}</p>

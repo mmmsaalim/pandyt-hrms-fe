@@ -30,8 +30,7 @@ export class AttendancePageComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    const roles = this.auth.user()?.roles ?? [];
-    this.canOverrideAttendance = roles.includes('COMPANY_ADMIN') || roles.includes('HR_MANAGER');
+    this.canOverrideAttendance = this.auth.hasAnyPermission(['attendance.read']);
     this.loadEmployeeDirectory();
     this.load();
   }

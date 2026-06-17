@@ -51,8 +51,7 @@ export class LeavePageComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    const roles = this.auth.user()?.roles ?? [];
-    this.canApproveLeave = roles.includes('COMPANY_ADMIN') || roles.includes('HR_MANAGER') || roles.includes('TEAM_LEAD');
+    this.canApproveLeave = this.auth.hasAnyPermission(['leave.manage']);
     this.loadRows();
     this.loadBalances();
     this.loadLeaveTypes();

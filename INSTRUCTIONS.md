@@ -17,13 +17,15 @@ Single source for frontend context. This file is written for both humans and AI 
 Main folders used in frontend:
 - `src/app/core/guards` - auth and role guards
 - `src/app/core/interceptors` - auth cookie and `X-Tenant-ID` propagation
-- `src/app/core/services` - API service layer (auth, tenants, employees, etc.)
+- `src/app/core/services` - API service layer (auth, tenants, employees, tenant-configuration, role-configuration, etc.)
 - `src/app/shared/layout` - shell layout
 - `src/app/shared/sidebar` - role-aware navigation
 - `src/app/shared/topbar` - user/top navigation
 - `src/app/pages/auth` - login and invitation acceptance flows
 - `src/app/pages/dashboard` - role-based dashboard views
-- `src/app/pages/tenants` - super admin tenant onboarding UI
+- `src/app/pages/tenants` - super admin tenant onboarding + **Configure Tenant** wizard
+- `src/app/pages/platform-catalog` - super admin platform module/field catalog UI
+- `src/app/pages/configuration` - company admin Users & Permissions + Access Configuration
 - `src/app/pages/cross-tenant-reports` - super admin cross-tenant reporting UI
 - `src/app/pages/employees` - employee list, invite, salary update, export
 - `src/app/pages/leave` - request, approval, balances, policies
@@ -37,11 +39,11 @@ Main folders used in frontend:
 - `src/environments/environment.ts` - API base URL config
 
 ## 4) Role Model (Current)
-- `SUPER_ADMIN`: tenant lifecycle UX only
-- `COMPANY_ADMIN`: full tenant operations UX
-- `HR_MANAGER`: tenant-wide HR operations UX
-- `TEAM_LEAD`: scoped team operations UX
-- `EMPLOYEE`: self-service UX
+- `SUPER_ADMIN`: tenant lifecycle UX + **tenant-wise configuration** (`/tenants`, `/platform/catalog`)
+- `COMPANY_ADMIN`: full tenant operations UX + **user module role assignment** (`/configuration/*`)
+- `HR_MANAGER`: HR job role UX; **sidebar/routes gated by assigned module permissions**, not title alone
+- `TEAM_LEAD`: team job role UX; **module access via assigned tenant module roles**
+- `EMPLOYEE`: self-service UX; **module access via assigned tenant module roles**
 
 ## 5) Security Baseline Status (Complete)
 Implemented and active:
@@ -60,6 +62,10 @@ Core routes:
 Implemented and active:
 - Dashboard role-specific UX (super admin/company admin/employee)
 - Tenant onboarding UI (`/tenants?new=1`) for super admin
+- **Super Admin tenant configuration**: Configure Tenant modal (plan, modules, custom fields) on `/tenants`; platform catalog on `/platform/catalog`
+- **Company Admin RBAC**: `/configuration/users-permissions` (assign module roles per user), `/configuration/access-configuration` (permission matrix per tenant role)
+- **Runtime gating**: sidebar + routes use `auth.hasModule()` (tenant enabled modules) and `auth.hasAnyPermission()` (user effective permissions from login)
+- **Dynamic employee fields**: employee form renders enabled custom fields from `auth.getModuleFields('employees')`
 - Employee invite and management UI (`/employees?new=1`)
 - Invite role support in UI: `EMPLOYEE | TEAM_LEAD | HR_MANAGER | COMPANY_ADMIN`
 - Leave request and approval UX + balances/policies
@@ -119,6 +125,126 @@ Active implementation target. Read before touching `pages/recruitment`.
 
 ---
 
+## 14) Super Admin Tenant Configuration (Tenant-Wise Setup)
+
+This section documents Super Admin and Company Admin configuration UX. Read before touching `pages/tenants`, `pages/platform-catalog`, `pages/configuration`, or `core/services/auth.service.ts`.
+
+### 14.1 Two Configuration Planes (Do Not Mix)
+
+| Plane | Who | Route(s) | Purpose |
+|-------|-----|----------|---------|
+| **Tenant setup** | Super Admin | `/tenants`, `/platform/catalog` | Enable modules/fields per tenant; manage global catalog |
+| **User permissions** | Company Admin | `/configuration/users-permissions`, `/configuration/access-configuration` | Assign module roles to users; edit permission matrix |
+
+Company Admin must **not** get UI to toggle tenant modules — only Super Admin does.
+
+### 14.2 Super Admin UX
+
+**Tenants page (`/tenants`)**
+- Create tenant (plan, seats, admin invite)
+- **Configure Tenant** modal per active tenant:
+  - Subscription plan dropdown (applies preset defaults to module checkboxes)
+  - Locale / currency / fiscal year start month
+  - Module checkboxes (Employees, Organisation, Leave, Attendance, …)
+  - Per-module custom field toggles (enabled / required) — e.g. Religion, NIC on Employees
+- Save → `PUT /api/tenants/:id/configuration`
+
+**Platform Catalog (`/platform/catalog`)**
+- Add modules and fields to the global catalog (Super Admin only)
+- APIs via `tenant-configuration.service.ts`
+
+Sidebar (Super Admin): Dashboard, Tenants, Platform Catalog, Cross-Tenant Reports, Leads, Company Payments, Invitations.
+
+### 14.3 Company Admin Configuration UX
+
+**Users & Permissions tab**
+- Lists tenant users with assigned module role chips (`EMPLOYEES`, `LEAVE`, …)
+- **Edit Access** modal: checkboxes for enabled tenant module roles only (filtered by `auth.getEnabledModules()`)
+- Auto-bootstraps tenant module roles on first load if missing (`POST /api/roles/tenant/bootstrap-modules`)
+
+**Access Configuration tab**
+- Edit permission checkboxes for tenant-scoped roles
+
+Configuration sidebar group auto-expands for Company Admin.
+
+### 14.4 Auth Session Fields (Login Response)
+
+Stored in `AuthService` user signal / localStorage:
+
+- `enabledModules` — tenant-level modules (Super Admin configured)
+- `effectivePermissions` — user permissions after tenant module filter
+- `tenantConfig.fields` — dynamic field definitions per module
+
+Key helpers in `auth.service.ts`:
+- `hasModule(key)` — tenant module enabled (Super Admin plane)
+- `hasAnyPermission([...])` — user permission check (Company Admin assignment plane)
+- `getModuleFields(moduleKey)` — enabled custom fields for forms
+
+### 14.5 Navigation and Route Gating
+
+**Sidebar (`sidebar.component.ts`)**
+- Business menu items require `auth.hasModule('<module>')` **and** relevant `auth.hasAnyPermission(...)`
+- Leave / Attendance / Recruitment do **not** bypass checks for `HR_MANAGER` job role alone
+
+**Routes (`app.routes.ts`)**
+- `roleGuard` checks `roles`, `permissions`, and `module` data together
+- Example: `/attendance` requires `attendance.read` + module `attendance`
+
+**Employees page**
+- Loads organisation APIs only when `auth.hasModule('organisation')`
+- Renders custom employee fields from tenant config
+
+### 14.6 API Integration
+
+`tenant-configuration.service.ts` (Super Admin):
+- `getTenantConfiguration(tenantId)`, `saveTenantConfiguration(tenantId, dto)`
+- `listPlatformModules()`, `createPlatformModule()`, field CRUD
+
+`role-configuration.service.ts` (Company Admin):
+- `getConfiguration()`, assign/unassign scoped roles, set role permissions
+
+### 14.7 Implementation Status
+
+| Step | Task | Status | Files |
+|------|------|--------|-------|
+| 1 | Configure Tenant modal on `/tenants` | ✅ Done | `pages/tenants/*` |
+| 2 | Platform catalog page | ✅ Done | `pages/platform-catalog/*` |
+| 3 | Auth helpers + login fields | ✅ Done | `core/services/auth.service.ts` |
+| 4 | Sidebar/route module gating | ✅ Done | `sidebar.component.ts`, `app.routes.ts` |
+| 5 | Company Admin Users & Permissions | ✅ Done | `pages/configuration/*` |
+| 6 | Dynamic employee custom fields | ✅ Done | `pages/employees/*` |
+| 7 | HR_MANAGER nav by permissions not title | ✅ Done | `sidebar.component.ts`, attendance/leave/recruitment pages |
+
+### 14.8 Rules for AI Agents
+
+1. Super Admin changes tenant modules on `/tenants` — not on `/configuration`.
+2. Company Admin assigns **tenant module roles** to users — do not reintroduce HR_MANAGER auto-access to all modules.
+3. After permission or tenant config changes, users must **re-login** to refresh JWT/session fields.
+4. Use `effectivePermissions` for module action buttons (approve leave, override attendance, manage recruitment, etc.).
+5. Match existing card/modal patterns on tenants and configuration pages.
+
+### 14.10 Tenant lifecycle UX (`/tenants`)
+
+| Button | When shown | Effect |
+|--------|------------|--------|
+| **Deactivate** | Active + approved tenant | Payment suspension (`SUSPENDED` + `CONVERTED`) |
+| **Archive** | Active or pending tenant | Soft archive (`SUSPENDED` + `DELETED`), reactivatable |
+| **Reactivate** | Suspended / archived table | Restore to `ACTIVE` |
+
+**Configure Tenant modal** uses `edit-dialog-shell` with `size="large"` — scrollable body, sticky Save/Cancel footer (long module/field lists).
+
+Archived table shows **Reactivate** + **Configure**. Login error text is returned from BE and shown on the login form.
+
+### 14.11 Quick Verification
+
+1. Super Admin → Tenants → Configure Tenant → enable/disable modules as needed → Save.
+2. Company Admin login → sidebar shows only modules enabled for the tenant.
+3. Configuration → Users & Permissions → assign only the module roles that user should have → Save.
+4. That user re-login → sidebar/routes match assigned module roles only (same rule for every module).
+5. Super Admin → Platform Catalog → add field → Configure Tenant → enable field → Company Admin employee form shows it.
+
+---
+
 ## 7) Next Scope (Planned)
 Planned next roadmap items:
 - richer manager-focused dashboards
@@ -156,6 +282,8 @@ Email testing behavior (important for QA/UAT):
 - Employee invite form shows all 4 roles for company admin
 - HR manager invite flow blocks creation of `COMPANY_ADMIN`
 - Tenant-protected API calls include matching `X-Tenant-ID`
+- Super Admin can save tenant config with modules beyond plan preset (plan applies defaults only)
+- User without a tenant module role does not see that module in sidebar after re-login (same config rule for all modules)
 
 ## 11) Canonical Reference Docs
 For deeper detail (optional), see:
@@ -280,8 +408,8 @@ These are enforced UX behaviors and should not be regressed:
 	- Name display is first-name focused (avoid role-like suffixes in display text).
 
 - HR Manager/Team Lead workflow UX:
-	- `HR_MANAGER` must see Leave and Attendance navigation.
-	- Leave approvals available for `COMPANY_ADMIN`, `HR_MANAGER`, and `TEAM_LEAD` (with backend scope checks).
+	- `HR_MANAGER` and `TEAM_LEAD` see a module in the sidebar **only when** the tenant has it enabled **and** the user is assigned that tenant module role (same rule for Employees, Leave, Attendance, Payroll, etc.).
+	- Module actions use `effectivePermissions` (e.g. `leave.manage`, `attendance.read`, `recruitment.manage`) — not the job title alone.
 
 - Employee delete UX guard:
 	- In employee table, delete action for `COMPANY_ADMIN` targets is disabled for company admin users.

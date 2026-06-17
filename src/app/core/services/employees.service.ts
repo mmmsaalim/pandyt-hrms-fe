@@ -12,15 +12,29 @@ export class EmployeesService {
     return this.http.get(`${environment.apiUrl}/employees`);
   }
 
+  getMe() {
+    return this.http.get(`${environment.apiUrl}/employees/me`);
+  }
+
+  updateMe(dto: {
+    designation?: string;
+    employmentStatus?: 'ACTIVE' | 'ON_PROBATION' | 'INACTIVE';
+    customFields?: Record<string, unknown>;
+  }) {
+    return this.http.patch(`${environment.apiUrl}/employees/me`, dto);
+  }
+
   inviteEmployee(dto: {
     name: string;
     workEmail: string;
-    departmentId: number;
+    department?: string;
+    departmentId?: number;
     teamId?: number;
     locationId?: number;
     designation: string;
     role: InviteRole;
     employeeCode?: string;
+    customFields?: Record<string, unknown>;
   }) {
     return this.http.post(`${environment.apiUrl}/employees/invite`, dto);
   }
@@ -28,12 +42,15 @@ export class EmployeesService {
   updateEmployee(
     id: number,
     dto: {
+      department?: string;
       departmentId?: number;
       teamId?: number | null;
       locationId?: number | null;
       designation?: string;
       joinedDate?: string;
       employmentStatus?: 'ACTIVE' | 'ON_PROBATION' | 'INACTIVE';
+      salary?: number;
+      customFields?: Record<string, unknown>;
     },
   ) {
     return this.http.patch(`${environment.apiUrl}/employees/${id}`, dto);

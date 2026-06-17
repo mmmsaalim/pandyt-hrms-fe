@@ -24,6 +24,8 @@ import { ConfigurationPageComponent } from './pages/configuration/configuration-
 import { OrganisationPageComponent } from './pages/organisation/organisation-page.component';
 import { CareersPageComponent } from './pages/careers-page.component';
 import { CrossTenantReportsComponent } from './pages/cross-tenant-reports/cross-tenant-reports.component';
+import { PlatformCatalogPageComponent } from './pages/platform-catalog/platform-catalog-page.component';
+import { ProfilePageComponent } from './pages/profile/profile-page.component';
 
 export const appRoutes: Routes = [
   { path: 'login', component: LoginComponent },
@@ -40,6 +42,7 @@ export const appRoutes: Routes = [
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
       { path: 'dashboard', component: DashboardPageComponent },
+      { path: 'profile', component: ProfilePageComponent },
       {
         path: 'tenants',
         component: TenantsPageComponent,
@@ -59,6 +62,12 @@ export const appRoutes: Routes = [
         data: { roles: ['SUPER_ADMIN'] },
       },
       {
+        path: 'platform/catalog',
+        component: PlatformCatalogPageComponent,
+        canActivate: [roleGuard],
+        data: { roles: ['SUPER_ADMIN'] },
+      },
+      {
         path: 'cross-tenant-reports',
         component: CrossTenantReportsComponent,
         canActivate: [roleGuard],
@@ -71,13 +80,14 @@ export const appRoutes: Routes = [
         data: {
           roles: ['COMPANY_ADMIN', 'HR_MANAGER', 'TEAM_LEAD', 'EMPLOYEE'],
           permissions: ['employees.read'],
+          module: 'employees',
         },
       },
       {
         path: 'organisation',
         component: OrganisationPageComponent,
         canActivate: [roleGuard],
-        data: { roles: ['COMPANY_ADMIN'] },
+        data: { roles: ['COMPANY_ADMIN'], module: 'organisation' },
       },
       {
         path: 'leave',
@@ -86,6 +96,7 @@ export const appRoutes: Routes = [
         data: {
           roles: ['COMPANY_ADMIN', 'HR_MANAGER', 'TEAM_LEAD', 'EMPLOYEE'],
           permissions: ['leave.read'],
+          module: 'leave',
         },
       },
       {
@@ -95,6 +106,7 @@ export const appRoutes: Routes = [
         data: {
           roles: ['COMPANY_ADMIN', 'HR_MANAGER', 'TEAM_LEAD', 'EMPLOYEE'],
           permissions: ['attendance.read'],
+          module: 'attendance',
         },
       },
       {
@@ -104,6 +116,7 @@ export const appRoutes: Routes = [
         data: {
           roles: ['COMPANY_ADMIN', 'HR_MANAGER', 'TEAM_LEAD', 'EMPLOYEE'],
           permissions: ['payroll.manage'],
+          module: 'payroll',
         },
       },
       {
@@ -113,13 +126,18 @@ export const appRoutes: Routes = [
         data: {
           roles: ['COMPANY_ADMIN', 'HR_MANAGER', 'TEAM_LEAD', 'EMPLOYEE'],
           permissions: ['payslips.manage'],
+          module: 'payslips',
         },
       },
       {
         path: 'recruitment',
         component: RecruitmentPageComponent,
         canActivate: [roleGuard],
-        data: { roles: ['COMPANY_ADMIN', 'HR_MANAGER'] },
+        data: {
+          roles: ['COMPANY_ADMIN', 'HR_MANAGER'],
+          permissions: ['recruitment.read', 'recruitment.manage'],
+          module: 'recruitment',
+        },
       },
       {
         path: 'reports',
@@ -128,6 +146,7 @@ export const appRoutes: Routes = [
         data: {
           roles: ['COMPANY_ADMIN', 'HR_MANAGER', 'TEAM_LEAD', 'EMPLOYEE'],
           permissions: ['reports.read'],
+          module: 'reports',
         },
       },
       {

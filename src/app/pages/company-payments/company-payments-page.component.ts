@@ -9,16 +9,20 @@ interface PaymentRow {
   tenantId: number;
   companyName: string;
   plan: string;
+  planKey?: string;
   status: string;
   billingStatus: 'CURRENT' | 'ACTION_REQUIRED' | 'OVERDUE';
   includedSeats: number;
   activeEmployees: number;
   overageSeats: number;
+  monthlyPlanPrice: number | null;
+  overageSeatPrice: number;
+  isCustomPricing?: boolean;
   seatPrice: number;
   currency: string;
   subtotal: number;
   tax: number;
-  totalDue: number;
+  totalDue: number | null;
   renewalDate: string;
   createdAt: string;
 }
@@ -111,7 +115,14 @@ export class CompanyPaymentsPageComponent implements OnInit {
   }
 
   totalRevenueDue(): number {
-    return this.rows().reduce((acc, row) => acc + Number(row.totalDue || 0), 0);
+    return this.rows().reduce((acc, row) => acc + Number(row.totalDue ?? 0), 0);
+  }
+
+  formatTotalDue(row: PaymentRow): string {
+    if (row.isCustomPricing && row.totalDue === null) {
+      return 'Custom';
+    }
+    return `LKR ${Number(row.totalDue ?? 0).toLocaleString()}`;
   }
 
   overdueRows(): PaymentRow[] {

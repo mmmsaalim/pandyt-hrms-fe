@@ -16,6 +16,7 @@ export class EditDialogShellComponent {
   @Input() cancelText = 'Cancel';
   @Input() busy = false;
   @Input() disableSubmit = false;
+  @Input() size: 'default' | 'large' = 'default';
 
   @Output() submitForm = new EventEmitter<void>();
   @Output() cancel = new EventEmitter<void>();

@@ -129,3 +129,18 @@ th {
 	grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
 	gap: 0.7rem;
 }
+
+.seat-warning {
+	margin: 0 0 0.75rem;
+	padding: 0.65rem 0.8rem;
+	border-radius: 8px;
+	background: #fff7ed;
+	color: #9a3412;
+	font-size: 0.9rem;
+}
+
+.field-hint {
+	margin: 0.5rem 0;
+	font-size: 0.85rem;
+	color: #6b7280;
+}

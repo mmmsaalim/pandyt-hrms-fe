@@ -1,7 +1,7 @@
 <section class="header">
   <div>
     <h1>Company Payments</h1>
-    <p>Seat-based billing overview across all tenant companies in Sri Lankan rupees.</p>
+    <p>BRD flat monthly plan billing with overage seat charges. Configure prices in Configuration → Platform Catalog → Subscription & Billing.</p>
   </div>
   <div class="header-actions">
     <button class="refresh" (click)="runDailySchedule()" [disabled]="runningDailySchedule()">
@@ -48,7 +48,8 @@
         <th>Seats</th>
         <th>Employees</th>
         <th>Overage</th>
-        <th>Seat Price</th>
+        <th>Plan price</th>
+        <th>Overage / seat</th>
         <th>Subtotal</th>
         <th>VAT</th>
         <th>Total Due</th>
@@ -68,10 +69,11 @@
         <td>{{ row.includedSeats }}</td>
         <td>{{ row.activeEmployees }}</td>
         <td>{{ row.overageSeats }}</td>
-        <td>{{ row.seatPrice | currency:'LKR':'symbol':'1.0-0' }}</td>
+        <td>{{ row.monthlyPlanPrice === null ? 'Custom' : (row.monthlyPlanPrice | currency:'LKR':'symbol':'1.0-0') }}</td>
+        <td>{{ row.overageSeatPrice | currency:'LKR':'symbol':'1.0-0' }}</td>
         <td>{{ row.subtotal | currency:'LKR':'symbol':'1.0-0' }}</td>
         <td>{{ row.tax | currency:'LKR':'symbol':'1.0-0' }}</td>
-        <td class="due">{{ row.totalDue | currency:'LKR':'symbol':'1.0-0' }}</td>
+        <td class="due">{{ formatTotalDue(row) }}</td>
         <td>{{ row.renewalDate | date:'mediumDate' }}</td>
         <td>
           <button

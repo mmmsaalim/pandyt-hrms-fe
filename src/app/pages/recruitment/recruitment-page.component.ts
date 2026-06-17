@@ -68,10 +68,8 @@ export class RecruitmentPageComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    const user = this.auth.user();
-    const roles = user?.roles ?? [];
-    this.canManage = roles.includes('COMPANY_ADMIN') || roles.includes('HR_MANAGER');
-    this.companyCode = user?.tenantCode ?? '';
+    this.canManage = this.auth.hasAnyPermission(['recruitment.manage']);
+    this.companyCode = this.auth.user()?.tenantCode ?? '';
     this.loadAll();
   }
 

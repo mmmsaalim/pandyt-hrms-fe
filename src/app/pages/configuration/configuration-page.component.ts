@@ -10,6 +10,7 @@ import {
   RoleConfigurationResponse,
   RoleConfigurationService,
 } from '../../core/services/role-configuration.service';
+import { AuthService } from '../../core/services/auth.service';
 
 @Component({
   selector: 'app-configuration-page',
@@ -26,6 +27,7 @@ export class ConfigurationPageComponent implements OnInit {
   removingAccess = false;
   creatingRole = false;
   bootstrappingModules = false;
+  private bootstrapAttempted = false;
   errorMessage = '';
   successMessage = '';
 
@@ -48,6 +50,7 @@ export class ConfigurationPageComponent implements OnInit {
 
   constructor(
     private readonly configService: RoleConfigurationService,
+    private readonly auth: AuthService,
     private readonly route: ActivatedRoute,
     private readonly router: Router,
   ) {}
@@ -69,7 +72,22 @@ export class ConfigurationPageComponent implements OnInit {
   }
 
   get tenantRoles(): ConfigRole[] {
-    return this.roles.filter((role) => role.tenantId === this.managedTenantId);
+    return [...this.tenantModuleRoles, ...this.customTenantRoles];
+  }
+
+  get tenantModuleRoles(): ConfigRole[] {
+    const enabled = new Set(this.auth.getEnabledModules());
+    return this.roles.filter(
+      (role) => role.tenantId === this.managedTenantId && enabled.has(role.name.toLowerCase()),
+    );
+  }
+
+  get customTenantRoles(): ConfigRole[] {
+    const enabled = new Set(this.auth.getEnabledModules());
+    return this.roles.filter(
+      (role) =>
+        role.tenantId === this.managedTenantId && !enabled.has(role.name.toLowerCase()),
+    );
   }
 
   get assignableRoles(): ConfigRole[] {
@@ -79,8 +97,21 @@ export class ConfigurationPageComponent implements OnInit {
   }
 
   get userSelectableModules(): ConfigRole[] {
-    const systemRoles = new Set(['SUPER_ADMIN', 'COMPANY_ADMIN', 'EMPLOYEE']);
-    return this.assignableRoles.filter((role) => !systemRoles.has(role.name));
+    return this.tenantModuleRoles;
+  }
+
+  moduleRoleLabel(roleName: string): string {
+    const labels: Record<string, string> = {
+      employees: 'Employees',
+      organisation: 'Organisation',
+      leave: 'Leave',
+      attendance: 'Attendance',
+      payroll: 'Payroll',
+      payslips: 'Payslips',
+      recruitment: 'Recruitment',
+      reports: 'Reports',
+    };
+    return labels[roleName.toLowerCase()] ?? roleName;
   }
 
   get selectedRoleEditable(): boolean {
@@ -126,6 +157,7 @@ export class ConfigurationPageComponent implements OnInit {
 
         this.syncSelectedPermissions();
         this.syncSelectedUserAccess();
+        this.ensureTenantModuleRoles();
       },
       error: (err) => {
         this.errorMessage = err?.error?.message || 'Failed to load configuration data.';
@@ -386,7 +418,8 @@ export class ConfigurationPageComponent implements OnInit {
 
     this.configService.bootstrapTenantModuleRoles().subscribe({
       next: () => {
-        this.successMessage = 'Default module roles created. You can now tick module access for users.';
+        this.bootstrapAttempted = true;
+        this.successMessage = 'Default module roles created. You can now assign module access to users.';
         this.loadConfiguration();
       },
       error: (err) => {
@@ -396,6 +429,23 @@ export class ConfigurationPageComponent implements OnInit {
         this.bootstrappingModules = false;
       },
     });
+  }
+
+  private ensureTenantModuleRoles(): void {
+    if (this.bootstrapAttempted || this.bootstrappingModules) {
+      return;
+    }
+
+    if (this.tenantModuleRoles.length > 0) {
+      return;
+    }
+
+    if (!this.auth.getEnabledModules().length) {
+      return;
+    }
+
+    this.bootstrapAttempted = true;
+    this.generateDefaultModules();
   }
 
   private syncSelectedPermissions(): void {

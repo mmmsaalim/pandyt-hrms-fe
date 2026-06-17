@@ -87,7 +87,10 @@
         <span class="badge">{{ tenantRoles.length }} roles</span>
       </div>
 
-      <p class="help-text">Only tenant roles created below are editable. Shared roles (system-wide) are view-only.</p>
+      <p class="help-text">
+        Module roles (Employees, Leave, etc.) are created automatically for enabled modules.
+        You can also create custom tenant roles below.
+      </p>
 
       <div class="role-create">
         <label>
@@ -116,7 +119,7 @@
           [class.active]="role.id === selectedAccessRoleId"
           (click)="selectRole(role.id)"
         >
-          {{ role.name }}
+          {{ moduleRoleLabel(role.name) }}
         </button>
       </div>
     </article>
@@ -211,16 +214,19 @@
 
     <div class="module-list">
       <section class="module-block">
-        <h4>Company Admin Manageable Modules</h4>
+        <h4>Enabled module access roles</h4>
         <label class="permission-row" *ngFor="let role of userSelectableModules">
           <input
             type="checkbox"
             [checked]="selectedUserRoleIds.has(role.id)"
             (change)="toggleUserRole(role.id, $any($event.target).checked)"
           />
-          <span>{{ role.name }}</span>
+          <span>{{ moduleRoleLabel(role.name) }}</span>
         </label>
-            <p class="empty" *ngIf="!userSelectableModules.length">No modules available to assign.</p>
+            <p class="empty" *ngIf="!userSelectableModules.length && !bootstrappingModules">
+              No module roles found for this tenant. Click Generate Default Modules below.
+            </p>
+            <p class="empty" *ngIf="bootstrappingModules">Creating module roles for your tenant...</p>
             <button
               type="button"
               class="secondary"

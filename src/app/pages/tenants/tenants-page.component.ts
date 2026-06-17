@@ -2,6 +2,19 @@ import { Component, OnInit } from '@angular/core';
 import { DatePipe, NgFor, NgIf } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TenantsService } from '../../core/services/tenants.service';
+import {
+  TenantConfigurationModule,
+  TenantConfigurationResponse,
+  TenantConfigurationService,
+} from '../../core/services/tenant-configuration.service';
+import {
+  DEFAULT_EMPLOYEE_PROFILE_FIELDS,
+  SUBSCRIPTION_PLANS,
+  modulesForPlan,
+  planLabel,
+  seatsDisplay,
+  seatsForPlan,
+} from '../../core/constants/subscription-plans';
 import { ActivatedRoute } from '@angular/router';
 import { ConfirmDialogComponent } from '../../shared/dialogs/confirm-dialog.component';
 import { EditDialogShellComponent } from '../../shared/dialogs/edit-dialog-shell.component';
@@ -32,7 +45,7 @@ export class TenantsPageComponent implements OnInit {
   };
   confirmBusy = false;
   confirmDialog: {
-    mode: 'approve' | 'delete';
+    mode: 'approve' | 'archive' | 'deactivate' | 'reactivate';
     tenant: any;
     title: string;
     message: string;
@@ -45,18 +58,35 @@ export class TenantsPageComponent implements OnInit {
     companyCode: '',
     adminName: '',
     adminEmail: '',
-    subscriptionPlan: 'BASIC',
-    seats: 25,
+    subscriptionPlan: 'STARTER',
+    seats: seatsForPlan('STARTER'),
+  };
+
+  readonly planOptions = SUBSCRIPTION_PLANS;
+
+  configuringTenantId: number | null = null;
+  configBusy = false;
+  configSeats = 0;
+  configModules: TenantConfigurationModule[] = [];
+  configPlan = 'STARTER';
+  configLocale = {
+    locale: 'en-LK',
+    currency: 'LKR',
+    fiscalYearStartMonth: 4,
   };
 
   constructor(
     private readonly tenantsService: TenantsService,
+    private readonly tenantConfigurationService: TenantConfigurationService,
     private readonly route: ActivatedRoute,
   ) {}
 
   ngOnInit(): void {
     this.route.queryParamMap.subscribe((params) => {
       this.showCreateForm = params.get('new') === '1';
+      if (this.showCreateForm) {
+        this.loadCreateDefaults(this.form.subscriptionPlan);
+      }
       const id = params.get('id');
       if (id) {
         this.loadRows(() => {
@@ -97,7 +127,7 @@ export class TenantsPageComponent implements OnInit {
       case 'CONVERTED':
         return 'Approved';
       case 'DELETED':
-        return 'Deleted';
+        return 'Archived';
       case 'SUSPENDED':
         return 'Suspended';
       default:
@@ -118,7 +148,23 @@ export class TenantsPageComponent implements OnInit {
       return 'Suspended - Payment Due';
     }
 
+    if (row.status === 'SUSPENDED' && row.leadStatus === 'DELETED') {
+      return 'Archived';
+    }
+
     return this.friendlyStatus(row.status);
+  }
+
+  canDeactivateForPayment(row: { status: string; leadStatus: string }): boolean {
+    return row.status === 'ACTIVE' && row.leadStatus === 'CONVERTED';
+  }
+
+  canArchiveTenant(row: { status: string; leadStatus: string }): boolean {
+    return row.status === 'ACTIVE' || row.leadStatus === 'PENDING';
+  }
+
+  canReactivateTenant(row: { status: string }): boolean {
+    return row.status === 'SUSPENDED';
   }
 
   adminStatusLabel(status?: string): string {
@@ -138,6 +184,154 @@ export class TenantsPageComponent implements OnInit {
     this.successMessage = '';
     this.createdCompanyCode = '';
     this.showCreateForm = true;
+    this.loadCreateDefaults(this.form.subscriptionPlan);
+  }
+
+  onCreatePlanChange(): void {
+    this.configPlan = this.form.subscriptionPlan;
+    this.form.seats = seatsForPlan(this.form.subscriptionPlan);
+    this.loadCreateDefaults(this.form.subscriptionPlan);
+  }
+
+  onEditPlanChange(): void {
+    this.editTenantForm.seats = seatsForPlan(this.editTenantForm.plan);
+  }
+
+  planDescription(plan: string): string {
+    return this.planOptions.find((entry) => entry.key === plan.trim().toUpperCase())?.description ?? '';
+  }
+
+  formatSeats(plan: string, seats?: number): string {
+    return seatsDisplay(plan, seats);
+  }
+
+  formatPlanLabel(plan: string): string {
+    return planLabel(plan);
+  }
+
+  private loadCreateDefaults(plan: string): void {
+    this.configPlan = plan;
+    this.tenantConfigurationService.listPlatformModules().subscribe({
+      next: (modules) => {
+        const preset = modulesForPlan(plan);
+        this.configModules = modules.map((module) => ({
+          key: module.key,
+          label: module.label,
+          description: module.description,
+          enabled: preset.includes(module.key),
+          fields: (module.fields ?? []).map((field) => ({
+            fieldKey: field.fieldKey,
+            label: field.label,
+            fieldType: field.fieldType,
+            options: field.options,
+            isSystem: field.isSystem,
+            enabled:
+              field.isSystem ||
+              (module.key === 'employees' && DEFAULT_EMPLOYEE_PROFILE_FIELDS.includes(field.fieldKey)),
+            required:
+              module.key === 'employees' && (field.fieldKey === 'nic' || field.fieldKey === 'epfNo'),
+            sortOrder: 0,
+          })),
+        }));
+      },
+    });
+  }
+
+  private planDefaultModules(plan: string): string[] {
+    return modulesForPlan(plan);
+  }
+
+  private buildConfigurationPayload() {
+    const enabledModules = this.configModules.filter((module) => module.enabled).map((module) => module.key);
+    const moduleFeatures: Record<string, Record<string, { enabled?: boolean; required?: boolean }>> = {};
+
+    for (const module of this.configModules) {
+      if (!module.enabled) {
+        continue;
+      }
+
+      moduleFeatures[module.key] = {};
+      for (const field of module.fields) {
+        moduleFeatures[module.key][field.fieldKey] = {
+          enabled: field.enabled,
+          required: field.required,
+        };
+      }
+    }
+
+    return {
+      plan: this.configuringTenantId ? this.configPlan : this.form.subscriptionPlan,
+      enabledModules,
+      moduleFeatures,
+      config: this.configLocale,
+    };
+  }
+
+  configureTenant(row: any): void {
+    this.configuringTenantId = row.id;
+    this.configBusy = true;
+    this.errorMessage = '';
+    this.successMessage = '';
+
+    this.tenantConfigurationService.getTenantConfiguration(row.id).subscribe({
+      next: (config: TenantConfigurationResponse) => {
+        this.configPlan = config.plan;
+        this.configSeats = config.seats ?? seatsForPlan(config.plan);
+        this.configModules = config.modules;
+        this.configLocale = {
+          locale: String(config.config?.['locale'] ?? 'en-LK'),
+          currency: String(config.config?.['currency'] ?? 'LKR'),
+          fiscalYearStartMonth: Number(config.config?.['fiscalYearStartMonth'] ?? 4),
+        };
+        this.configBusy = false;
+      },
+      error: (err) => {
+        this.errorMessage = err?.error?.message || 'Failed to load tenant configuration.';
+        this.configBusy = false;
+      },
+    });
+  }
+
+  closeConfigureDialog(): void {
+    if (this.configBusy) {
+      return;
+    }
+
+    this.configuringTenantId = null;
+  }
+
+  saveTenantConfiguration(): void {
+    if (this.configuringTenantId === null) {
+      return;
+    }
+
+    this.configBusy = true;
+    this.errorMessage = '';
+    this.successMessage = '';
+
+    this.tenantsService.saveTenantConfiguration(this.configuringTenantId, this.buildConfigurationPayload()).subscribe({
+      next: () => {
+        this.successMessage = 'Tenant configuration saved successfully.';
+        this.configuringTenantId = null;
+        this.loadRows();
+      },
+      error: (err) => {
+        this.errorMessage = err?.error?.message || 'Failed to save tenant configuration.';
+        this.configBusy = false;
+      },
+      complete: () => {
+        this.configBusy = false;
+      },
+    });
+  }
+
+  applyPlanPresetToConfig(): void {
+    const preset = new Set(this.planDefaultModules(this.configPlan));
+    this.configSeats = seatsForPlan(this.configPlan);
+    this.configModules = this.configModules.map((module) => ({
+      ...module,
+      enabled: preset.has(module.key),
+    }));
   }
 
   private async copyText(value: string): Promise<boolean> {
@@ -194,8 +388,9 @@ export class TenantsPageComponent implements OnInit {
         companyCode: this.form.companyCode.trim() || undefined,
         adminName: this.form.adminName.trim(),
         adminEmail: this.form.adminEmail.trim(),
-        subscriptionPlan: this.form.subscriptionPlan.trim() || 'BASIC',
+        subscriptionPlan: this.form.subscriptionPlan.trim() || 'STARTER',
         seats: Number(this.form.seats) || 1,
+        ...this.buildConfigurationPayload(),
       })
       .subscribe({
         next: (res: any) => {
@@ -205,9 +400,10 @@ export class TenantsPageComponent implements OnInit {
             companyCode: '',
             adminName: '',
             adminEmail: '',
-            subscriptionPlan: 'BASIC',
-            seats: 25,
+            subscriptionPlan: 'STARTER',
+            seats: seatsForPlan('STARTER'),
           };
+          this.configModules = [];
           this.showCreateForm = false;
           this.createdCompanyCode = createdCode;
           this.successMessage = `Tenant created for ${res?.adminUser?.email || 'company admin'}. An onboarding email with a password setup link has been sent. Super admin approval is still required before login.`;
@@ -314,16 +510,44 @@ export class TenantsPageComponent implements OnInit {
       });
   }
 
-  deleteTenant(row: any): void {
+  deactivateTenant(row: any): void {
     this.confirmDialog = {
-      mode: 'delete',
+      mode: 'deactivate',
       tenant: row,
-      title: 'Delete tenant?',
-      message: `Delete ${row?.name}? This action suspends the tenant and marks lead status as deleted.`,
-      detail: 'Suspended tenant users cannot sign in.',
-      confirmText: 'Delete tenant',
+      title: 'Deactivate for overdue payment?',
+      message: `Suspend ${row?.name} because payment is overdue?`,
+      detail: 'Tenant users will see a payment suspension message when they try to sign in. You can reactivate later.',
+      confirmText: 'Deactivate',
       tone: 'danger',
     };
+  }
+
+  archiveTenant(row: any): void {
+    this.confirmDialog = {
+      mode: 'archive',
+      tenant: row,
+      title: 'Archive tenant?',
+      message: `Archive ${row?.name}? This deactivates the workspace but keeps data for reactivation.`,
+      detail: 'Archived tenant users will see a deactivation message on login. Use Reactivate to restore access.',
+      confirmText: 'Archive tenant',
+      tone: 'danger',
+    };
+  }
+
+  reactivateTenant(row: any): void {
+    this.confirmDialog = {
+      mode: 'reactivate',
+      tenant: row,
+      title: 'Reactivate tenant?',
+      message: `Restore access for ${row?.name}?`,
+      detail: 'Tenant status will return to Active and users can sign in again.',
+      confirmText: 'Reactivate',
+      tone: 'primary',
+    };
+  }
+
+  deleteTenant(row: any): void {
+    this.archiveTenant(row);
   }
 
   closeConfirmDialog(): void {
@@ -351,14 +575,28 @@ export class TenantsPageComponent implements OnInit {
     this.errorMessage = '';
     this.successMessage = '';
 
-    this.tenantsService.deleteTenant(row.id).subscribe({
+    const request$ =
+      this.confirmDialog.mode === 'deactivate'
+        ? this.tenantsService.deactivateTenantForPayment(row.id)
+        : this.confirmDialog.mode === 'reactivate'
+          ? this.tenantsService.reactivateTenant(row.id)
+          : this.tenantsService.deleteTenant(row.id);
+
+    const successCopy =
+      this.confirmDialog.mode === 'deactivate'
+        ? `${row.name} deactivated for overdue payment. Users will see a payment suspension message on login.`
+        : this.confirmDialog.mode === 'reactivate'
+          ? `${row.name} reactivated successfully. Users can sign in again.`
+          : `${row.name} archived successfully. Use Reactivate to restore access.`;
+
+    request$.subscribe({
       next: () => {
-        this.successMessage = `${row.name} deleted successfully. Tenant users are now suspended from sign-in.`;
+        this.successMessage = successCopy;
         this.confirmDialog = null;
         this.loadRows();
       },
       error: (err) => {
-        this.errorMessage = err?.error?.message || 'Failed to delete tenant.';
+        this.errorMessage = err?.error?.message || 'Failed to update tenant status.';
       },
       complete: () => {
         this.mutatingTenantId = null;

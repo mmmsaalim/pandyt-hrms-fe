@@ -28,13 +28,48 @@
       </label>
       <label>
         Subscription plan
-        <input [(ngModel)]="form.subscriptionPlan" name="subscriptionPlan" type="text" placeholder="BASIC" />
+        <select [(ngModel)]="form.subscriptionPlan" name="subscriptionPlan" (ngModelChange)="onCreatePlanChange()">
+          <option *ngFor="let plan of planOptions" [value]="plan.key">{{ plan.label }}</option>
+        </select>
+        <span class="field-hint">{{ planDescription(form.subscriptionPlan) }}</span>
       </label>
       <label>
         Seats
-        <input [(ngModel)]="form.seats" name="tenantSeats" type="number" min="1" />
+        <input [(ngModel)]="form.seats" name="tenantSeats" type="number" min="1" readonly />
+        <span class="field-hint">Auto-set from plan ({{ formatSeats(form.subscriptionPlan, form.seats) }} included)</span>
+      </label>
+      <label>
+        Locale
+        <input [(ngModel)]="configLocale.locale" name="createLocale" type="text" />
+      </label>
+      <label>
+        Currency
+        <input [(ngModel)]="configLocale.currency" name="createCurrency" type="text" />
+      </label>
+      <label>
+        Fiscal year start month
+        <input [(ngModel)]="configLocale.fiscalYearStartMonth" name="createFiscalMonth" type="number" min="1" max="12" />
       </label>
     </div>
+
+    <section class="config-panel" *ngIf="configModules.length">
+      <h5>Tenant modules and features</h5>
+      <div class="module-block" *ngFor="let module of configModules">
+        <label class="module-toggle">
+          <input type="checkbox" [(ngModel)]="module.enabled" [name]="'create-module-' + module.key" />
+          {{ module.label }}
+        </label>
+        <div class="field-grid" *ngIf="module.enabled && module.fields.length">
+          <label *ngFor="let field of module.fields" class="field-toggle">
+            <input type="checkbox" [(ngModel)]="field.enabled" [name]="'create-field-' + module.key + '-' + field.fieldKey" />
+            {{ field.label }}
+            <input type="checkbox" [(ngModel)]="field.required" [name]="'create-required-' + module.key + '-' + field.fieldKey" />
+            Required
+          </label>
+        </div>
+      </div>
+    </section>
+
     <p class="error" *ngIf="errorMessage">{{ errorMessage }}</p>
     <button type="button" class="add-btn" (click)="createTenant()" [disabled]="creating">
       {{ creating ? 'Creating...' : 'Create Company' }}
@@ -73,8 +108,8 @@
           </div>
           <ng-template #noCode>-</ng-template>
         </td>
-        <td>{{ r.plan }}</td>
-        <td>{{ r.seats }}</td>
+        <td>{{ formatPlanLabel(r.plan) }}</td>
+        <td>{{ formatSeats(r.plan, r.seats) }}</td>
         <td>{{ r.usersCount ?? 0 }}</td>
         <td><span class="badge">{{ leadStatusLabel(r.leadStatus) }}</span></td>
         <td><span class="badge">{{ tenantStatusLabel(r) }}</span></td>
@@ -89,7 +124,23 @@
             {{ isBusy(r.id) ? 'Working...' : 'Approve / Sync' }}
           </button>
           <button type="button" class="action-btn edit" (click)="editTenant(r)" [disabled]="isBusy(r.id)">Edit</button>
-          <button type="button" class="action-btn delete" (click)="deleteTenant(r)" [disabled]="isBusy(r.id)">Delete</button>
+          <button type="button" class="action-btn edit" (click)="configureTenant(r)" [disabled]="isBusy(r.id)">Configure</button>
+          <button
+            type="button"
+            class="action-btn warn"
+            *ngIf="canDeactivateForPayment(r)"
+            (click)="deactivateTenant(r)"
+            [disabled]="isBusy(r.id)">
+            Deactivate
+          </button>
+          <button
+            type="button"
+            class="action-btn delete"
+            *ngIf="canArchiveTenant(r)"
+            (click)="archiveTenant(r)"
+            [disabled]="isBusy(r.id)">
+            Archive
+          </button>
         </td>
       </tr>
       <tr *ngIf="activeRows.length === 0">
@@ -98,7 +149,7 @@
     </tbody>
   </table>
 
-  <h4 class="section-title archived">Suspended / Deleted Tenants</h4>
+  <h4 class="section-title archived">Suspended / Archived Tenants</h4>
   <table>
     <thead>
       <tr>
@@ -111,22 +162,34 @@
         <th>Tenant Status</th>
         <th>Admin Email</th>
         <th>Admin Status</th>
+        <th>Actions</th>
       </tr>
     </thead>
     <tbody>
       <tr *ngFor="let r of archivedRows">
         <td>{{ r.name }}</td>
         <td>{{ r.companyCode || '-' }}</td>
-        <td>{{ r.plan }}</td>
-        <td>{{ r.seats }}</td>
+        <td>{{ formatPlanLabel(r.plan) }}</td>
+        <td>{{ formatSeats(r.plan, r.seats) }}</td>
         <td>{{ r.usersCount ?? 0 }}</td>
         <td><span class="badge">{{ leadStatusLabel(r.leadStatus) }}</span></td>
         <td><span class="badge">{{ tenantStatusLabel(r) }}</span></td>
         <td>{{ r.companyAdmin?.email || '-' }}</td>
         <td>{{ adminStatusLabel(r.companyAdmin?.status) }}</td>
+        <td class="row-actions">
+          <button
+            type="button"
+            class="action-btn approve"
+            *ngIf="canReactivateTenant(r)"
+            (click)="reactivateTenant(r)"
+            [disabled]="isBusy(r.id)">
+            Reactivate
+          </button>
+          <button type="button" class="action-btn edit" (click)="configureTenant(r)" [disabled]="isBusy(r.id)">Configure</button>
+        </td>
       </tr>
       <tr *ngIf="archivedRows.length === 0">
-        <td colspan="9" class="empty">No suspended or deleted tenants found.</td>
+        <td colspan="10" class="empty">No suspended or archived tenants found.</td>
       </tr>
     </tbody>
   </table>
@@ -152,13 +215,72 @@
     </label>
     <label>
       Subscription plan
-      <input [(ngModel)]="editTenantForm.plan" name="editTenantPlan" type="text" />
+      <select [(ngModel)]="editTenantForm.plan" name="editTenantPlan" (ngModelChange)="onEditPlanChange()">
+        <option *ngFor="let plan of planOptions" [value]="plan.key">{{ plan.label }}</option>
+      </select>
+      <span class="field-hint">{{ planDescription(editTenantForm.plan) }}</span>
     </label>
     <label>
       Seats
-      <input [(ngModel)]="editTenantForm.seats" name="editTenantSeats" type="number" min="1" />
+      <input [(ngModel)]="editTenantForm.seats" name="editTenantSeats" type="number" min="1" readonly />
+      <span class="field-hint">Auto-set from plan</span>
     </label>
   </div>
+</app-edit-dialog-shell>
+
+<app-edit-dialog-shell
+  *ngIf="configuringTenantId !== null"
+  size="large"
+  title="Configure Tenant"
+  subtitle="Set subscription plan, enabled modules, and module features for this tenant"
+  submitText="Save configuration"
+  [busy]="configBusy"
+  [disableSubmit]="configBusy"
+  (cancel)="closeConfigureDialog()"
+  (submitForm)="saveTenantConfiguration()">
+  <div class="dialog-grid">
+    <label>
+      Subscription plan
+      <select [(ngModel)]="configPlan" name="configPlan" (ngModelChange)="applyPlanPresetToConfig()">
+        <option *ngFor="let plan of planOptions" [value]="plan.key">{{ plan.label }}</option>
+      </select>
+      <span class="field-hint">{{ planDescription(configPlan) }}</span>
+    </label>
+    <label>
+      Included seats
+      <input [ngModel]="formatSeats(configPlan, configSeats)" name="configSeats" type="text" readonly />
+    </label>
+    <label>
+      Locale
+      <input [(ngModel)]="configLocale.locale" name="configLocale" type="text" />
+    </label>
+    <label>
+      Currency
+      <input [(ngModel)]="configLocale.currency" name="configCurrency" type="text" />
+    </label>
+    <label>
+      Fiscal year start month
+      <input [(ngModel)]="configLocale.fiscalYearStartMonth" name="configFiscalMonth" type="number" min="1" max="12" />
+    </label>
+  </div>
+
+  <section class="config-panel">
+    <h5>Modules and features</h5>
+    <div class="module-block" *ngFor="let module of configModules">
+      <label class="module-toggle">
+        <input type="checkbox" [(ngModel)]="module.enabled" [name]="'config-module-' + module.key" />
+        {{ module.label }}
+      </label>
+      <div class="field-grid" *ngIf="module.enabled && module.fields.length">
+        <label *ngFor="let field of module.fields" class="field-toggle">
+          <input type="checkbox" [(ngModel)]="field.enabled" [name]="'config-field-' + module.key + '-' + field.fieldKey" />
+          {{ field.label }}
+          <input type="checkbox" [(ngModel)]="field.required" [name]="'config-required-' + module.key + '-' + field.fieldKey" />
+          Required
+        </label>
+      </div>
+    </div>
+  </section>
 </app-edit-dialog-shell>
 
 <app-confirm-dialog

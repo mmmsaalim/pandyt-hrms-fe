@@ -1,0 +1,140 @@
+<section class="catalog-page">
+  <header class="page-head">
+    <div>
+      <h2>Platform Configuration</h2>
+      <p>Manage modules, employee profile fields, and subscription billing used by Company Payments.</p>
+    </div>
+    <span class="badge">{{ modules.length }} modules</span>
+  </header>
+
+  <nav class="tab-nav">
+    <button type="button" [class.active]="activeTab === 'modules'" (click)="setTab('modules')">Modules & Fields</button>
+    <button type="button" [class.active]="activeTab === 'billing'" (click)="setTab('billing')">Subscription & Billing</button>
+  </nav>
+
+  <p class="success" *ngIf="successMessage">{{ successMessage }}</p>
+  <p class="error" *ngIf="errorMessage">{{ errorMessage }}</p>
+
+  <ng-container *ngIf="activeTab === 'modules'">
+    <section class="card panel">
+      <h3>Add module</h3>
+      <div class="form-grid">
+        <label>Module key<input [(ngModel)]="moduleForm.key" name="moduleKey" type="text" placeholder="employees" /></label>
+        <label>Label<input [(ngModel)]="moduleForm.label" name="moduleLabel" type="text" placeholder="Employees" /></label>
+        <label>Description<input [(ngModel)]="moduleForm.description" name="moduleDescription" type="text" /></label>
+      </div>
+      <button type="button" class="primary-btn" (click)="createModule()" [disabled]="savingModule">
+        {{ savingModule ? 'Saving...' : 'Add module' }}
+      </button>
+    </section>
+
+    <section class="card panel">
+      <h3>Add field to module</h3>
+      <div class="form-grid">
+        <label>
+          Module
+          <select [(ngModel)]="selectedModuleKey" name="selectedModuleKey">
+            <option *ngFor="let module of modules" [value]="module.key">{{ module.label }}</option>
+          </select>
+        </label>
+        <label>Field key<input [(ngModel)]="fieldForm.fieldKey" name="fieldKey" type="text" placeholder="nic" /></label>
+        <label>Label<input [(ngModel)]="fieldForm.label" name="fieldLabel" type="text" placeholder="NIC Number" /></label>
+        <label>
+          Field type
+          <select [(ngModel)]="fieldForm.fieldType" name="fieldType">
+            <option value="text">Text</option>
+            <option value="number">Number</option>
+            <option value="date">Date</option>
+            <option value="select">Select</option>
+            <option value="boolean">Boolean</option>
+          </select>
+        </label>
+      </div>
+      <button type="button" class="primary-btn" (click)="createField()" [disabled]="savingField">
+        {{ savingField ? 'Saving...' : 'Add field' }}
+      </button>
+    </section>
+
+    <section class="card panel">
+      <h3>Catalog modules</h3>
+      <table *ngIf="!loading; else loadingState">
+        <thead>
+          <tr><th>Key</th><th>Label</th><th>Fields</th></tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let module of modules">
+            <td><code>{{ module.key }}</code></td>
+            <td>{{ module.label }}</td>
+            <td class="field-list">
+              <span class="field-chip" *ngFor="let field of module.fields">{{ field.fieldKey }}</span>
+              <span *ngIf="!module.fields?.length" class="muted">No fields</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+  </ng-container>
+
+  <ng-container *ngIf="activeTab === 'billing'">
+    <section class="card panel">
+      <h3>Global billing settings</h3>
+      <p class="panel-copy">Flat monthly plan fees per BRD. Overage is charged per extra employee above included seats. Changes apply immediately in Company Payments.</p>
+      <div class="form-grid">
+        <label>
+          VAT / tax rate (0–1)
+          <input [(ngModel)]="billingForm.taxRate" name="taxRate" type="number" min="0" max="1" step="0.01" />
+        </label>
+        <label>
+          Overage seat price (LKR / month)
+          <input [(ngModel)]="billingForm.overageSeatPriceLkr" name="overageSeatPrice" type="number" min="0" />
+        </label>
+      </div>
+    </section>
+
+    <section class="card panel">
+      <h3>Subscription plans</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Plan</th>
+            <th>Included seats</th>
+            <th>Monthly price (LKR)</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let plan of planLabels">
+            <td><strong>{{ plan.label }}</strong></td>
+            <td>
+              <input
+                *ngIf="billingForm.plans[plan.key]"
+                [(ngModel)]="billingForm.plans[plan.key].seats"
+                [name]="'seats-' + plan.key"
+                type="number"
+                min="1"
+                [disabled]="plan.key === 'ENTERPRISE'" />
+              <span *ngIf="plan.key === 'ENTERPRISE'" class="muted">Unlimited</span>
+            </td>
+            <td>
+              <input
+                *ngIf="billingForm.plans[plan.key]"
+                [(ngModel)]="billingForm.plans[plan.key].monthlyPriceLkr"
+                [name]="'price-' + plan.key"
+                type="number"
+                min="0"
+                [placeholder]="plan.key === 'ENTERPRISE' ? 'Custom' : '0'" />
+            </td>
+            <td class="muted">{{ plan.description }}</td>
+          </tr>
+        </tbody>
+      </table>
+      <button type="button" class="primary-btn" (click)="saveBilling()" [disabled]="savingBilling">
+        {{ savingBilling ? 'Saving...' : 'Save billing configuration' }}
+      </button>
+    </section>
+  </ng-container>
+
+  <ng-template #loadingState>
+    <p class="muted">Loading catalog...</p>
+  </ng-template>
+</section>

@@ -1,0 +1,157 @@
+.catalog-page {
+  display: grid;
+  gap: 1rem;
+}
+
+.page-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.page-head h2 {
+  margin: 0;
+  font-family: var(--font-display);
+}
+
+.page-head p {
+  margin: 0.35rem 0 0;
+  color: var(--muted);
+  max-width: 640px;
+}
+
+.badge {
+  border-radius: 999px;
+  background: var(--brand-soft, #ffe1cf);
+  color: #9a3412;
+  padding: 0.3rem 0.7rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.tab-nav {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.tab-nav button {
+  border: 1px solid var(--border);
+  background: #fff;
+  border-radius: 999px;
+  padding: 0.45rem 0.9rem;
+  cursor: pointer;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.tab-nav button.active {
+  background: linear-gradient(180deg, #f68d46 0%, #f47421 100%);
+  border-color: transparent;
+  color: #fff;
+}
+
+.card.panel {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 1rem;
+  box-shadow: var(--shadow);
+}
+
+.panel h3 {
+  margin: 0 0 0.75rem;
+}
+
+.panel-copy {
+  margin: 0 0 0.85rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 0.65rem;
+  margin-bottom: 0.75rem;
+}
+
+label {
+  display: grid;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+input,
+select {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.45rem 0.55rem;
+  background: #fff;
+}
+
+.primary-btn {
+  border: 0;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #f68d46 0%, #f47421 100%);
+  color: #fff;
+  font-weight: 700;
+  padding: 0.5rem 0.9rem;
+  cursor: pointer;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 0.75rem;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 0.65rem 0.5rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+th {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.field-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.field-chip {
+  background: #fff4ea;
+  border: 1px solid #fed7aa;
+  color: #9a3412;
+  border-radius: 999px;
+  padding: 0.15rem 0.55rem;
+  font-size: 0.78rem;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.error {
+  color: #b42318;
+}
+
+.success {
+  color: #166534;
+}
+
+code {
+  background: #f8fafc;
+  padding: 0.1rem 0.35rem;
+  border-radius: 6px;
+}

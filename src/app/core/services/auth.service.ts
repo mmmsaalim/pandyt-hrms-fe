@@ -6,6 +6,26 @@ import { tap } from 'rxjs/operators';
 
 export type AppRole = string;
 
+export interface TenantFieldRuntimeConfig {
+  fieldKey: string;
+  label: string;
+  fieldType: string;
+  options?: unknown;
+  enabled: boolean;
+  required: boolean;
+  sortOrder: number;
+  isSystem?: boolean;
+}
+
+export interface TenantRuntimeConfig {
+  plan?: string;
+  seats?: number | null;
+  locale?: string;
+  currency?: string;
+  fiscalYearStartMonth?: number;
+  fields?: Record<string, TenantFieldRuntimeConfig[]>;
+}
+
 export interface AuthUser {
   id: number;
   email: string;
@@ -16,6 +36,9 @@ export interface AuthUser {
   tenantCode?: string | null;
   roles: AppRole[];
   permissions?: string[];
+  effectivePermissions?: string[];
+  enabledModules?: string[];
+  tenantConfig?: TenantRuntimeConfig | null;
   accessToken?: string;
 }
 
@@ -120,7 +143,70 @@ export class AuthService {
   hasAnyPermission(permissions: string[]) {
     const current = this.user();
     if (current?.roles?.includes('SUPER_ADMIN')) return true;
-    if (!current || !current.permissions?.length) return false;
-    return current.permissions.some((permission) => permissions.includes(permission));
+
+    const rawPermissions = current?.permissions ?? [];
+    const activePermissions = current?.effectivePermissions?.length
+      ? current.effectivePermissions
+      : rawPermissions;
+
+    if (!current || (!activePermissions.length && !rawPermissions.length)) return false;
+
+    return permissions.some((permission) => {
+      if (activePermissions.includes(permission)) {
+        return true;
+      }
+      // Company Admin RBAC must stay reachable even before session refresh.
+      if (
+        permission === 'configuration.manage' &&
+        current.roles.includes('COMPANY_ADMIN') &&
+        rawPermissions.includes('configuration.manage')
+      ) {
+        return true;
+      }
+      return false;
+    });
+  }
+
+  getEnabledModules(): string[] {
+    return this.user()?.enabledModules ?? [];
+  }
+
+  hasModule(moduleKey: string): boolean {
+    const current = this.user();
+    if (current?.roles?.includes('SUPER_ADMIN')) return true;
+    return (current?.enabledModules ?? []).includes(moduleKey);
+  }
+
+  getModuleFields(moduleKey: string): TenantFieldRuntimeConfig[] {
+    return this.user()?.tenantConfig?.fields?.[moduleKey] ?? [];
+  }
+
+  refreshTenantConfig() {
+    return this.http.get<TenantRuntimeConfig & { enabledModules?: string[] }>(
+      `${environment.apiUrl}/auth/tenant-config`,
+    );
+  }
+
+  applyTenantConfig(config: TenantRuntimeConfig & { enabledModules?: string[] }) {
+    const current = this.user();
+    if (!current) {
+      return;
+    }
+
+    const nextUser: AuthUser = {
+      ...current,
+      enabledModules: config.enabledModules ?? current.enabledModules,
+      tenantConfig: {
+        ...current.tenantConfig,
+        plan: config.plan,
+        seats: config.seats,
+        locale: config.locale,
+        currency: config.currency,
+        fiscalYearStartMonth: config.fiscalYearStartMonth,
+        fields: config.fields,
+      },
+    };
+    this.user.set(nextUser);
+    localStorage.setItem(this.userKey, JSON.stringify(nextUser));
   }
 }

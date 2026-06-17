@@ -22,6 +22,45 @@
   padding: 1rem;
 }
 
+.dialog-large {
+  width: min(920px, 96vw);
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+}
+
+.dialog-form {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.dialog-large .dialog-head {
+  padding: 1rem 1rem 0;
+  flex-shrink: 0;
+}
+
+.dialog-large .dialog-form {
+  flex: 1;
+  min-height: 0;
+}
+
+.dialog-large .content {
+  overflow-y: auto;
+  padding: 0.9rem 1rem;
+  max-height: calc(90vh - 8.5rem);
+}
+
+.dialog-large .actions {
+  margin-top: 0;
+  padding: 0.85rem 1rem 1rem;
+  border-top: 1px solid #f1d9c6;
+  background: #fff;
+  flex-shrink: 0;
+}
+
 .dialog-head h3 {
   margin: 0;
   font-size: 1rem;

@@ -2,14 +2,19 @@
   <div class="table-head">
     <h3>Employees</h3>
     <div class="table-actions">
+      <span class="badge" *ngIf="seatLimit">{{ seatUsage }} / {{ seatLimit }} seats</span>
       <span class="badge">{{ employees.length }} records</span>
-      <button *ngIf="isCompanyAdmin" type="button" class="add-btn" (click)="openCreateForm()">
+      <button *ngIf="canInviteEmployees" type="button" class="add-btn" (click)="openCreateForm()" [disabled]="isAtSeatLimit()">
         + Add Employee
       </button>
     </div>
   </div>
 
-  <section class="create-panel" *ngIf="isCompanyAdmin && showCreateForm">
+  <p class="seat-warning" *ngIf="seatLimit && isAtSeatLimit()">
+    Seat limit reached for your {{ auth.user()?.tenantConfig?.plan || 'current' }} plan. Contact your administrator to upgrade.
+  </p>
+
+  <section class="create-panel" *ngIf="canInviteEmployees && showCreateForm">
     <h4>Invite employee</h4>
     <div class="form-grid">
       <label>
@@ -24,27 +29,35 @@
         Employee code
         <input [(ngModel)]="form.employeeCode" name="employeeCode" type="text" />
       </label>
-      <label>
-        Department
-        <select [(ngModel)]="form.departmentId" name="departmentId" (ngModelChange)="onCreateDepartmentChange()">
-          <option [ngValue]="0">— Select department —</option>
-          <option *ngFor="let d of departments" [ngValue]="d.id">{{ d.name }}</option>
-        </select>
-      </label>
-      <label>
-        Team
-        <select [(ngModel)]="form.teamId" name="teamId">
-          <option [ngValue]="0">— None —</option>
-          <option *ngFor="let t of teamsForDepartment(form.departmentId)" [ngValue]="t.id">{{ t.name }}</option>
-        </select>
-      </label>
-      <label>
-        Location
-        <select [(ngModel)]="form.locationId" name="locationId">
-          <option [ngValue]="0">— Auto from department —</option>
-          <option *ngFor="let l of locations" [ngValue]="l.id">{{ l.name }}</option>
-        </select>
-      </label>
+      <ng-container *ngIf="hasOrganisationModule; else simpleDepartment">
+        <label>
+          Department
+          <select [(ngModel)]="form.departmentId" name="departmentId" (ngModelChange)="onCreateDepartmentChange()">
+            <option [ngValue]="0">— Select department —</option>
+            <option *ngFor="let d of departments" [ngValue]="d.id">{{ d.name }}</option>
+          </select>
+        </label>
+        <label>
+          Team
+          <select [(ngModel)]="form.teamId" name="teamId">
+            <option [ngValue]="0">— None —</option>
+            <option *ngFor="let t of teamsForDepartment(form.departmentId)" [ngValue]="t.id">{{ t.name }}</option>
+          </select>
+        </label>
+        <label>
+          Location
+          <select [(ngModel)]="form.locationId" name="locationId">
+            <option [ngValue]="0">— Auto from department —</option>
+            <option *ngFor="let l of locations" [ngValue]="l.id">{{ l.name }}</option>
+          </select>
+        </label>
+      </ng-container>
+      <ng-template #simpleDepartment>
+        <label>
+          Department
+          <input [(ngModel)]="form.department" name="department" type="text" placeholder="e.g. Human Resources" />
+        </label>
+      </ng-template>
       <label>
         Designation
         <input [(ngModel)]="form.designation" name="designation" type="text" />
@@ -54,11 +67,32 @@
         <select [(ngModel)]="form.role" name="role">
           <option value="EMPLOYEE">EMPLOYEE</option>
           <option value="TEAM_LEAD">TEAM_LEAD</option>
-          <option value="HR_MANAGER">HR_MANAGER</option>
-          <option value="COMPANY_ADMIN">COMPANY_ADMIN</option>
+          <option value="HR_MANAGER" *ngIf="isCompanyAdmin || auth.user()?.roles?.includes('HR_MANAGER')">HR_MANAGER</option>
+          <option value="COMPANY_ADMIN" *ngIf="isCompanyAdmin">COMPANY_ADMIN</option>
         </select>
       </label>
+
+      <ng-container *ngFor="let field of customFieldDefs">
+        <label *ngIf="field.fieldType === 'select'">
+          {{ field.label }}<span *ngIf="field.required"> *</span>
+          <select [(ngModel)]="form.customFields[field.fieldKey]" [name]="'create-custom-' + field.fieldKey">
+            <option [ngValue]="''">— Select —</option>
+            <option *ngFor="let option of fieldOptions(field)" [ngValue]="option">{{ option }}</option>
+          </select>
+        </label>
+        <label *ngIf="field.fieldType !== 'select'">
+          {{ field.label }}<span *ngIf="field.required"> *</span>
+          <input
+            [(ngModel)]="form.customFields[field.fieldKey]"
+            [name]="'create-custom-' + field.fieldKey"
+            [type]="field.fieldType === 'number' ? 'number' : field.fieldType === 'date' ? 'date' : 'text'" />
+        </label>
+      </ng-container>
     </div>
+
+    <p class="field-hint" *ngIf="customFieldDefs.length === 0">
+      No profile fields are enabled for this tenant. Super Admin can enable fields in Tenants → Configure, or add fields in Configuration → Platform Catalog.
+    </p>
     <p class="error" *ngIf="errorMessage">{{ errorMessage }}</p>
     <button type="button" class="add-btn" (click)="createEmployee()" [disabled]="creating">
       {{ creating ? 'Creating...' : 'Create Employee' }}
@@ -100,31 +134,36 @@
   subtitle="Update department, designation and status"
   submitText="Save changes"
   [busy]="editBusy"
-  [disableSubmit]="!editForm.departmentId || !editForm.designation.trim()"
+  [disableSubmit]="!editForm.designation.trim() || (hasOrganisationModule && !editForm.departmentId)"
   (cancel)="closeEmployeeEditDialog()"
   (submitForm)="submitEmployeeEdit()">
   <div class="dialog-grid">
-    <label>
-      Department
-      <select [(ngModel)]="editForm.departmentId" name="editDepartmentId" (ngModelChange)="onEditDepartmentChange()">
-        <option [ngValue]="0">— Select department —</option>
-        <option *ngFor="let d of departments" [ngValue]="d.id">{{ d.name }}</option>
-      </select>
-    </label>
-    <label>
-      Team
-      <select [(ngModel)]="editForm.teamId" name="editTeamId">
-        <option [ngValue]="0">— None —</option>
-        <option *ngFor="let t of teamsForDepartment(editForm.departmentId)" [ngValue]="t.id">{{ t.name }}</option>
-      </select>
-    </label>
-    <label>
-      Location
-      <select [(ngModel)]="editForm.locationId" name="editLocationId">
-        <option [ngValue]="0">— Auto from department —</option>
-        <option *ngFor="let l of locations" [ngValue]="l.id">{{ l.name }}</option>
-      </select>
-    </label>
+    <ng-container *ngIf="hasOrganisationModule; else simpleEditDepartment">
+      <label>
+        Department
+        <select [(ngModel)]="editForm.departmentId" name="editDepartmentId" (ngModelChange)="onEditDepartmentChange()">
+          <option [ngValue]="0">— Select department —</option>
+          <option *ngFor="let d of departments" [ngValue]="d.id">{{ d.name }}</option>
+        </select>
+      </label>
+      <label>
+        Team
+        <select [(ngModel)]="editForm.teamId" name="editTeamId">
+          <option [ngValue]="0">— None —</option>
+          <option *ngFor="let t of teamsForDepartment(editForm.departmentId)" [ngValue]="t.id">{{ t.name }}</option>
+        </select>
+      </label>
+      <label>
+        Location
+        <select [(ngModel)]="editForm.locationId" name="editLocationId">
+          <option [ngValue]="0">— Auto from department —</option>
+          <option *ngFor="let l of locations" [ngValue]="l.id">{{ l.name }}</option>
+        </select>
+      </label>
+    </ng-container>
+    <ng-template #simpleEditDepartment>
+      <p class="hint">Organisation module is disabled for this tenant. Department is shown from the employee record.</p>
+    </ng-template>
     <label>
       Designation
       <input [(ngModel)]="editForm.designation" name="editDesignation" type="text" />
@@ -137,6 +176,23 @@
         <option value="INACTIVE">INACTIVE</option>
       </select>
     </label>
+
+    <ng-container *ngFor="let field of customFieldDefs">
+      <label *ngIf="field.fieldType === 'select'">
+        {{ field.label }}<span *ngIf="field.required"> *</span>
+        <select [(ngModel)]="editForm.customFields[field.fieldKey]" [name]="'custom-' + field.fieldKey">
+          <option [ngValue]="''">— Select —</option>
+          <option *ngFor="let option of fieldOptions(field)" [ngValue]="option">{{ option }}</option>
+        </select>
+      </label>
+      <label *ngIf="field.fieldType !== 'select'">
+        {{ field.label }}<span *ngIf="field.required"> *</span>
+        <input
+          [(ngModel)]="editForm.customFields[field.fieldKey]"
+          [name]="'custom-' + field.fieldKey"
+          [type]="field.fieldType === 'number' ? 'number' : field.fieldType === 'date' ? 'date' : 'text'" />
+      </label>
+    </ng-container>
   </div>
 </app-edit-dialog-shell>
 

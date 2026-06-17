@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { EmployeesService, InviteRole } from '../../core/services/employees.service';
 import { OrganisationService } from '../../core/services/organisation.service';
 import { ActivatedRoute } from '@angular/router';
-import { AuthService } from '../../core/services/auth.service';
+import { AuthService, TenantFieldRuntimeConfig } from '../../core/services/auth.service';
 import { ConfirmDialogComponent } from '../../shared/dialogs/confirm-dialog.component';
 import { EditDialogShellComponent } from '../../shared/dialogs/edit-dialog-shell.component';
 
@@ -22,6 +22,8 @@ export class EmployeesPageComponent implements OnInit {
   locations: any[] = [];
 
   isCompanyAdmin = false;
+  canInviteEmployees = false;
+  hasOrganisationModule = false;
   showCreateForm = false;
   creating = false;
   mutatingEmployeeId: number | null = null;
@@ -35,7 +37,9 @@ export class EmployeesPageComponent implements OnInit {
     locationId: 0,
     designation: '',
     employmentStatus: 'ACTIVE' as 'ACTIVE' | 'ON_PROBATION' | 'INACTIVE',
+    customFields: {} as Record<string, unknown>,
   };
+  customFieldDefs: TenantFieldRuntimeConfig[] = [];
   salaryEmployeeId: number | null = null;
   salaryBusy = false;
   salaryForm = {
@@ -46,41 +50,98 @@ export class EmployeesPageComponent implements OnInit {
   form = {
     name: '',
     workEmail: '',
+    department: '',
     departmentId: 0,
     teamId: 0,
     locationId: 0,
     designation: '',
     role: 'EMPLOYEE' as InviteRole,
     employeeCode: '',
+    customFields: {} as Record<string, unknown>,
   };
+
+  seatLimit = 0;
+  seatUsage = 0;
 
   constructor(
     private readonly employeesService: EmployeesService,
     private readonly organisationService: OrganisationService,
     private readonly route: ActivatedRoute,
-    private readonly auth: AuthService,
+    readonly auth: AuthService,
   ) {}
 
   ngOnInit(): void {
     const roles = this.auth.user()?.roles ?? [];
     this.isCompanyAdmin = roles.includes('COMPANY_ADMIN');
+    this.canInviteEmployees =
+      this.isCompanyAdmin ||
+      (roles.includes('HR_MANAGER') && this.auth.hasAnyPermission(['employees.invite']));
+    this.hasOrganisationModule = this.auth.hasModule('organisation');
+    this.customFieldDefs = this.auth.getModuleFields('employees');
+    this.seatLimit = this.auth.user()?.tenantConfig?.seats ?? 0;
 
     this.route.queryParamMap.subscribe((params) => {
-      this.showCreateForm = this.isCompanyAdmin && params.get('new') === '1';
+      this.showCreateForm = this.canInviteEmployees && params.get('new') === '1';
     });
 
-    this.loadOrgData();
+    this.auth.refreshTenantConfig().subscribe({
+      next: (config) => {
+        this.auth.applyTenantConfig(config);
+        this.customFieldDefs = config.fields?.['employees'] ?? [];
+        this.seatLimit = config.seats ?? this.auth.user()?.tenantConfig?.seats ?? 0;
+      },
+      error: () => {
+        this.customFieldDefs = this.auth.getModuleFields('employees');
+      },
+    });
+
+    if (this.hasOrganisationModule) {
+      this.loadOrgData();
+    }
     this.loadEmployees();
   }
 
   loadOrgData(): void {
-    this.organisationService.getDepartments().subscribe((rows: any) => (this.departments = rows));
-    this.organisationService.getTeams().subscribe((rows: any) => (this.teams = rows));
-    this.organisationService.getLocations().subscribe((rows: any) => (this.locations = rows));
+    if (!this.hasOrganisationModule) {
+      return;
+    }
+
+    this.organisationService.getDepartments().subscribe({
+      next: (rows: any) => (this.departments = rows),
+      error: () => {
+        this.departments = [];
+      },
+    });
+    this.organisationService.getTeams().subscribe({
+      next: (rows: any) => (this.teams = rows),
+      error: () => {
+        this.teams = [];
+      },
+    });
+    this.organisationService.getLocations().subscribe({
+      next: (rows: any) => (this.locations = rows),
+      error: () => {
+        this.locations = [];
+      },
+    });
   }
 
   loadEmployees(): void {
-    this.employeesService.list().subscribe((rows: any) => (this.employees = rows));
+    this.employeesService.list().subscribe((rows: any) => {
+      this.employees = rows;
+      this.seatUsage = rows.filter((employee: any) => employee.employmentStatus !== 'INACTIVE').length;
+    });
+  }
+
+  seatsRemaining(): number {
+    if (!this.seatLimit) {
+      return 0;
+    }
+    return Math.max(this.seatLimit - this.seatUsage, 0);
+  }
+
+  isAtSeatLimit(): boolean {
+    return this.seatLimit > 0 && this.seatUsage >= this.seatLimit;
   }
 
   teamsForDepartment(departmentId: number): any[] {
@@ -133,23 +194,54 @@ export class EmployeesPageComponent implements OnInit {
   }
 
   openCreateForm(): void {
-    if (!this.isCompanyAdmin) {
+    if (!this.canInviteEmployees) {
+      return;
+    }
+
+    if (this.isAtSeatLimit()) {
+      this.errorMessage = `Seat limit reached (${this.seatUsage}/${this.seatLimit}). Upgrade your plan to add more employees.`;
       return;
     }
 
     this.errorMessage = '';
     this.successMessage = '';
     this.showCreateForm = true;
+    this.form.customFields = {};
   }
 
   createEmployee(): void {
-    if (!this.isCompanyAdmin) {
+    if (!this.canInviteEmployees) {
       return;
     }
 
-    if (!this.form.workEmail.trim() || !this.form.name.trim() || !this.form.departmentId) {
-      this.errorMessage = 'Name, work email, and department are required.';
+    if (this.isAtSeatLimit()) {
+      this.errorMessage = `Seat limit reached (${this.seatUsage}/${this.seatLimit}). Upgrade your plan to add more employees.`;
       return;
+    }
+
+    if (!this.form.workEmail.trim() || !this.form.name.trim()) {
+      this.errorMessage = 'Name and work email are required.';
+      return;
+    }
+
+    if (this.hasOrganisationModule && !this.form.departmentId) {
+      this.errorMessage = 'Department is required.';
+      return;
+    }
+
+    if (!this.hasOrganisationModule && !this.form.department.trim()) {
+      this.errorMessage = 'Department name is required.';
+      return;
+    }
+
+    for (const field of this.customFieldDefs) {
+      if (
+        field.required &&
+        (this.form.customFields[field.fieldKey] === undefined || this.form.customFields[field.fieldKey] === '')
+      ) {
+        this.errorMessage = `${field.label} is required.`;
+        return;
+      }
     }
 
     this.creating = true;
@@ -160,24 +252,33 @@ export class EmployeesPageComponent implements OnInit {
       .inviteEmployee({
         name: this.form.name.trim(),
         workEmail: this.form.workEmail.trim(),
-        departmentId: this.form.departmentId,
-        teamId: this.form.teamId || undefined,
-        locationId: this.form.locationId || undefined,
+        ...(this.hasOrganisationModule
+          ? {
+              departmentId: this.form.departmentId,
+              teamId: this.form.teamId || undefined,
+              locationId: this.form.locationId || undefined,
+            }
+          : {
+              department: this.form.department.trim(),
+            }),
         designation: this.form.designation.trim(),
         role: this.form.role,
         employeeCode: this.form.employeeCode.trim() || undefined,
+        customFields: Object.keys(this.form.customFields).length ? this.form.customFields : undefined,
       })
       .subscribe({
         next: (res: any) => {
           this.form = {
             name: '',
             workEmail: '',
+            department: '',
             departmentId: 0,
             teamId: 0,
             locationId: 0,
             designation: '',
             role: 'EMPLOYEE',
             employeeCode: '',
+            customFields: {},
           };
           this.showCreateForm = false;
           this.successMessage = `Employee created for ${res?.employee?.user?.email || 'employee'}. Invitation email sent with the account setup link.`;
@@ -206,7 +307,13 @@ export class EmployeesPageComponent implements OnInit {
       locationId: employee?.locationId ?? employee?.location?.id ?? 0,
       designation: employee?.designation ?? '',
       employmentStatus: (employee?.employmentStatus ?? 'ACTIVE') as 'ACTIVE' | 'ON_PROBATION' | 'INACTIVE',
+      customFields: { ...(employee?.customFields ?? {}) },
     };
+  }
+
+  fieldOptions(field: TenantFieldRuntimeConfig): string[] {
+    const options = field.options as { values?: string[] } | undefined;
+    return options?.values ?? [];
   }
 
   closeEmployeeEditDialog(): void {
@@ -222,8 +329,13 @@ export class EmployeesPageComponent implements OnInit {
       return;
     }
 
-    if (!this.editForm.departmentId || !this.editForm.designation.trim()) {
-      this.errorMessage = 'Department and designation are required.';
+    if (!this.editForm.designation.trim()) {
+      this.errorMessage = 'Designation is required.';
+      return;
+    }
+
+    if (this.hasOrganisationModule && !this.editForm.departmentId) {
+      this.errorMessage = 'Department is required.';
       return;
     }
 
@@ -232,14 +344,23 @@ export class EmployeesPageComponent implements OnInit {
     this.errorMessage = '';
     this.successMessage = '';
 
+    const payload = this.hasOrganisationModule
+      ? {
+          departmentId: this.editForm.departmentId,
+          teamId: this.editForm.teamId || null,
+          locationId: this.editForm.locationId || null,
+          designation: this.editForm.designation.trim(),
+          employmentStatus: this.editForm.employmentStatus,
+          customFields: this.editForm.customFields,
+        }
+      : {
+          designation: this.editForm.designation.trim(),
+          employmentStatus: this.editForm.employmentStatus,
+          customFields: this.editForm.customFields,
+        };
+
     this.employeesService
-      .updateEmployee(this.editingEmployeeId, {
-        departmentId: this.editForm.departmentId,
-        teamId: this.editForm.teamId || null,
-        locationId: this.editForm.locationId || null,
-        designation: this.editForm.designation.trim(),
-        employmentStatus: this.editForm.employmentStatus,
-      })
+      .updateEmployee(this.editingEmployeeId, payload)
       .subscribe({
         next: () => {
           this.successMessage = 'Employee updated successfully.';

@@ -2,8 +2,10 @@ import { Component, OnInit } from '@angular/core';
 import { DatePipe, DecimalPipe, NgFor, NgIf } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { DashboardService } from '../../core/services/dashboard.service';
-import { AuthService } from '../../core/services/auth.service';
+import { AuthService, TenantFieldRuntimeConfig } from '../../core/services/auth.service';
+import { EmployeesService } from '../../core/services/employees.service';
 import { LeaveService } from '../../core/services/leave.service';
+import { LeaveBalanceDisplayComponent } from '../leave/leave-balance-display.component';
 
 interface StatCard {
   label: string;
@@ -58,7 +60,7 @@ interface ApprovalCard {
 @Component({
   selector: 'app-dashboard-page',
   standalone: true,
-  imports: [NgFor, NgIf, DatePipe, DecimalPipe, RouterLink],
+  imports: [NgFor, NgIf, DatePipe, DecimalPipe, RouterLink, LeaveBalanceDisplayComponent],
   templateUrl: './dashboard-page.component.html',
   styleUrl: './dashboard-page.component.scss',
 })
@@ -137,6 +139,8 @@ export class DashboardPageComponent implements OnInit {
   tenantName: string | null = null;
   isEmployeeView = false;
   employeeData: EmployeeDashboardData | null = null;
+  employeeProfile: any = null;
+  profileFieldDefs: TenantFieldRuntimeConfig[] = [];
   isSuperAdmin = false;
   isCompanyAdmin = false;
   tenantsList: Array<any> = [];
@@ -144,6 +148,7 @@ export class DashboardPageComponent implements OnInit {
   constructor(
     private readonly dashboardService: DashboardService,
     private readonly auth: AuthService,
+    private readonly employeesService: EmployeesService,
     private readonly leaveService: LeaveService,
     private readonly router: Router,
   ) {}
@@ -354,6 +359,19 @@ export class DashboardPageComponent implements OnInit {
         this.isEmployeeView = true;
         this.employeeData = data as EmployeeDashboardData;
         this.setEmployeeStats(data as EmployeeDashboardData);
+      },
+    });
+
+    this.auth.refreshTenantConfig().subscribe({
+      next: (config) => {
+        this.auth.applyTenantConfig(config);
+        this.profileFieldDefs = config.fields?.['employees'] ?? [];
+      },
+    });
+
+    this.employeesService.getMe().subscribe({
+      next: (profile) => {
+        this.employeeProfile = profile;
       },
     });
   }

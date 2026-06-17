@@ -1,0 +1,81 @@
+<section class="profile-page">
+  <header class="page-head">
+    <div>
+      <h2>My Profile</h2>
+      <p>View and update your employee details, statutory fields, and leave balances.</p>
+    </div>
+  </header>
+
+  <p class="error" *ngIf="errorMessage">{{ errorMessage }}</p>
+  <p class="success" *ngIf="successMessage">{{ successMessage }}</p>
+  <p class="loading" *ngIf="loading">Loading profile...</p>
+
+  <ng-container *ngIf="!loading && profile">
+    <section class="card profile-card">
+      <h3>Basic information</h3>
+      <div class="info-grid">
+        <div>
+          <span class="label">Full name</span>
+          <strong>{{ profile.user?.firstName }} {{ profile.user?.lastName }}</strong>
+        </div>
+        <div>
+          <span class="label">Work email</span>
+          <strong>{{ profile.user?.email }}</strong>
+        </div>
+        <div>
+          <span class="label">Employee code</span>
+          <strong>{{ profile.employeeCode }}</strong>
+        </div>
+        <div>
+          <span class="label">Department</span>
+          <strong>{{ profile.departmentRelation?.name || profile.department }}</strong>
+        </div>
+        <div>
+          <span class="label">Joined date</span>
+          <strong>{{ profile.joinedDate | date: 'mediumDate' }}</strong>
+        </div>
+        <div>
+          <span class="label">Status</span>
+          <strong>{{ profile.employmentStatus }}</strong>
+        </div>
+      </div>
+    </section>
+
+    <section class="card profile-card">
+      <h3>Profile details</h3>
+      <div class="form-grid">
+        <label>
+          Designation
+          <input [(ngModel)]="editForm.designation" name="profileDesignation" type="text" />
+        </label>
+
+        <ng-container *ngFor="let field of customFieldDefs">
+          <label *ngIf="field.fieldType === 'select'">
+            {{ field.label }}<span *ngIf="field.required"> *</span>
+            <select [(ngModel)]="editForm.customFields[field.fieldKey]" [name]="'profile-' + field.fieldKey">
+              <option [ngValue]="''">— Select —</option>
+              <option *ngFor="let option of fieldOptions(field)" [ngValue]="option">{{ option }}</option>
+            </select>
+          </label>
+          <label *ngIf="field.fieldType !== 'select'">
+            {{ field.label }}<span *ngIf="field.required"> *</span>
+            <input
+              [(ngModel)]="editForm.customFields[field.fieldKey]"
+              [name]="'profile-' + field.fieldKey"
+              [type]="field.fieldType === 'number' ? 'number' : field.fieldType === 'date' ? 'date' : 'text'" />
+          </label>
+        </ng-container>
+      </div>
+
+      <p class="hint" *ngIf="customFieldDefs.length === 0">
+        No additional profile fields are enabled for your company. Ask your administrator to configure employee fields.
+      </p>
+
+      <button type="button" class="save-btn" (click)="saveProfile()" [disabled]="saving">
+        {{ saving ? 'Saving...' : 'Save profile' }}
+      </button>
+    </section>
+
+    <app-leave-balance-display *ngIf="auth.hasModule('leave')"></app-leave-balance-display>
+  </ng-container>
+</section>

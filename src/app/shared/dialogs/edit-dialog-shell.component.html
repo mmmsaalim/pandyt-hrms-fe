@@ -1,11 +1,11 @@
 <div class="dialog-backdrop" (click)="cancel.emit()">
-  <section class="dialog" (click)="$event.stopPropagation()">
+  <section class="dialog" [class.dialog-large]="size === 'large'" (click)="$event.stopPropagation()">
     <header class="dialog-head">
       <h3>{{ title }}</h3>
       <p *ngIf="subtitle">{{ subtitle }}</p>
     </header>
 
-    <form (ngSubmit)="submitForm.emit()">
+    <form class="dialog-form" (ngSubmit)="submitForm.emit()">
       <div class="content">
         <ng-content></ng-content>
       </div>
