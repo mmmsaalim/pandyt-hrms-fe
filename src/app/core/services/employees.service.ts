@@ -27,6 +27,7 @@ export class EmployeesService {
   inviteEmployee(dto: {
     name: string;
     workEmail: string;
+    onboardingMode?: 'EMAIL_INVITE' | 'MANUAL_ONLY';
     department?: string;
     departmentId?: number;
     teamId?: number;
@@ -54,6 +55,14 @@ export class EmployeesService {
     },
   ) {
     return this.http.patch(`${environment.apiUrl}/employees/${id}`, dto);
+  }
+
+  enableEmployeeLogin(id: number, workEmail: string) {
+    return this.http.post(`${environment.apiUrl}/employees/${id}/enable-login`, { workEmail });
+  }
+
+  offboardEmployee(id: number, reason: string) {
+    return this.http.post(`${environment.apiUrl}/employees/${id}/offboard`, { reason });
   }
 
   deleteEmployee(id: number) {

@@ -1,0 +1,133 @@
+:host {
+  display: block;
+}
+
+.table-head,
+.table-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.table-head p {
+  margin: 0.2rem 0 0;
+  color: #6b7280;
+  font-size: 0.88rem;
+}
+
+.create-panel {
+  margin: 0.75rem 0 1rem;
+  padding: 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #fff4ea;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 0.65rem;
+  margin-bottom: 0.75rem;
+}
+
+label {
+  display: grid;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.switch-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+input,
+select {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.45rem 0.55rem;
+  background: #fff;
+}
+
+.add-btn {
+  border: 0;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #f68d46 0%, #f47421 100%);
+  color: #fff;
+  font-weight: 700;
+  padding: 0.5rem 0.8rem;
+  cursor: pointer;
+}
+
+.add-btn.outline {
+  background: #fff;
+  color: #6f3f1b;
+  border: 1px solid #d4a574;
+}
+
+.badge.muted {
+  background: #eef2f7;
+  color: #475569;
+}
+
+.meal-types-grid {
+  display: grid;
+  gap: 0.65rem;
+  margin-bottom: 0.75rem;
+}
+
+.meal-types-grid h5 {
+  margin: 0;
+}
+
+.meal-type-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.65rem;
+  align-items: end;
+  padding: 0.55rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #fff;
+}
+
+.meal-label {
+  font-weight: 600;
+  color: var(--text, #1d2430);
+}
+
+.hint {
+  margin: 0 0 0.65rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 0.65rem 0.6rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.84rem;
+}
+
+.success {
+  color: #166534;
+}
+
+.error {
+  color: #b42318;
+}
+
+.empty {
+  text-align: center;
+  color: var(--muted);
+}
+

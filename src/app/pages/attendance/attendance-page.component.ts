@@ -14,6 +14,7 @@ import { EmployeesService } from '../../core/services/employees.service';
 })
 export class AttendancePageComponent implements OnInit {
   rows: any[] = [];
+  employees: Array<{ id: number; name: string; email: string }> = [];
   employeeDirectory = new Map<number, { name: string; email: string }>();
   canOverrideAttendance = false;
   busy = false;
@@ -30,7 +31,9 @@ export class AttendancePageComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.canOverrideAttendance = this.auth.hasAnyPermission(['attendance.read']);
+    const roles = this.auth.user()?.roles ?? [];
+    this.canOverrideAttendance =
+      roles.includes('COMPANY_ADMIN') || roles.includes('HR_MANAGER') || roles.includes('TEAM_LEAD');
     this.loadEmployeeDirectory();
     this.load();
   }
@@ -78,9 +81,11 @@ export class AttendancePageComponent implements OnInit {
         }
 
         this.employeeDirectory = nextMap;
+        this.employees = Array.from(nextMap, ([id, value]) => ({ id, ...value }));
       },
       error: () => {
         this.employeeDirectory = new Map();
+        this.employees = [];
       },
     });
   }
@@ -103,9 +108,16 @@ export class AttendancePageComponent implements OnInit {
     });
   }
 
+  toggleManualEntry(): void {
+    this.showOverrideForm = !this.showOverrideForm;
+    if (!this.showOverrideForm) {
+      this.overrideForm = { employeeId: 0, date: '', clockIn: '', clockOut: '', reason: '' };
+    }
+  }
+
   submitOverride(): void {
     if (!this.overrideForm.reason.trim() || !this.overrideForm.date || !this.overrideForm.employeeId) {
-      this.showMsg('Employee ID, date, and reason are required.', 'error');
+      this.showMsg('Employee, date, and reason are required.', 'error');
       return;
     }
     this.busy = true;

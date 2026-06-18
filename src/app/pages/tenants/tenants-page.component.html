@@ -2,7 +2,7 @@
   <div class="table-head">
     <h3>Tenants / Companies</h3>
     <div class="table-actions">
-      <span class="badge">{{ rows.length }}</span>
+      <span class="badge">{{ activePagination.total + archivedPagination.total }}</span>
       <button type="button" class="add-btn" (click)="openCreateForm()">+ New Tenant</button>
     </div>
   </div>
@@ -50,7 +50,50 @@
         Fiscal year start month
         <input [(ngModel)]="configLocale.fiscalYearStartMonth" name="createFiscalMonth" type="number" min="1" max="12" />
       </label>
+      <label>
+        Payslip template
+        <select [(ngModel)]="configLocale.payslipTemplateKey" name="createPayslipTemplate">
+          <option *ngFor="let option of payslipTemplateOptions" [value]="option.key">{{ option.label }}</option>
+        </select>
+      </label>
     </div>
+
+    <section class="config-panel leave-setup-panel" *ngIf="isLeaveModuleEnabled()">
+      <div class="panel-head">
+        <h5>Leave policies (Sri Lanka defaults — editable)</h5>
+        <button type="button" class="action-btn" (click)="resetLeavePoliciesToSriLanka()">Reset to SL defaults</button>
+      </div>
+      <p class="field-hint">Annual, Casual, Sick, Medical, Maternity, and Paternity. Adjust days and accrual per company.</p>
+      <table class="leave-policy-table">
+        <thead>
+          <tr>
+            <th>Type</th>
+            <th>Days</th>
+            <th>Carry forward</th>
+            <th>Monthly accrual</th>
+            <th>Scope</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let policy of leavePolicies; let i = index">
+            <td><input [(ngModel)]="policy.name" [name]="'createLeaveName' + i" type="text" /></td>
+            <td><input [(ngModel)]="policy.days" [name]="'createLeaveDays' + i" type="number" min="0" step="0.5" /></td>
+            <td><input [(ngModel)]="policy.carryForwardLimit" [name]="'createLeaveCarry' + i" type="number" min="0" step="0.5" /></td>
+            <td><input [(ngModel)]="policy.accrualRate" [name]="'createLeaveAccrual' + i" type="number" min="0" step="0.01" /></td>
+            <td>
+              <select [(ngModel)]="policy.genderScope" [name]="'createLeaveScope' + i">
+                <option value="ALL">All</option>
+                <option value="FEMALE">Female</option>
+                <option value="MALE">Male</option>
+              </select>
+            </td>
+            <td><button type="button" class="action-btn danger" (click)="removeLeavePolicyRow(i)">Remove</button></td>
+          </tr>
+        </tbody>
+      </table>
+      <button type="button" class="action-btn" (click)="addLeavePolicyRow()">+ Add leave type</button>
+    </section>
 
     <section class="config-panel" *ngIf="configModules.length">
       <h5>Tenant modules and features</h5>
@@ -148,6 +191,12 @@
       </tr>
     </tbody>
   </table>
+  <app-list-pagination
+    [pagination]="activePagination"
+    [disabled]="activeLoading"
+    (pageChange)="onActivePageChange($event)"
+    (limitChange)="onActiveLimitChange($event)">
+  </app-list-pagination>
 
   <h4 class="section-title archived">Suspended / Archived Tenants</h4>
   <table>
@@ -193,6 +242,12 @@
       </tr>
     </tbody>
   </table>
+  <app-list-pagination
+    [pagination]="archivedPagination"
+    [disabled]="archivedLoading"
+    (pageChange)="onArchivedPageChange($event)"
+    (limitChange)="onArchivedLimitChange($event)">
+  </app-list-pagination>
 </section>
 
 <app-edit-dialog-shell
@@ -262,7 +317,50 @@
       Fiscal year start month
       <input [(ngModel)]="configLocale.fiscalYearStartMonth" name="configFiscalMonth" type="number" min="1" max="12" />
     </label>
+    <label>
+      Payslip template
+      <select [(ngModel)]="configLocale.payslipTemplateKey" name="configPayslipTemplate">
+        <option *ngFor="let option of payslipTemplateOptions" [value]="option.key">{{ option.label }}</option>
+      </select>
+    </label>
   </div>
+
+  <section class="config-panel leave-setup-panel" *ngIf="isLeaveModuleEnabled()">
+    <div class="panel-head">
+      <h5>Leave policies</h5>
+      <button type="button" class="action-btn" (click)="resetLeavePoliciesToSriLanka()">Reset to SL defaults</button>
+    </div>
+    <p class="field-hint">Customize leave types, entitlements, and monthly accrual for this tenant.</p>
+    <table class="leave-policy-table">
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Days</th>
+          <th>Carry forward</th>
+          <th>Monthly accrual</th>
+          <th>Scope</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let policy of leavePolicies; let i = index">
+          <td><input [(ngModel)]="policy.name" [name]="'configLeaveName' + i" type="text" /></td>
+          <td><input [(ngModel)]="policy.days" [name]="'configLeaveDays' + i" type="number" min="0" step="0.5" /></td>
+          <td><input [(ngModel)]="policy.carryForwardLimit" [name]="'configLeaveCarry' + i" type="number" min="0" step="0.5" /></td>
+          <td><input [(ngModel)]="policy.accrualRate" [name]="'configLeaveAccrual' + i" type="number" min="0" step="0.01" /></td>
+          <td>
+            <select [(ngModel)]="policy.genderScope" [name]="'configLeaveScope' + i">
+              <option value="ALL">All</option>
+              <option value="FEMALE">Female</option>
+              <option value="MALE">Male</option>
+            </select>
+          </td>
+          <td><button type="button" class="action-btn danger" (click)="removeLeavePolicyRow(i)">Remove</button></td>
+        </tr>
+      </tbody>
+    </table>
+    <button type="button" class="action-btn" (click)="addLeavePolicyRow()">+ Add leave type</button>
+  </section>
 
   <section class="config-panel">
     <h5>Modules and features</h5>

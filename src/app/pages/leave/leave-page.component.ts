@@ -2,8 +2,10 @@ import { Component, OnInit } from '@angular/core';
 import { DatePipe, NgClass, NgFor, NgIf } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { LeaveService, LeaveStatus } from '../../core/services/leave.service';
+import { cloneLeavePresets } from '../../core/constants/leave-presets';
 import { AuthService } from '../../core/services/auth.service';
 import { LeaveBalanceDisplayComponent } from './leave-balance-display.component';
+import { EmployeesService } from '../../core/services/employees.service';
 
 interface LeaveRow {
   id: string;
@@ -34,31 +36,51 @@ interface LeaveRow {
 export class LeavePageComponent implements OnInit {
   rows: LeaveRow[] = [];
   balances: any[] = [];
-  leaveTypes: string[] = ['Annual', 'Medical', 'Sick', 'Casual'];
+  leaveTypes: string[] = cloneLeavePresets().map((row) => row.name);
   canApproveLeave = false;
+  canManualLeave = false;
+  employees: Array<{ id: number; name: string; email: string }> = [];
   busyRowId: string | null = null;
   showApplyForm = false;
+  manualEntryMode = false;
   busy = false;
   message = '';
   messageType: 'success' | 'error' = 'success';
   activeTab: 'requests' | 'balances' = 'requests';
 
-  applyForm = { type: '', startDate: '', endDate: '', days: 1, reason: '' };
+  applyForm = { employeeId: 0, type: '', startDate: '', endDate: '', days: 1, reason: '', status: 'PENDING' as LeaveStatus };
 
   constructor(
     private readonly leaveService: LeaveService,
     private readonly auth: AuthService,
+    private readonly employeesService: EmployeesService,
   ) {}
 
   ngOnInit(): void {
     this.canApproveLeave = this.auth.hasAnyPermission(['leave.manage']);
+    const roles = this.auth.user()?.roles ?? [];
+    this.canManualLeave = roles.includes('COMPANY_ADMIN') || roles.includes('HR_MANAGER') || roles.includes('TEAM_LEAD');
     this.loadRows();
     this.loadBalances();
     this.loadLeaveTypes();
+    this.loadEmployees();
   }
 
   openApplyForm(): void {
+    this.manualEntryMode = false;
     this.showApplyForm = true;
+    this.applyForm.status = 'PENDING';
+    this.applyForm.employeeId = 0;
+    if (!this.applyForm.type) {
+      this.applyForm.type = this.leaveTypes[0] ?? 'Annual';
+    }
+  }
+
+  openManualEntryForm(): void {
+    this.manualEntryMode = true;
+    this.showApplyForm = true;
+    this.applyForm.status = 'APPROVED';
+    this.applyForm.employeeId = 0;
     if (!this.applyForm.type) {
       this.applyForm.type = this.leaveTypes[0] ?? 'Annual';
     }
@@ -66,6 +88,7 @@ export class LeavePageComponent implements OnInit {
 
   closeApplyForm(): void {
     this.showApplyForm = false;
+    this.manualEntryMode = false;
   }
 
   employeeName(row: LeaveRow): string {
@@ -90,17 +113,29 @@ export class LeavePageComponent implements OnInit {
       this.showMsg('Type, start date and end date are required.', 'error');
       return;
     }
+    if (this.manualEntryMode && !this.applyForm.employeeId) {
+      this.showMsg('Select an employee for manual leave entry.', 'error');
+      return;
+    }
     this.busy = true;
-    this.leaveService.apply(this.applyForm).subscribe({
+    const payload = {
+      ...this.applyForm,
+      employeeId: this.canManualLeave && this.applyForm.employeeId ? this.applyForm.employeeId : undefined,
+      status: this.canManualLeave ? this.applyForm.status : undefined,
+    };
+
+    this.leaveService.apply(payload).subscribe({
       next: () => {
         this.showMsg('Leave applied successfully.', 'success');
         this.closeApplyForm();
         this.applyForm = {
           type: this.leaveTypes[0] ?? 'Annual',
+          employeeId: 0,
           startDate: '',
           endDate: '',
           days: 1,
           reason: '',
+          status: 'PENDING',
         };
         this.loadRows();
         this.loadBalances();
@@ -127,6 +162,25 @@ export class LeavePageComponent implements OnInit {
     this.leaveService.getBalances().subscribe((res: any) => (this.balances = res));
   }
 
+  private loadEmployees(): void {
+    if (!this.canManualLeave) {
+      return;
+    }
+
+    this.employeesService.list().subscribe({
+      next: (rows: any) => {
+        this.employees = (Array.isArray(rows) ? rows : []).map((row: any) => ({
+          id: Number(row.id),
+          name: `${row?.user?.firstName ?? ''} ${row?.user?.lastName ?? ''}`.trim() || `Employee #${row.id}`,
+          email: row?.user?.email ?? 'No email',
+        }));
+      },
+      error: () => {
+        this.employees = [];
+      },
+    });
+  }
+
   private loadLeaveTypes(): void {
     this.leaveService.getPolicies().subscribe({
       next: (policies: any) => {
@@ -135,13 +189,15 @@ export class LeavePageComponent implements OnInit {
               .map((p: any) => p?.name)
               .filter((name: string | undefined) => !!name)
           : [];
-        const merged = [...this.leaveTypes, ...policyNames];
-        this.leaveTypes = Array.from(new Set(merged));
+        this.leaveTypes = policyNames.length
+          ? policyNames
+          : cloneLeavePresets().map((row) => row.name);
         if (!this.applyForm.type) {
           this.applyForm.type = this.leaveTypes[0] ?? 'Annual';
         }
       },
       error: () => {
+        this.leaveTypes = cloneLeavePresets().map((row) => row.name);
         if (!this.applyForm.type) {
           this.applyForm.type = this.leaveTypes[0] ?? 'Annual';
         }

@@ -60,6 +60,10 @@ export class ConfigurationPageComponent implements OnInit {
       const tab = data['tab'] as 'users-permissions' | 'access-configuration' | undefined;
       this.activeTab = tab ?? 'users-permissions';
     });
+    this.auth.refreshTenantConfig().subscribe({
+      next: (config) => this.auth.applyTenantConfig(config),
+      error: () => undefined,
+    });
     this.loadConfiguration();
   }
 
@@ -110,6 +114,7 @@ export class ConfigurationPageComponent implements OnInit {
       payslips: 'Payslips',
       recruitment: 'Recruitment',
       reports: 'Reports',
+      canteen: 'Canteen',
     };
     return labels[roleName.toLowerCase()] ?? roleName;
   }
@@ -432,15 +437,22 @@ export class ConfigurationPageComponent implements OnInit {
   }
 
   private ensureTenantModuleRoles(): void {
-    if (this.bootstrapAttempted || this.bootstrappingModules) {
+    if (this.bootstrappingModules) {
       return;
     }
 
-    if (this.tenantModuleRoles.length > 0) {
+    const enabled = this.auth.getEnabledModules();
+    if (!enabled.length) {
       return;
     }
 
-    if (!this.auth.getEnabledModules().length) {
+    const existing = new Set(
+      this.roles
+        .filter((role) => role.tenantId === this.managedTenantId)
+        .map((role) => role.name.toLowerCase()),
+    );
+    const missing = enabled.filter((moduleKey) => !existing.has(moduleKey));
+    if (missing.length === 0) {
       return;
     }
 

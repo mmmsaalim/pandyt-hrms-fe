@@ -5,8 +5,8 @@
       <span class="badge">{{ rows.length }}</span>
       <button type="button" class="add-btn" (click)="clockIn()" [disabled]="busy">Clock In</button>
       <button type="button" class="add-btn secondary" (click)="clockOut()" [disabled]="busy">Clock Out</button>
-      <button *ngIf="canOverrideAttendance" type="button" class="add-btn outline" (click)="showOverrideForm = !showOverrideForm">
-        {{ showOverrideForm ? 'Cancel Override' : 'HR Override' }}
+      <button *ngIf="canOverrideAttendance" type="button" class="add-btn outline" (click)="toggleManualEntry()">
+        {{ showOverrideForm ? 'Cancel Manual Entry' : '+ Manual Entry' }}
       </button>
     </div>
   </div>
@@ -14,15 +14,23 @@
   <p *ngIf="message" class="{{ messageType === 'success' ? 'success' : 'error' }}">{{ message }}</p>
 
   <section class="create-panel" *ngIf="showOverrideForm">
-    <h4>HR Override</h4>
+    <h4>Manual Attendance Entry</h4>
     <div class="form-grid">
-      <label>Employee ID<input [(ngModel)]="overrideForm.employeeId" type="number" /></label>
+      <label>
+        Employee
+        <select [(ngModel)]="overrideForm.employeeId">
+          <option [ngValue]="0">Select employee</option>
+          <option *ngFor="let employee of employees" [ngValue]="employee.id">
+            {{ employee.name }} · {{ employee.email }}
+          </option>
+        </select>
+      </label>
       <label>Date<input [(ngModel)]="overrideForm.date" type="date" /></label>
       <label>Clock In<input [(ngModel)]="overrideForm.clockIn" type="datetime-local" /></label>
       <label>Clock Out<input [(ngModel)]="overrideForm.clockOut" type="datetime-local" /></label>
       <label style="grid-column: 1 / -1">Reason (required)<input [(ngModel)]="overrideForm.reason" type="text" /></label>
     </div>
-    <button type="button" class="add-btn" (click)="submitOverride()" [disabled]="busy">Save Override</button>
+    <button type="button" class="add-btn" (click)="submitOverride()" [disabled]="busy">Save Entry</button>
   </section>
 
   <table>

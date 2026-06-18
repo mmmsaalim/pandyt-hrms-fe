@@ -69,7 +69,6 @@ export class SidebarComponent {
 
     const baseItems: NavItem[] = [
       { path: '/dashboard', label: 'Dashboard', show: true },
-      { path: '/profile', label: 'My Profile', show: isTenantUser },
       { path: '/tenants', label: 'Tenants', show: isSuper },
       { path: '/cross-tenant-reports', label: 'Cross-Tenant Reports', show: isSuper },
       { path: '/leads', label: 'Leads', show: isSuper },
@@ -78,6 +77,7 @@ export class SidebarComponent {
       { path: '/organisation', label: 'Organisation', show: isCompany && moduleEnabled('organisation') },
       { path: '/leave', label: 'Leave', show: isTenantUser && moduleEnabled('leave') && can('leave.read') },
       { path: '/attendance', label: 'Attendance', show: isTenantUser && moduleEnabled('attendance') && can('attendance.read') },
+      { path: '/canteen', label: 'Canteen', show: (isCompany || isHrManager || isTeamLead) && moduleEnabled('canteen') && can('canteen.read') },
       { path: '/payroll', label: 'Payroll', show: isTenantUser && moduleEnabled('payroll') && can('payroll.manage') },
       { path: '/payslips', label: 'Payslips', show: isTenantUser && moduleEnabled('payslips') && can('payslips.manage') },
       { path: '/recruitment', label: 'Recruitment', show: moduleEnabled('recruitment') && (can('recruitment.read') || can('recruitment.manage')) },

@@ -23,6 +23,10 @@ export class SignupPageComponent {
     companyCode: [''],
     adminName: ['', [Validators.required, Validators.minLength(2)]],
     adminEmail: ['', [Validators.required, Validators.email]],
+    adminPhone: ['', [Validators.required, Validators.minLength(7)]],
+    employeeCount: [10, [Validators.required, Validators.min(1)]],
+    address: [''],
+    notes: [''],
   });
 
   constructor(
@@ -35,8 +39,8 @@ export class SignupPageComponent {
       return;
     }
 
-    const { companyName, companyCode, adminName, adminEmail } = this.form.getRawValue();
-    if (!companyName || !adminName || !adminEmail) {
+    const { companyName, companyCode, adminName, adminEmail, adminPhone, employeeCount, address, notes } = this.form.getRawValue();
+    if (!companyName || !adminName || !adminEmail || !adminPhone || !employeeCount) {
       return;
     }
 
@@ -50,6 +54,11 @@ export class SignupPageComponent {
         companyCode: companyCode?.trim() || undefined,
         adminName: adminName.trim(),
         adminEmail: adminEmail.trim(),
+        adminPhone: adminPhone.trim(),
+        employeeCount: Number(employeeCount),
+        address: address?.trim() || undefined,
+        source: 'Free signup page',
+        notes: notes?.trim() || undefined,
       })
       .subscribe({
         next: (res) => {
@@ -61,6 +70,10 @@ export class SignupPageComponent {
             companyCode: '',
             adminName: '',
             adminEmail: '',
+            adminPhone: '',
+            employeeCount: 10,
+            address: '',
+            notes: '',
           });
         },
         error: (err) => {

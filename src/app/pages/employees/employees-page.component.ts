@@ -5,13 +5,12 @@ import { EmployeesService, InviteRole } from '../../core/services/employees.serv
 import { OrganisationService } from '../../core/services/organisation.service';
 import { ActivatedRoute } from '@angular/router';
 import { AuthService, TenantFieldRuntimeConfig } from '../../core/services/auth.service';
-import { ConfirmDialogComponent } from '../../shared/dialogs/confirm-dialog.component';
 import { EditDialogShellComponent } from '../../shared/dialogs/edit-dialog-shell.component';
 
 @Component({
   selector: 'app-employees-page',
   standalone: true,
-  imports: [NgFor, NgIf, FormsModule, ConfirmDialogComponent, EditDialogShellComponent],
+  imports: [NgFor, NgIf, FormsModule, EditDialogShellComponent],
   templateUrl: './employees-page.component.html',
   styleUrl: './employees-page.component.scss',
 })
@@ -22,6 +21,7 @@ export class EmployeesPageComponent implements OnInit {
   locations: any[] = [];
 
   isCompanyAdmin = false;
+  canManageEmployees = false;
   canInviteEmployees = false;
   hasOrganisationModule = false;
   showCreateForm = false;
@@ -46,6 +46,10 @@ export class EmployeesPageComponent implements OnInit {
     salary: 0,
   };
   deleteTarget: any | null = null;
+  offboardReason = '';
+  enableLoginTarget: any | null = null;
+  enableLoginEmail = '';
+  enableLoginBusy = false;
   confirmBusy = false;
   form = {
     name: '',
@@ -56,6 +60,7 @@ export class EmployeesPageComponent implements OnInit {
     locationId: 0,
     designation: '',
     role: 'EMPLOYEE' as InviteRole,
+    onboardingMode: 'EMAIL_INVITE' as 'EMAIL_INVITE' | 'MANUAL_ONLY',
     employeeCode: '',
     customFields: {} as Record<string, unknown>,
   };
@@ -73,9 +78,8 @@ export class EmployeesPageComponent implements OnInit {
   ngOnInit(): void {
     const roles = this.auth.user()?.roles ?? [];
     this.isCompanyAdmin = roles.includes('COMPANY_ADMIN');
-    this.canInviteEmployees =
-      this.isCompanyAdmin ||
-      (roles.includes('HR_MANAGER') && this.auth.hasAnyPermission(['employees.invite']));
+    this.canManageEmployees = this.isCompanyAdmin || roles.includes('HR_MANAGER');
+    this.canInviteEmployees = this.isCompanyAdmin || roles.includes('HR_MANAGER');
     this.hasOrganisationModule = this.auth.hasModule('organisation');
     this.customFieldDefs = this.auth.getModuleFields('employees');
     this.seatLimit = this.auth.user()?.tenantConfig?.seats ?? 0;
@@ -193,6 +197,71 @@ export class EmployeesPageComponent implements OnInit {
     return this.mutatingEmployeeId === id;
   }
 
+  get autoCodePreview(): string {
+    const code = (this.auth.user()?.tenantCode ?? 'CO').replace(/[^a-zA-Z0-9]/g, '').slice(0, 6).toUpperCase() || 'CO';
+    return `${code}-001`;
+  }
+
+  isManualOnlyEmployee(employee: any): boolean {
+    if (employee?.isManualOnly) {
+      return true;
+    }
+    const email = employee?.user?.email?.trim().toLowerCase() ?? '';
+    return email.endsWith('@no-email.flowhr.local');
+  }
+
+  openEnableLoginDialog(employee: any): void {
+    this.enableLoginTarget = employee;
+    this.enableLoginEmail = '';
+    this.errorMessage = '';
+  }
+
+  closeEnableLoginDialog(): void {
+    if (this.enableLoginBusy) {
+      return;
+    }
+    this.enableLoginTarget = null;
+    this.enableLoginEmail = '';
+  }
+
+  submitEnableLogin(): void {
+    if (!this.enableLoginTarget || !this.enableLoginEmail.trim()) {
+      return;
+    }
+
+    this.enableLoginBusy = true;
+    this.errorMessage = '';
+    this.employeesService.enableEmployeeLogin(this.enableLoginTarget.id, this.enableLoginEmail.trim()).subscribe({
+      next: () => {
+        this.successMessage = `Login invite sent to ${this.enableLoginEmail.trim()}. Employee can set password from the email link.`;
+        this.closeEnableLoginDialog();
+        this.loadEmployees();
+      },
+      error: (err) => {
+        this.errorMessage = err?.error?.message || 'Failed to enable employee login.';
+      },
+      complete: () => {
+        this.enableLoginBusy = false;
+      },
+    });
+  }
+
+  openEmailCreateForm(): void {
+    this.form.onboardingMode = 'EMAIL_INVITE';
+    this.openCreateForm();
+  }
+
+  openManualCreateForm(): void {
+    this.form.onboardingMode = 'MANUAL_ONLY';
+    this.form.workEmail = '';
+    this.openCreateForm();
+  }
+
+  closeCreateForm(): void {
+    this.showCreateForm = false;
+    this.errorMessage = '';
+  }
+
   openCreateForm(): void {
     if (!this.canInviteEmployees) {
       return;
@@ -219,8 +288,13 @@ export class EmployeesPageComponent implements OnInit {
       return;
     }
 
-    if (!this.form.workEmail.trim() || !this.form.name.trim()) {
-      this.errorMessage = 'Name and work email are required.';
+    if (!this.form.name.trim()) {
+      this.errorMessage = 'Name is required.';
+      return;
+    }
+
+    if (this.form.onboardingMode === 'EMAIL_INVITE' && !this.form.workEmail.trim()) {
+      this.errorMessage = 'Work email is required when sending an invite.';
       return;
     }
 
@@ -252,6 +326,7 @@ export class EmployeesPageComponent implements OnInit {
       .inviteEmployee({
         name: this.form.name.trim(),
         workEmail: this.form.workEmail.trim(),
+        onboardingMode: this.form.onboardingMode,
         ...(this.hasOrganisationModule
           ? {
               departmentId: this.form.departmentId,
@@ -277,11 +352,15 @@ export class EmployeesPageComponent implements OnInit {
             locationId: 0,
             designation: '',
             role: 'EMPLOYEE',
+            onboardingMode: 'EMAIL_INVITE',
             employeeCode: '',
             customFields: {},
           };
           this.showCreateForm = false;
-          this.successMessage = `Employee created for ${res?.employee?.user?.email || 'employee'}. Invitation email sent with the account setup link.`;
+          this.successMessage =
+            res?.onboardingMode === 'MANUAL_ONLY'
+              ? `Manual employee created with code ${res?.employeeCode || res?.employee?.employeeCode || 'auto'}. Use "Enable login" later to add email and password access.`
+              : `Employee created (${res?.employeeCode || res?.employee?.employeeCode || 'auto code'}). Invitation email sent with the account setup link.`;
           this.loadEmployees();
         },
         error: (err) => {
@@ -295,7 +374,7 @@ export class EmployeesPageComponent implements OnInit {
   }
 
   editEmployee(employee: any): void {
-    if (!this.isCompanyAdmin) {
+    if (!this.canManageEmployees) {
       return;
     }
 
@@ -378,7 +457,7 @@ export class EmployeesPageComponent implements OnInit {
   }
 
   deleteEmployee(employee: any): void {
-    if (!this.isCompanyAdmin) {
+    if (!this.canManageEmployees) {
       return;
     }
 
@@ -388,6 +467,7 @@ export class EmployeesPageComponent implements OnInit {
     }
 
     this.deleteTarget = employee;
+    this.offboardReason = '';
   }
 
   closeDeleteDialog(): void {
@@ -396,10 +476,16 @@ export class EmployeesPageComponent implements OnInit {
     }
 
     this.deleteTarget = null;
+    this.offboardReason = '';
   }
 
   confirmDeleteEmployee(): void {
     if (!this.deleteTarget) {
+      return;
+    }
+
+    if (!this.offboardReason.trim()) {
+      this.errorMessage = 'Offboarding reason is required.';
       return;
     }
 
@@ -410,10 +496,11 @@ export class EmployeesPageComponent implements OnInit {
     this.errorMessage = '';
     this.successMessage = '';
 
-    this.employeesService.deleteEmployee(employee.id).subscribe({
+    this.employeesService.offboardEmployee(employee.id, this.offboardReason.trim()).subscribe({
       next: () => {
-        this.successMessage = `${employee?.user?.firstName || 'Employee'} deleted successfully.`;
+        this.successMessage = `${employee?.user?.firstName || 'Employee'} offboarded. Login disabled and notification email sent when possible.`;
         this.deleteTarget = null;
+        this.offboardReason = '';
         this.loadEmployees();
       },
       error: (err) => {
@@ -427,7 +514,7 @@ export class EmployeesPageComponent implements OnInit {
   }
 
   editSalary(employee: any): void {
-    if (!this.isCompanyAdmin) {
+    if (!this.canManageEmployees) {
       return;
     }
 
@@ -476,7 +563,7 @@ export class EmployeesPageComponent implements OnInit {
   }
 
   exportEmployee(employee: any): void {
-    if (!this.isCompanyAdmin) {
+    if (!this.canManageEmployees) {
       return;
     }
     this.mutatingEmployeeId = employee.id;

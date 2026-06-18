@@ -30,6 +30,39 @@
 	cursor: wait;
 }
 
+.add-btn.outline {
+	background: #fff;
+	color: #6f3f1b;
+	border: 1px solid #d4a574;
+}
+
+.panel-head-inline {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 0.75rem;
+	margin-bottom: 0.65rem;
+
+	h4 {
+		margin: 0;
+	}
+}
+
+.btn-cancel {
+	border: 1px solid #cbd5e1;
+	background: #f8fafc;
+	color: #0f172a;
+	font-weight: 700;
+	border-radius: 10px;
+	padding: 0.45rem 0.8rem;
+	cursor: pointer;
+}
+
+.offboard-message {
+	margin: 0 0 0.75rem;
+	color: #4d3c30;
+}
+
 .create-panel {
 	margin: 0.75rem 0 1rem;
 	padding: 0.85rem;

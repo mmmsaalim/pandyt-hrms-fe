@@ -79,6 +79,11 @@ export class AuthService {
     companyCode?: string;
     adminName: string;
     adminEmail: string;
+    adminPhone?: string;
+    employeeCount?: number;
+    address?: string;
+    source?: string;
+    notes?: string;
   }) {
     return this.http.post<{ message: string; companyCode: string; requiresApproval: boolean }>(
       `${environment.apiUrl}/auth/signup`,
@@ -182,12 +187,22 @@ export class AuthService {
   }
 
   refreshTenantConfig() {
-    return this.http.get<TenantRuntimeConfig & { enabledModules?: string[] }>(
-      `${environment.apiUrl}/auth/tenant-config`,
-    );
+    return this.http.get<
+      TenantRuntimeConfig & {
+        enabledModules?: string[];
+        permissions?: string[];
+        effectivePermissions?: string[];
+      }
+    >(`${environment.apiUrl}/auth/tenant-config`);
   }
 
-  applyTenantConfig(config: TenantRuntimeConfig & { enabledModules?: string[] }) {
+  applyTenantConfig(
+    config: TenantRuntimeConfig & {
+      enabledModules?: string[];
+      permissions?: string[];
+      effectivePermissions?: string[];
+    },
+  ) {
     const current = this.user();
     if (!current) {
       return;
@@ -196,6 +211,8 @@ export class AuthService {
     const nextUser: AuthUser = {
       ...current,
       enabledModules: config.enabledModules ?? current.enabledModules,
+      permissions: config.permissions ?? current.permissions,
+      effectivePermissions: config.effectivePermissions ?? current.effectivePermissions,
       tenantConfig: {
         ...current.tenantConfig,
         plan: config.plan,

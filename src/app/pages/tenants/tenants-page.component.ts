@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { DatePipe, NgFor, NgIf } from '@angular/common';
+import { NgFor, NgIf } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TenantsService } from '../../core/services/tenants.service';
 import {
@@ -15,20 +15,36 @@ import {
   seatsDisplay,
   seatsForPlan,
 } from '../../core/constants/subscription-plans';
+import {
+  LeavePolicyPreset,
+  cloneLeavePresets,
+} from '../../core/constants/leave-presets';
+import {
+  DEFAULT_PAYSLIP_TEMPLATE_KEY,
+  PAYSLIP_TEMPLATE_OPTIONS,
+} from '../../core/constants/payslip-templates';
 import { ActivatedRoute } from '@angular/router';
 import { ConfirmDialogComponent } from '../../shared/dialogs/confirm-dialog.component';
 import { EditDialogShellComponent } from '../../shared/dialogs/edit-dialog-shell.component';
 import { CommonModule } from '@angular/common';
+import { DEFAULT_PAGINATION, PaginationMeta } from '../../core/models/pagination.model';
+import { ListPaginationComponent } from '../../shared/list-pagination/list-pagination.component';
 
 @Component({
   selector: 'app-tenants-page',
   standalone: true,
-  imports: [NgFor, NgIf, FormsModule, ConfirmDialogComponent, EditDialogShellComponent, CommonModule, DatePipe],
+  imports: [NgFor, NgIf, FormsModule, ConfirmDialogComponent, EditDialogShellComponent, CommonModule, ListPaginationComponent],
   templateUrl: './tenants-page.component.html',
   styleUrl: './tenants-page.component.scss',
 })
 export class TenantsPageComponent implements OnInit {
   rows: any[] = [];
+  activeRows: any[] = [];
+  archivedRows: any[] = [];
+  activePagination: PaginationMeta = { ...DEFAULT_PAGINATION };
+  archivedPagination: PaginationMeta = { ...DEFAULT_PAGINATION };
+  activeLoading = false;
+  archivedLoading = false;
   showCreateForm = false;
   creating = false;
   mutatingTenantId: number | null = null;
@@ -73,7 +89,10 @@ export class TenantsPageComponent implements OnInit {
     locale: 'en-LK',
     currency: 'LKR',
     fiscalYearStartMonth: 4,
+    payslipTemplateKey: DEFAULT_PAYSLIP_TEMPLATE_KEY,
   };
+  leavePolicies: LeavePolicyPreset[] = cloneLeavePresets();
+  readonly payslipTemplateOptions = PAYSLIP_TEMPLATE_OPTIONS;
 
   constructor(
     private readonly tenantsService: TenantsService,
@@ -102,18 +121,76 @@ export class TenantsPageComponent implements OnInit {
   }
 
   loadRows(callback?: () => void): void {
-    this.tenantsService.list().subscribe((res: any) => {
-      this.rows = res;
-      if (callback) callback();
+    let completed = 0;
+    const done = () => {
+      completed += 1;
+      this.rows = [...this.activeRows, ...this.archivedRows];
+      if (completed === 2 && callback) {
+        callback();
+      }
+    };
+
+    this.activeLoading = true;
+    this.tenantsService.list({ group: 'active', page: this.activePagination.page, limit: this.activePagination.limit }).subscribe({
+      next: (res) => {
+        this.activeRows = res.items;
+        this.activePagination = {
+          total: res.total,
+          page: res.page,
+          limit: res.limit,
+          totalPages: res.totalPages,
+        };
+        done();
+      },
+      error: (err) => {
+        this.errorMessage = err?.error?.message || 'Failed to load active tenants.';
+        done();
+      },
+      complete: () => {
+        this.activeLoading = false;
+      },
+    });
+
+    this.archivedLoading = true;
+    this.tenantsService.list({ group: 'archived', page: this.archivedPagination.page, limit: this.archivedPagination.limit }).subscribe({
+      next: (res) => {
+        this.archivedRows = res.items;
+        this.archivedPagination = {
+          total: res.total,
+          page: res.page,
+          limit: res.limit,
+          totalPages: res.totalPages,
+        };
+        done();
+      },
+      error: (err) => {
+        this.errorMessage = err?.error?.message || 'Failed to load archived tenants.';
+        done();
+      },
+      complete: () => {
+        this.archivedLoading = false;
+      },
     });
   }
 
-  get activeRows(): any[] {
-    return this.rows.filter((row) => row.leadStatus === 'PENDING' || row.status === 'ACTIVE');
+  onActivePageChange(page: number): void {
+    this.activePagination = { ...this.activePagination, page };
+    this.loadRows();
   }
 
-  get archivedRows(): any[] {
-    return this.rows.filter((row) => row.leadStatus === 'DELETED' || (row.status === 'SUSPENDED' && row.leadStatus !== 'PENDING'));
+  onActiveLimitChange(limit: number): void {
+    this.activePagination = { ...this.activePagination, page: 1, limit };
+    this.loadRows();
+  }
+
+  onArchivedPageChange(page: number): void {
+    this.archivedPagination = { ...this.archivedPagination, page };
+    this.loadRows();
+  }
+
+  onArchivedLimitChange(limit: number): void {
+    this.archivedPagination = { ...this.archivedPagination, page: 1, limit };
+    this.loadRows();
   }
 
   private friendlyStatus(value: string): string {
@@ -184,6 +261,8 @@ export class TenantsPageComponent implements OnInit {
     this.successMessage = '';
     this.createdCompanyCode = '';
     this.showCreateForm = true;
+    this.leavePolicies = cloneLeavePresets();
+    this.configLocale.payslipTemplateKey = DEFAULT_PAYSLIP_TEMPLATE_KEY;
     this.loadCreateDefaults(this.form.subscriptionPlan);
   }
 
@@ -259,12 +338,66 @@ export class TenantsPageComponent implements OnInit {
       }
     }
 
+    const config: Record<string, unknown> = { ...this.configLocale };
+    if (enabledModules.includes('leave')) {
+      config['leaveSetup'] = {
+        preset: 'SRI_LANKA',
+        policies: this.leavePolicies.map((policy) => ({ ...policy })),
+      };
+    }
+
     return {
       plan: this.configuringTenantId ? this.configPlan : this.form.subscriptionPlan,
       enabledModules,
       moduleFeatures,
-      config: this.configLocale,
+      config,
     };
+  }
+
+  isLeaveModuleEnabled(): boolean {
+    return this.configModules.some((module) => module.key === 'leave' && module.enabled);
+  }
+
+  resetLeavePoliciesToSriLanka(): void {
+    this.leavePolicies = cloneLeavePresets();
+  }
+
+  addLeavePolicyRow(): void {
+    this.leavePolicies = [
+      ...this.leavePolicies,
+      {
+        code: `custom-${this.leavePolicies.length + 1}`,
+        name: 'Custom Leave',
+        days: 0,
+        carryForwardLimit: 0,
+        accrualRate: 0,
+        sortOrder: this.leavePolicies.length + 1,
+        genderScope: 'ALL',
+      },
+    ];
+  }
+
+  removeLeavePolicyRow(index: number): void {
+    this.leavePolicies = this.leavePolicies.filter((_, rowIndex) => rowIndex !== index);
+  }
+
+  private applyLeaveSetupFromConfig(config: Record<string, unknown> | undefined): void {
+    const leaveSetup = config?.['leaveSetup'] as { policies?: LeavePolicyPreset[] } | undefined;
+    if (leaveSetup?.policies?.length) {
+      this.leavePolicies = leaveSetup.policies.map((row, index) => ({
+        code: row.code ?? `policy-${index + 1}`,
+        name: row.name,
+        days: Number(row.days ?? 0),
+        carryForwardLimit: Number(row.carryForwardLimit ?? 0),
+        accrualRate: Number(row.accrualRate ?? 0),
+        sortOrder: Number(row.sortOrder ?? index + 1),
+        description: row.description,
+        genderScope: row.genderScope ?? 'ALL',
+      }));
+      return;
+    }
+
+    this.leavePolicies = cloneLeavePresets();
   }
 
   configureTenant(row: any): void {
@@ -282,7 +415,11 @@ export class TenantsPageComponent implements OnInit {
           locale: String(config.config?.['locale'] ?? 'en-LK'),
           currency: String(config.config?.['currency'] ?? 'LKR'),
           fiscalYearStartMonth: Number(config.config?.['fiscalYearStartMonth'] ?? 4),
+          payslipTemplateKey: String(
+            config.config?.['payslipTemplateKey'] ?? DEFAULT_PAYSLIP_TEMPLATE_KEY,
+          ),
         };
+        this.applyLeaveSetupFromConfig(config.config as Record<string, unknown> | undefined);
         this.configBusy = false;
       },
       error: (err) => {

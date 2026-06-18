@@ -86,10 +86,11 @@ select {
 }
 
 .secondary {
-  border: 1px solid var(--border);
+  border: 1px solid #cbd5e1;
   border-radius: 8px;
-  background: #fff;
-  color: var(--text);
+  background: #f8fafc;
+  color: #0f172a;
+  font-weight: 700;
   padding: 0.3rem 0.65rem;
   cursor: pointer;
 }
@@ -283,4 +284,17 @@ select {
   display: flex;
   justify-content: flex-end;
   gap: 0.5rem;
+
+  .secondary {
+    border: 1px solid #cbd5e1;
+    background: #f8fafc;
+    color: #0f172a;
+    font-weight: 700;
+    padding: 0.48rem 0.85rem;
+    border-radius: 10px;
+  }
+
+  .secondary:hover {
+    background: #eef2f7;
+  }
 }

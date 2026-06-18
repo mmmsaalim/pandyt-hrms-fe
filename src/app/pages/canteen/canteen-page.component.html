@@ -1,0 +1,147 @@
+<section class="card table-card">
+  <div class="table-head">
+    <div>
+      <h3>Canteen</h3>
+      <p>Only tenant employees with attendance on the selected day can be added to the canteen list.</p>
+    </div>
+    <div class="table-actions">
+      <input [(ngModel)]="filterDate" type="date" (ngModelChange)="onDateChange()" />
+      <span class="badge">{{ rows.length }} entries</span>
+      <span class="badge muted">{{ eligibleEmployees.length }} attended</span>
+      <button *ngIf="canManage" type="button" class="add-btn outline" (click)="autoGenerate()" [disabled]="busy">
+        Auto-generate from attendance
+      </button>
+    </div>
+  </div>
+
+  <p *ngIf="message" [class]="messageType === 'success' ? 'success' : 'error'">{{ message }}</p>
+
+  <section class="create-panel" *ngIf="canManage">
+    <h4>Canteen settings</h4>
+    <div class="form-grid">
+      <label class="switch-row">
+        <input [(ngModel)]="settings.enabled" type="checkbox" />
+        Enable canteen tracking
+      </label>
+      <label class="switch-row">
+        <input [(ngModel)]="settings.salaryDeduct" type="checkbox" />
+        Deduct meals from salary by default
+      </label>
+      <label class="switch-row">
+        <input [(ngModel)]="settings.autoAssignFromAttendance" type="checkbox" />
+        Auto-assign default meals when attendance exists
+      </label>
+      <label>
+        Notes
+        <input [(ngModel)]="settings.notes" type="text" placeholder="Example: Company pays lunch, staff pays tea" />
+      </label>
+    </div>
+
+    <div class="meal-types-grid">
+      <h5>Daily meal types</h5>
+      <p class="hint">Enable meal types your company uses and set default cost/count per day.</p>
+      <div class="meal-type-row" *ngFor="let mealType of allMealTypes()">
+        <label class="switch-row meal-label">
+          <input [(ngModel)]="mealType.enabled" type="checkbox" />
+          {{ mealType.label }}
+        </label>
+        <label>
+          Cost (LKR)
+          <input [(ngModel)]="mealType.defaultCost" type="number" min="0" step="0.01" />
+        </label>
+        <label>
+          Default count / day
+          <input [(ngModel)]="settings.defaultMealCounts[mealType.key]" type="number" min="0" />
+        </label>
+      </div>
+    </div>
+
+    <button type="button" class="add-btn" (click)="saveSettings()" [disabled]="busy">Save settings</button>
+  </section>
+
+  <section class="create-panel" *ngIf="canManage">
+    <h4>Daily meal entry</h4>
+    <p class="hint">Pick an employee who clocked in on {{ filterDate | date }}. Select meals from the dropdown or adjust counts below.</p>
+    <div class="form-grid">
+      <label>
+        Employee (attended today)
+        <select [(ngModel)]="entryForm.employeeId">
+          <option [ngValue]="0">Select employee</option>
+          <option *ngFor="let employee of eligibleEmployees" [ngValue]="employee.id">
+            {{ employee.name }} · {{ employee.employeeCode || employee.email }}
+          </option>
+        </select>
+      </label>
+      <label>
+        Select meal type
+        <select [(ngModel)]="selectedMealKey" (ngModelChange)="onMealDropdownChange($event)">
+          <option value="">Choose breakfast, lunch, dinner, tea...</option>
+          <option *ngFor="let mealType of allMealTypes()" [ngValue]="mealType.key">
+            {{ mealType.label }}
+          </option>
+        </select>
+      </label>
+      <label>
+        Date
+        <input [(ngModel)]="entryForm.date" type="date" />
+      </label>
+      <label class="switch-row">
+        <input [(ngModel)]="entryForm.deductFromSalary" type="checkbox" />
+        Deduct from salary
+      </label>
+      <label>
+        Notes
+        <input [(ngModel)]="entryForm.notes" type="text" />
+      </label>
+    </div>
+
+    <div class="meal-types-grid compact">
+      <h5>Meal counts for selected employee</h5>
+      <div class="meal-type-row" *ngFor="let mealType of allMealTypes()">
+        <label class="switch-row meal-label">
+          <input [(ngModel)]="mealType.enabled" type="checkbox" />
+          <strong>{{ mealType.label }}</strong>
+        </label>
+        <label>
+          Count
+          <input [ngModel]="mealCountFor(mealType.key)" (ngModelChange)="setMealCount(mealType.key, $event)" type="number" min="0" />
+        </label>
+        <label>
+          Cost (LKR)
+          <input [ngModel]="mealCostFor(mealType.key)" (ngModelChange)="setMealCost(mealType.key, $event)" type="number" min="0" step="0.01" />
+        </label>
+      </div>
+    </div>
+
+    <button type="button" class="add-btn" (click)="saveEntry()" [disabled]="busy || !eligibleEmployees.length">
+      Save meal entry
+    </button>
+    <p class="hint" *ngIf="!eligibleEmployees.length">No attended employees for this date yet. Record attendance first.</p>
+  </section>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Employee</th>
+        <th>Date</th>
+        <th>Meals</th>
+        <th>Deduct</th>
+        <th>Total Deduction</th>
+        <th>Notes</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let row of rows">
+        <td>{{ row.employee?.user?.firstName }} {{ row.employee?.user?.lastName }}</td>
+        <td>{{ row.date | date }}</td>
+        <td>{{ mealSummary(row) }}</td>
+        <td>{{ row.deductFromSalary ? 'Yes' : 'No' }}</td>
+        <td>LKR {{ row.totalCost }}</td>
+        <td>{{ row.notes || '—' }}</td>
+      </tr>
+      <tr *ngIf="rows.length === 0">
+        <td colspan="6" class="empty">No canteen entries found for this date.</td>
+      </tr>
+    </tbody>
+  </table>
+</section>

@@ -4,6 +4,7 @@
     <div class="table-actions">
       <button type="button" class="tab-btn" [ngClass]="{active: activeTab === 'requests'}" (click)="activeTab = 'requests'">Requests</button>
       <button type="button" class="tab-btn" [ngClass]="{active: activeTab === 'balances'}" (click)="activeTab = 'balances'">Balances</button>
+      <button *ngIf="canManualLeave" type="button" class="add-btn outline" (click)="openManualEntryForm()">+ Manual Entry</button>
       <button type="button" class="add-btn" (click)="openApplyForm()">+ Apply Leave</button>
     </div>
   </div>
@@ -13,11 +14,20 @@
   <section class="modal-backdrop" *ngIf="showApplyForm" (click)="closeApplyForm()">
     <article class="modal-card" (click)="$event.stopPropagation()">
       <div class="panel-head">
-        <h3>Apply for Leave</h3>
+        <h3>{{ manualEntryMode ? 'Manual Leave Entry' : 'Apply for Leave' }}</h3>
         <button type="button" class="secondary" (click)="closeApplyForm()">Close</button>
       </div>
 
       <div class="form-grid modal-form-grid">
+        <label *ngIf="canManualLeave">
+          Employee
+          <select [(ngModel)]="applyForm.employeeId">
+            <option [ngValue]="0">{{ manualEntryMode ? 'Select employee (required)' : 'Self / select employee' }}</option>
+            <option *ngFor="let employee of employees" [ngValue]="employee.id">
+              {{ employee.name }} · {{ employee.email }}
+            </option>
+          </select>
+        </label>
         <label>
           Leave Type
           <select [(ngModel)]="applyForm.type">
@@ -27,6 +37,14 @@
         <label>Days<input [(ngModel)]="applyForm.days" type="number" min="1" /></label>
         <label>Start Date<input [(ngModel)]="applyForm.startDate" type="date" /></label>
         <label>End Date<input [(ngModel)]="applyForm.endDate" type="date" /></label>
+        <label *ngIf="canManualLeave">
+          Status
+          <select [(ngModel)]="applyForm.status">
+            <option value="PENDING">Pending approval</option>
+            <option value="APPROVED">Approved immediately</option>
+            <option value="REJECTED">Rejected record</option>
+          </select>
+        </label>
         <label class="full-width">Reason<input [(ngModel)]="applyForm.reason" type="text" /></label>
       </div>
 

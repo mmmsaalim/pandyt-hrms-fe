@@ -26,6 +26,7 @@ import { CareersPageComponent } from './pages/careers-page.component';
 import { CrossTenantReportsComponent } from './pages/cross-tenant-reports/cross-tenant-reports.component';
 import { PlatformCatalogPageComponent } from './pages/platform-catalog/platform-catalog-page.component';
 import { ProfilePageComponent } from './pages/profile/profile-page.component';
+import { CanteenPageComponent } from './pages/canteen/canteen-page.component';
 
 export const appRoutes: Routes = [
   { path: 'login', component: LoginComponent },
@@ -107,6 +108,16 @@ export const appRoutes: Routes = [
           roles: ['COMPANY_ADMIN', 'HR_MANAGER', 'TEAM_LEAD', 'EMPLOYEE'],
           permissions: ['attendance.read'],
           module: 'attendance',
+        },
+      },
+      {
+        path: 'canteen',
+        component: CanteenPageComponent,
+        canActivate: [roleGuard],
+        data: {
+          roles: ['COMPANY_ADMIN', 'HR_MANAGER', 'TEAM_LEAD'],
+          permissions: ['canteen.read'],
+          module: 'canteen',
         },
       },
       {

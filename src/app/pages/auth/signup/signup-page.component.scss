@@ -84,10 +84,16 @@ form {
   gap: 0.5rem;
 }
 
-input {
+input,
+textarea {
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 0.7rem 0.85rem;
+  font: inherit;
+}
+
+textarea {
+  resize: vertical;
 }
 
 button {

@@ -203,3 +203,30 @@ th {
 	font-size: 0.78rem;
 	color: #6b7280;
 }
+
+.leave-setup-panel .panel-head {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 0.75rem;
+	margin-bottom: 0.5rem;
+}
+
+.leave-setup-panel h5 {
+	margin: 0;
+}
+
+.leave-policy-table {
+	margin: 0.5rem 0;
+}
+
+.leave-policy-table input,
+.leave-policy-table select {
+	width: 100%;
+	min-width: 70px;
+}
+
+.action-btn.danger {
+	background: #fee2e2;
+	color: #991b1b;
+}

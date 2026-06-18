@@ -22,7 +22,7 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlanDefinition[] = [
     key: 'GROWTH',
     label: 'Growth',
     seats: 200,
-    description: 'Up to 200 employees — Starter + ATS, Payroll, Organisation',
+    description: 'Up to 200 employees — Starter + ATS, Payroll, Organisation, Canteen',
   },
   {
     key: 'ENTERPRISE',
@@ -35,8 +35,8 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlanDefinition[] = [
 export const PLAN_MODULE_PRESETS: Record<string, string[]> = {
   FREEMIUM: ['employees', 'leave'],
   STARTER: ['employees', 'leave', 'attendance', 'reports'],
-  GROWTH: ['employees', 'leave', 'attendance', 'payroll', 'payslips', 'recruitment', 'organisation', 'reports'],
-  ENTERPRISE: ['employees', 'organisation', 'leave', 'attendance', 'payroll', 'payslips', 'recruitment', 'reports'],
+  GROWTH: ['employees', 'leave', 'attendance', 'payroll', 'payslips', 'recruitment', 'organisation', 'reports', 'canteen'],
+  ENTERPRISE: ['employees', 'organisation', 'leave', 'attendance', 'payroll', 'payslips', 'recruitment', 'reports', 'canteen'],
 };
 
 export const DEFAULT_EMPLOYEE_PROFILE_FIELDS = [

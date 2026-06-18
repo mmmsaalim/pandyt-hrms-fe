@@ -4,8 +4,11 @@
     <div class="table-actions">
       <span class="badge" *ngIf="seatLimit">{{ seatUsage }} / {{ seatLimit }} seats</span>
       <span class="badge">{{ employees.length }} records</span>
-      <button *ngIf="canInviteEmployees" type="button" class="add-btn" (click)="openCreateForm()" [disabled]="isAtSeatLimit()">
-        + Add Employee
+      <button *ngIf="canInviteEmployees" type="button" class="add-btn outline" (click)="openManualCreateForm()" [disabled]="isAtSeatLimit()">
+        + Manual Entry
+      </button>
+      <button *ngIf="canInviteEmployees" type="button" class="add-btn" (click)="openEmailCreateForm()" [disabled]="isAtSeatLimit()">
+        + Email Invite
       </button>
     </div>
   </div>
@@ -15,19 +18,23 @@
   </p>
 
   <section class="create-panel" *ngIf="canInviteEmployees && showCreateForm">
-    <h4>Invite employee</h4>
+    <div class="panel-head-inline">
+      <h4>{{ form.onboardingMode === 'MANUAL_ONLY' ? 'Manual employee entry' : 'Invite employee by email' }}</h4>
+      <button type="button" class="btn-cancel" (click)="closeCreateForm()">Cancel</button>
+    </div>
     <div class="form-grid">
+      <label *ngIf="form.onboardingMode === 'EMAIL_INVITE'">
+        Work email
+        <input [(ngModel)]="form.workEmail" name="workEmail" type="email" />
+      </label>
       <label>
         Full name
         <input [(ngModel)]="form.name" name="name" type="text" />
       </label>
       <label>
-        Work email
-        <input [(ngModel)]="form.workEmail" name="workEmail" type="email" />
-      </label>
-      <label>
         Employee code
-        <input [(ngModel)]="form.employeeCode" name="employeeCode" type="text" />
+        <input [(ngModel)]="form.employeeCode" name="employeeCode" type="text" [placeholder]="autoCodePreview" />
+        <small class="field-hint">Leave blank to auto-generate from company code (example: {{ autoCodePreview }}).</small>
       </label>
       <ng-container *ngIf="hasOrganisationModule; else simpleDepartment">
         <label>
@@ -95,22 +102,26 @@
     </p>
     <p class="error" *ngIf="errorMessage">{{ errorMessage }}</p>
     <button type="button" class="add-btn" (click)="createEmployee()" [disabled]="creating">
-      {{ creating ? 'Creating...' : 'Create Employee' }}
+      {{ creating ? 'Creating...' : form.onboardingMode === 'MANUAL_ONLY' ? 'Create Manual Employee' : 'Create & Send Invite' }}
     </button>
   </section>
 
   <p class="success" *ngIf="successMessage">{{ successMessage }}</p>
 
   <table>
-    <thead><tr><th>Name</th><th>Department</th><th>Designation</th><th>Salary (LKR)</th><th>Status</th><th>Actions</th></tr></thead>
+    <thead><tr><th>Name</th><th>Code</th><th>Department</th><th>Designation</th><th>Salary (LKR)</th><th>Status</th><th>Actions</th></tr></thead>
     <tbody>
       <tr *ngFor="let e of employees">
         <td>{{ e.user?.firstName }} {{ e.user?.lastName }}</td>
+        <td>{{ e.employeeCode }}</td>
         <td>{{ departmentLabel(e) }}</td>
         <td>{{ e.designation }}</td>
         <td>{{ e.salary !== null && e.salary !== undefined ? ('LKR ' + e.salary) : '—' }}</td>
         <td><span class="badge">{{ e.employmentStatus }}</span></td>
-        <td class="row-actions" *ngIf="isCompanyAdmin">
+        <td class="row-actions" *ngIf="canManageEmployees">
+          <button *ngIf="canInviteEmployees && isManualOnlyEmployee(e)" type="button" class="action-btn edit" (click)="openEnableLoginDialog(e)" [disabled]="isBusy(e.id)">
+            Enable login
+          </button>
           <button type="button" class="action-btn edit" (click)="editEmployee(e)" [disabled]="isBusy(e.id)">Edit</button>
           <button type="button" class="action-btn edit" (click)="editSalary(e)" [disabled]="isBusy(e.id)">Salary</button>
           <button type="button" class="action-btn" (click)="exportEmployee(e)" [disabled]="isBusy(e.id)">Export</button>
@@ -119,8 +130,8 @@
             class="action-btn delete"
             (click)="deleteEmployee(e)"
             [disabled]="isBusy(e.id) || !canDeleteEmployee(e)"
-            [title]="!canDeleteEmployee(e) ? 'Only SUPER_ADMIN can delete COMPANY_ADMIN users.' : 'Delete employee'">
-            Delete
+            [title]="!canDeleteEmployee(e) ? 'Only SUPER_ADMIN can offboard COMPANY_ADMIN users.' : 'Offboard employee'">
+            Offboard
           </button>
         </td>
       </tr>
@@ -213,13 +224,39 @@
   </div>
 </app-edit-dialog-shell>
 
-<app-confirm-dialog
+<app-edit-dialog-shell
+  *ngIf="enableLoginTarget"
+  title="Enable employee login"
+  subtitle="Add a work email and send an invitation so this manual employee can set a password."
+  submitText="Send login invite"
+  [busy]="enableLoginBusy"
+  [disableSubmit]="!enableLoginEmail.trim()"
+  (cancel)="closeEnableLoginDialog()"
+  (submitForm)="submitEnableLogin()">
+  <p class="offboard-message">
+    Employee: <strong>{{ enableLoginTarget?.user?.firstName }} {{ enableLoginTarget?.user?.lastName }}</strong>
+    · Code: <strong>{{ enableLoginTarget?.employeeCode }}</strong>
+  </p>
+  <label>
+    Work email *
+    <input [(ngModel)]="enableLoginEmail" name="enableLoginEmail" type="email" placeholder="employee@company.com" />
+  </label>
+</app-edit-dialog-shell>
+
+<app-edit-dialog-shell
   *ngIf="deleteTarget"
-  title="Delete employee?"
-  [message]="'Delete ' + (deleteTarget?.user?.firstName || 'this employee') + '? This removes the employee record.'"
-  confirmText="Delete employee"
-  tone="danger"
+  title="Offboard employee"
+  subtitle="This disables login, removes the employee from payroll, and sends an email notification."
+  submitText="Confirm offboard"
   [busy]="confirmBusy"
+  [disableSubmit]="!offboardReason.trim()"
   (cancel)="closeDeleteDialog()"
-  (confirm)="confirmDeleteEmployee()">
-</app-confirm-dialog>
+  (submitForm)="confirmDeleteEmployee()">
+  <p class="offboard-message">
+    Offboard <strong>{{ deleteTarget?.user?.firstName }} {{ deleteTarget?.user?.lastName }}</strong>?
+  </p>
+  <label>
+    Reason for offboarding *
+    <textarea [(ngModel)]="offboardReason" name="offboardReason" rows="4" placeholder="Example: Resigned effective end of month"></textarea>
+  </label>
+</app-edit-dialog-shell>

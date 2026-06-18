@@ -37,6 +37,18 @@
       <label>Admin work email</label>
       <input type="email" formControlName="adminEmail" placeholder="admin@acme.com" />
 
+      <label>Admin phone number</label>
+      <input type="tel" formControlName="adminPhone" placeholder="+94 77 123 4567" />
+
+      <label>Expected employee count</label>
+      <input type="number" formControlName="employeeCount" min="1" placeholder="25" />
+
+      <label>Company address / city</label>
+      <input type="text" formControlName="address" placeholder="Colombo, Sri Lanka" />
+
+      <label>Notes for Pandyt team</label>
+      <textarea formControlName="notes" rows="3" placeholder="Best time to call, modules needed, current HR process..."></textarea>
+
       <button type="submit" [disabled]="form.invalid || loading">
         {{ loading ? 'Submitting...' : 'Submit free signup' }}
       </button>

@@ -46,6 +46,8 @@ h1 { margin: 0; font-size: 1.15rem; font-family: var(--font-display); }
   border: 1px solid rgba(236, 216, 203, 0.95);
   border-radius: 999px;
   background: #fff;
+  cursor: pointer;
+  text-align: left;
 }
 .avatar {
   width: 28px;
@@ -61,6 +63,126 @@ h1 { margin: 0; font-size: 1.15rem; font-family: var(--font-display); }
 .profile-meta { line-height: 1.05; }
 .name { margin: 0; font-size: .78rem; font-weight: 700; color: #0f172a; }
 .email { margin: 0; font-size: .72rem; color: var(--muted); }
+
+.profile-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  background: rgba(15, 23, 42, 0.28);
+}
+
+.profile-dialog {
+  position: fixed;
+  top: 5rem;
+  right: 1.25rem;
+  z-index: 21;
+  width: min(420px, calc(100vw - 2rem));
+  border: 1px solid rgba(236, 216, 203, 0.95);
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 24px 60px rgba(97, 47, 15, 0.18);
+  padding: 1rem;
+}
+
+.profile-dialog header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.profile-dialog h2,
+.profile-dialog p {
+  margin: 0;
+}
+
+.profile-dialog p {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.dialog-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  background: var(--brand-soft);
+  color: var(--brand-deep);
+  font-weight: 800;
+  display: grid;
+  place-items: center;
+}
+
+.close-btn {
+  margin-left: auto;
+  border: 0;
+  border-radius: 999px;
+  background: #fff4eb;
+  color: #6f3f1b;
+  cursor: pointer;
+  font-weight: 800;
+  width: 28px;
+  height: 28px;
+}
+
+.profile-details {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.7rem;
+  margin-top: 1rem;
+}
+
+.profile-details div {
+  border: 1px solid #f3dcc8;
+  border-radius: 12px;
+  padding: 0.65rem;
+  background: #fff9f4;
+}
+
+.profile-details span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.74rem;
+  margin-bottom: 0.2rem;
+}
+
+.profile-details strong {
+  color: #1f130d;
+  font-size: 0.88rem;
+}
+
+.roles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.85rem;
+}
+
+.roles span {
+  border-radius: 999px;
+  background: #f3f4f6;
+  color: #374151;
+  padding: 0.25rem 0.55rem;
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+.profile-loading {
+  margin: 0.75rem 0 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.profile-actions {
+  margin-top: 0.85rem;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.profile-actions a {
+  color: var(--brand-strong);
+  font-weight: 700;
+  text-decoration: none;
+  font-size: 0.85rem;
+}
 
 @media (max-width: 900px) {
   .menu-btn { display: inline-flex; }

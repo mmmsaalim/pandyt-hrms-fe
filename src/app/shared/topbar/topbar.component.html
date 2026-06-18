@@ -5,13 +5,70 @@
     <h1>{{ title }}</h1>
   </div>
   <div class="actions">
-    <div class="profile-chip" *ngIf="auth.user() as user">
+    <button class="profile-chip" type="button" *ngIf="auth.user() as user" (click)="openProfile()">
       <span class="avatar">{{ user.firstName.charAt(0) || 'U' }}</span>
       <div class="profile-meta">
         <p class="name">{{ displayName }}</p>
         <p class="email">{{ displayEmail }}</p>
       </div>
-    </div>
+    </button>
     <button class="ghost" (click)="auth.logout()">Logout</button>
   </div>
 </header>
+
+<div class="profile-backdrop" *ngIf="profileOpen" (click)="closeProfile()"></div>
+<section class="profile-dialog" *ngIf="profileOpen && auth.user() as user" role="dialog" aria-modal="true">
+  <header>
+    <div class="dialog-avatar">{{ user.firstName.charAt(0) || 'U' }}</div>
+    <div>
+      <h2>{{ displayName }}</h2>
+      <p>{{ user.email }}</p>
+    </div>
+    <button type="button" class="close-btn" (click)="closeProfile()">x</button>
+  </header>
+
+  <div class="profile-details">
+    <div>
+      <span>Company</span>
+      <strong>{{ user.tenantName || 'Pandyt Platform' }}</strong>
+    </div>
+    <div>
+      <span>Company code</span>
+      <strong>{{ user.tenantCode || '-' }}</strong>
+    </div>
+    <div>
+      <span>Plan</span>
+      <strong>{{ user.tenantConfig?.plan || '-' }}</strong>
+    </div>
+    <div>
+      <span>Seats</span>
+      <strong>{{ user.tenantConfig?.seats || '-' }}</strong>
+    </div>
+    <div *ngIf="employeeProfile?.employeeCode">
+      <span>Employee code</span>
+      <strong>{{ employeeProfile.employeeCode }}</strong>
+    </div>
+    <div *ngIf="employeeProfile?.department">
+      <span>Department</span>
+      <strong>{{ employeeProfile.department }}</strong>
+    </div>
+    <div *ngIf="employeeProfile?.designation">
+      <span>Designation</span>
+      <strong>{{ employeeProfile.designation }}</strong>
+    </div>
+    <div *ngIf="employeeProfile?.joinedDate">
+      <span>Joined</span>
+      <strong>{{ employeeProfile.joinedDate | date }}</strong>
+    </div>
+  </div>
+
+  <div class="roles">
+    <span *ngFor="let role of user.roles">{{ role }}</span>
+  </div>
+
+  <p class="profile-loading" *ngIf="profileLoading">Loading profile details...</p>
+
+  <div class="profile-actions">
+    <a routerLink="/profile" (click)="closeProfile()">Edit full profile</a>
+  </div>
+</section>

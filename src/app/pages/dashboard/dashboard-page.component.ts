@@ -193,7 +193,7 @@ export class DashboardPageComponent implements OnInit {
     this.months = Array.isArray(data.months) ? data.months : this.months;
     this.growthSeries = Array.isArray(data.growthSeries) ? data.growthSeries : this.growthSeries;
     this.split = Array.isArray(data.splitSeries) ? data.splitSeries : [...this.split_super];
-    this.tenantsList = Array.isArray(data.tenantsList) ? data.tenantsList : [];
+    this.tenantsList = Array.isArray(data.tenantsList) ? data.tenantsList.slice(0, 5) : [];
     this.payrollLabels = Array.isArray(data.payrollLabels) ? data.payrollLabels : this.payrollLabels;
     this.payrollSeries = Array.isArray(data.payrollRunsSeries)
       ? data.payrollRunsSeries
@@ -374,6 +374,34 @@ export class DashboardPageComponent implements OnInit {
         this.employeeProfile = profile;
       },
     });
+  }
+
+  currentGreeting(): string {
+    const sriLankaHour = Number(
+      new Intl.DateTimeFormat('en-US', {
+        hour: 'numeric',
+        hourCycle: 'h23',
+        timeZone: 'Asia/Colombo',
+      }).format(new Date()),
+    );
+
+    if (sriLankaHour < 5) {
+      return 'Good night';
+    }
+
+    if (sriLankaHour < 12) {
+      return 'Good morning';
+    }
+
+    if (sriLankaHour < 17) {
+      return 'Good afternoon';
+    }
+
+    if (sriLankaHour < 21) {
+      return 'Good evening';
+    }
+
+    return 'Good night';
   }
 
   attendanceHeight(value: number) {

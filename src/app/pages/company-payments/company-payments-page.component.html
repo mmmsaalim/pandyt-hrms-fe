@@ -19,10 +19,10 @@
 <div class="summary" *ngIf="!loading() && rows().length > 0">
   <div class="card">
     <span class="label">Total companies</span>
-    <strong>{{ rows().length }}</strong>
+    <strong>{{ pagination().total }}</strong>
   </div>
   <div class="card">
-    <span class="label">Total due this cycle</span>
+    <span class="label">Page total due this cycle</span>
     <strong>{{ totalRevenueDue() | currency:'LKR':'symbol':'1.0-0' }}</strong>
   </div>
   <div class="card">
@@ -98,6 +98,12 @@
       </tr>
     </tbody>
   </table>
+  <app-list-pagination
+    [pagination]="pagination()"
+    [disabled]="loading()"
+    (pageChange)="onPageChange($event)"
+    (limitChange)="onLimitChange($event)">
+  </app-list-pagination>
 </div>
 
 <app-confirm-dialog

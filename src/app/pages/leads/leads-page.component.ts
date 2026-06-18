@@ -1,6 +1,8 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { TenantsService } from '../../core/services/tenants.service';
+import { DEFAULT_PAGINATION, PaginationMeta } from '../../core/models/pagination.model';
+import { ListPaginationComponent } from '../../shared/list-pagination/list-pagination.component';
 
 type LeadStatus = 'PENDING' | 'CONVERTED' | 'DELETED';
 
@@ -12,6 +14,13 @@ type LeadRow = {
   leadStatus: LeadStatus;
   seats: number;
   createdAt: string;
+  leadDetails?: {
+    adminPhone?: string | null;
+    employeeCount?: number | null;
+    address?: string | null;
+    source?: string | null;
+    notes?: string | null;
+  } | null;
   pendingAdminInvitations?: number;
   latestAdminInvitation?: {
     id: number;
@@ -25,14 +34,17 @@ type LeadRow = {
 @Component({
   selector: 'app-leads-page',
   standalone: true,
-  imports: [CommonModule, DatePipe],
+  imports: [CommonModule, DatePipe, ListPaginationComponent],
   templateUrl: './leads-page.component.html',
   styleUrl: './leads-page.component.scss',
 })
 export class LeadsPageComponent implements OnInit {
-  readonly rows = signal<LeadRow[]>([]);
+  readonly activeRows = signal<LeadRow[]>([]);
+  readonly deletedRows = signal<LeadRow[]>([]);
   readonly loading = signal(true);
   readonly errorMsg = signal('');
+  readonly activePagination = signal<PaginationMeta>({ ...DEFAULT_PAGINATION });
+  readonly deletedPagination = signal<PaginationMeta>({ ...DEFAULT_PAGINATION });
 
   constructor(private readonly tenantsService: TenantsService) {}
 
@@ -43,25 +55,65 @@ export class LeadsPageComponent implements OnInit {
   loadRows(): void {
     this.loading.set(true);
     this.errorMsg.set('');
-
-    this.tenantsService.leads().subscribe({
-      next: (res) => {
-        this.rows.set(res as LeadRow[]);
+    let completed = 0;
+    const done = () => {
+      completed += 1;
+      if (completed === 2) {
         this.loading.set(false);
+      }
+    };
+
+    this.tenantsService.leads({ group: 'active', page: this.activePagination().page, limit: this.activePagination().limit }).subscribe({
+      next: (res) => {
+        this.activeRows.set(res.items as LeadRow[]);
+        this.activePagination.set({
+          total: res.total,
+          page: res.page,
+          limit: res.limit,
+          totalPages: res.totalPages,
+        });
       },
       error: (err) => {
-        this.errorMsg.set(err?.error?.message ?? 'Failed to load leads.');
-        this.loading.set(false);
+        this.errorMsg.set(err?.error?.message ?? 'Failed to load active leads.');
       },
+      complete: done,
+    });
+
+    this.tenantsService.leads({ group: 'archived', page: this.deletedPagination().page, limit: this.deletedPagination().limit }).subscribe({
+      next: (res) => {
+        this.deletedRows.set(res.items as LeadRow[]);
+        this.deletedPagination.set({
+          total: res.total,
+          page: res.page,
+          limit: res.limit,
+          totalPages: res.totalPages,
+        });
+      },
+      error: (err) => {
+        this.errorMsg.set(err?.error?.message ?? 'Failed to load deleted/suspended leads.');
+      },
+      complete: done,
     });
   }
 
-  activeRows(): LeadRow[] {
-    return this.rows().filter((row) => row.leadStatus === 'PENDING' || row.status === 'ACTIVE');
+  onActivePageChange(page: number): void {
+    this.activePagination.set({ ...this.activePagination(), page });
+    this.loadRows();
   }
 
-  deletedRows(): LeadRow[] {
-    return this.rows().filter((row) => row.leadStatus === 'DELETED' || (row.status === 'SUSPENDED' && row.leadStatus !== 'PENDING'));
+  onActiveLimitChange(limit: number): void {
+    this.activePagination.set({ ...this.activePagination(), page: 1, limit });
+    this.loadRows();
+  }
+
+  onDeletedPageChange(page: number): void {
+    this.deletedPagination.set({ ...this.deletedPagination(), page });
+    this.loadRows();
+  }
+
+  onDeletedLimitChange(limit: number): void {
+    this.deletedPagination.set({ ...this.deletedPagination(), page: 1, limit });
+    this.loadRows();
   }
 
   private friendlyStatus(value: string): string {

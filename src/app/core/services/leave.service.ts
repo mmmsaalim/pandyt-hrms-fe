@@ -12,7 +12,15 @@ export class LeaveService {
     return this.http.get(`${environment.apiUrl}/leave`);
   }
 
-  apply(dto: { type: string; startDate: string; endDate: string; days: number; reason: string }) {
+  apply(dto: {
+    employeeId?: number;
+    type: string;
+    startDate: string;
+    endDate: string;
+    days: number;
+    reason: string;
+    status?: LeaveStatus;
+  }) {
     return this.http.post(`${environment.apiUrl}/leave`, dto);
   }
 

@@ -1,17 +1,47 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
+import { PaginatedResponse, PaginationRequest } from '../models/pagination.model';
+
+type TenantListGroup = 'active' | 'archived';
+type TenantLeadStatus = 'PENDING' | 'CONVERTED' | 'DELETED';
 
 @Injectable({ providedIn: 'root' })
 export class TenantsService {
   constructor(private readonly http: HttpClient) {}
 
-  list() {
-    return this.http.get(`${environment.apiUrl}/tenants`);
+  private paginationParams(params?: PaginationRequest & { group?: TenantListGroup; status?: TenantLeadStatus }) {
+    let httpParams = new HttpParams();
+
+    if (params?.page) {
+      httpParams = httpParams.set('page', String(params.page));
+    }
+
+    if (params?.limit) {
+      httpParams = httpParams.set('limit', String(params.limit));
+    }
+
+    if (params?.group) {
+      httpParams = httpParams.set('group', params.group);
+    }
+
+    if (params?.status) {
+      httpParams = httpParams.set('status', params.status);
+    }
+
+    return httpParams;
   }
 
-  billingOverview() {
-    return this.http.get(`${environment.apiUrl}/tenants/payments/overview`);
+  list(params?: PaginationRequest & { group?: TenantListGroup }) {
+    return this.http.get<PaginatedResponse<any>>(`${environment.apiUrl}/tenants`, {
+      params: this.paginationParams(params),
+    });
+  }
+
+  billingOverview(params?: PaginationRequest) {
+    return this.http.get<PaginatedResponse<any>>(`${environment.apiUrl}/tenants/payments/overview`, {
+      params: this.paginationParams(params),
+    });
   }
 
   sendOverdueReminder(tenantId: number) {
@@ -43,9 +73,10 @@ export class TenantsService {
     return this.http.patch(`${environment.apiUrl}/tenants/payments/${tenantId}/settings`, dto);
   }
 
-  leads(status?: 'PENDING' | 'CONVERTED' | 'DELETED') {
-    const query = status ? `?status=${encodeURIComponent(status)}` : '';
-    return this.http.get<any[]>(`${environment.apiUrl}/tenants/leads${query}`);
+  leads(params?: PaginationRequest & { group?: TenantListGroup; status?: TenantLeadStatus }) {
+    return this.http.get<PaginatedResponse<any>>(`${environment.apiUrl}/tenants/leads`, {
+      params: this.paginationParams(params),
+    });
   }
 
   onboardCompany(dto: {

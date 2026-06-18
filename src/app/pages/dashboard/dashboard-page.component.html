@@ -1,7 +1,7 @@
 <section class="dashboard-page">
   <header class="page-head">
     <div>
-      <h2>Good morning, {{ greetingName }}</h2>
+      <h2>{{ currentGreeting() }}, {{ greetingName }}</h2>
       <div class="tenant-banner" *ngIf="tenantName && !isSuperAdmin">
         <span class="tenant-label">Signed in to</span>
         <strong>{{ tenantName }}</strong>

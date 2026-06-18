@@ -4,6 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { TenantsService } from '../../core/services/tenants.service';
 import { ConfirmDialogComponent } from '../../shared/dialogs/confirm-dialog.component';
 import { EditDialogShellComponent } from '../../shared/dialogs/edit-dialog-shell.component';
+import { DEFAULT_PAGINATION, PaginationMeta } from '../../core/models/pagination.model';
+import { ListPaginationComponent } from '../../shared/list-pagination/list-pagination.component';
 
 interface PaymentRow {
   tenantId: number;
@@ -30,12 +32,13 @@ interface PaymentRow {
 @Component({
   selector: 'app-company-payments-page',
   standalone: true,
-  imports: [CommonModule, CurrencyPipe, DatePipe, FormsModule, ConfirmDialogComponent, EditDialogShellComponent],
+  imports: [CommonModule, CurrencyPipe, DatePipe, FormsModule, ConfirmDialogComponent, EditDialogShellComponent, ListPaginationComponent],
   templateUrl: './company-payments-page.component.html',
   styleUrl: './company-payments-page.component.scss',
 })
 export class CompanyPaymentsPageComponent implements OnInit {
   rows = signal<PaymentRow[]>([]);
+  pagination = signal<PaginationMeta>({ ...DEFAULT_PAGINATION });
   loading = signal(true);
   errorMessage = signal('');
   actionMessage = signal('');
@@ -65,9 +68,15 @@ export class CompanyPaymentsPageComponent implements OnInit {
     this.loading.set(true);
     this.errorMessage.set('');
 
-    this.tenantsService.billingOverview().subscribe({
+    this.tenantsService.billingOverview({ page: this.pagination().page, limit: this.pagination().limit }).subscribe({
       next: (res: any) => {
-        this.rows.set((res ?? []) as PaymentRow[]);
+        this.rows.set((res?.items ?? []) as PaymentRow[]);
+        this.pagination.set({
+          total: res?.total ?? 0,
+          page: res?.page ?? 1,
+          limit: res?.limit ?? 5,
+          totalPages: res?.totalPages ?? 1,
+        });
         this.loading.set(false);
       },
       error: (err) => {
@@ -75,6 +84,16 @@ export class CompanyPaymentsPageComponent implements OnInit {
         this.loading.set(false);
       },
     });
+  }
+
+  onPageChange(page: number): void {
+    this.pagination.set({ ...this.pagination(), page });
+    this.loadData();
+  }
+
+  onLimitChange(limit: number): void {
+    this.pagination.set({ ...this.pagination(), page: 1, limit });
+    this.loadData();
   }
 
   statusClass(status: PaymentRow['billingStatus']): string {
