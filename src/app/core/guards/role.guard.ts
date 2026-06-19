@@ -10,7 +10,10 @@ export const roleGuard: CanActivateFn = (route) => {
   const moduleKey = route.data?.['module'] as string | undefined;
 
   const roleAllowed = !roles || authService.hasAnyRole(roles);
-  const permissionAllowed = !permissions || authService.hasAnyPermission(permissions);
+  const permissionAllowed =
+    !permissions ||
+    authService.hasAnyPermission(permissions) ||
+    (!!moduleKey && authService.hasAssignedModuleRole(moduleKey));
   const moduleAllowed = !moduleKey || authService.hasModule(moduleKey);
 
   if (roleAllowed && permissionAllowed && moduleAllowed) {

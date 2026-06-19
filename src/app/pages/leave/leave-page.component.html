@@ -57,6 +57,44 @@
     </article>
   </section>
 
+  <section class="modal-backdrop" *ngIf="showActionModal" (click)="closeActionModal()">
+    <article class="modal-card" (click)="$event.stopPropagation()">
+      <div class="panel-head">
+        <h3>{{ actionModalMode === 'approve' ? 'Approve Leave' : 'Reject Leave' }}</h3>
+        <button type="button" class="secondary" (click)="closeActionModal()">Close</button>
+      </div>
+
+      <p class="modal-help" *ngIf="actionTargetRow">
+        {{ employeeName(actionTargetRow) }} · {{ actionTargetRow.type }} ·
+        {{ actionTargetRow.startDate | date }} – {{ actionTargetRow.endDate | date }}
+      </p>
+
+      <label class="full-width action-comment-label">
+        {{ actionModalMode === 'reject' ? 'Reason for rejection (required)' : 'Approval note (optional)' }}
+        <textarea
+          [(ngModel)]="actionComment"
+          rows="4"
+          [placeholder]="actionModalMode === 'reject'
+            ? 'Explain why this leave is rejected. The employee will see this message.'
+            : 'Optional note for the employee (e.g. approved for project coverage).'"
+        ></textarea>
+      </label>
+
+      <div class="modal-actions">
+        <button type="button" class="secondary" (click)="closeActionModal()">Cancel</button>
+        <button
+          type="button"
+          class="primary"
+          [class.reject-primary]="actionModalMode === 'reject'"
+          (click)="submitActionModal()"
+          [disabled]="busyRowId === actionTargetRow?.id"
+        >
+          {{ actionModalMode === 'approve' ? 'Confirm Approve' : 'Confirm Reject' }}
+        </button>
+      </div>
+    </article>
+  </section>
+
   <!-- Requests Tab -->
   <ng-container *ngIf="activeTab === 'requests'">
     <table>
@@ -68,6 +106,7 @@
           <th>Days</th>
           <th>Status</th>
           <th>Actioned By</th>
+          <th>Manager Note</th>
           <th *ngIf="canApproveLeave">Action</th>
         </tr>
       </thead>
@@ -91,13 +130,29 @@
               <span class="text-muted">—</span>
             </ng-template>
           </td>
+          <td class="manager-note-cell">
+            <span *ngIf="managerNote(r); else noManagerNote" [ngClass]="{
+              'note-rejected': r.status === 'REJECTED',
+              'note-approved': r.status === 'APPROVED'
+            }">{{ managerNote(r) }}</span>
+            <ng-template #noManagerNote>
+              <span class="text-muted">—</span>
+            </ng-template>
+          </td>
           <td *ngIf="canApproveLeave" class="actions-cell">
             <button type="button" class="action-btn approve"
-              [disabled]="busyRowId === r.id || r.status === 'APPROVED'"
+              [disabled]="busyRowId === r.id || r.status === 'APPROVED' || !canActionLeave(r)"
+              [title]="leaveActionTitle(r)"
               (click)="updateStatus(r, 'APPROVED')">Approve</button>
             <button type="button" class="action-btn reject"
-              [disabled]="busyRowId === r.id || r.status === 'REJECTED'"
+              [disabled]="busyRowId === r.id || r.status === 'REJECTED' || !canActionLeave(r)"
+              [title]="leaveActionTitle(r)"
               (click)="updateStatus(r, 'REJECTED')">Reject</button>
+            <button type="button" class="action-btn secondary"
+              *ngIf="canRevertToPending(r)"
+              [disabled]="busyRowId === r.id"
+              (click)="revertToPending(r)"
+              title="Revert to Pending status">Revert</button>
           </td>
         </tr>
       </tbody>

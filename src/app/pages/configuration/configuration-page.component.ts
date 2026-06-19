@@ -123,6 +123,15 @@ export class ConfigurationPageComponent implements OnInit {
     return this.selectedRole?.tenantId === this.managedTenantId;
   }
 
+  get usersWithSelectedRole(): ConfigUser[] {
+    if (!this.selectedAccessRoleId) {
+      return [];
+    }
+    return this.users.filter((user) =>
+      user.roles.some((entry) => entry.role.id === this.selectedAccessRoleId),
+    );
+  }
+
   get permissionsByModule(): Array<{ module: string; rows: ConfigPermission[] }> {
     const grouped = new Map<string, ConfigPermission[]>();
     for (const permission of this.permissions) {
@@ -216,6 +225,17 @@ export class ConfigurationPageComponent implements OnInit {
     this.router.navigateByUrl(path);
     this.successMessage = '';
     this.errorMessage = '';
+  }
+
+  goToUserAssignment(userId?: number): void {
+    if (userId) {
+      this.selectedUserId = userId;
+      this.syncSelectedUserAccess();
+    }
+    this.switchTab('users-permissions');
+    if (userId) {
+      this.openAccessModal(userId);
+    }
   }
 
   togglePermission(permissionId: number, checked: boolean): void {

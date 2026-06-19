@@ -66,6 +66,8 @@ export class SidebarComponent {
     const isTenantUser = isCompany || isHrManager || isTeamLead || isEmployee;
     const can = (permission: string) => isSuper || this.auth.hasAnyPermission([permission]);
     const moduleEnabled = (key: string) => isSuper || this.auth.hasModule(key);
+    const moduleAccess = (key: string, permission: string) =>
+      isSuper || this.auth.canAccessModule(key, [permission]);
 
     const baseItems: NavItem[] = [
       { path: '/dashboard', label: 'Dashboard', show: true },
@@ -73,15 +75,15 @@ export class SidebarComponent {
       { path: '/cross-tenant-reports', label: 'Cross-Tenant Reports', show: isSuper },
       { path: '/leads', label: 'Leads', show: isSuper },
       { path: '/company-payments', label: 'Company Payments', show: isSuper },
-      { path: '/employees', label: 'Employees', show: isTenantUser && moduleEnabled('employees') && can('employees.read') },
+      { path: '/employees', label: 'Employees', show: isTenantUser && moduleAccess('employees', 'employees.read') },
       { path: '/organisation', label: 'Organisation', show: isCompany && moduleEnabled('organisation') },
-      { path: '/leave', label: 'Leave', show: isTenantUser && moduleEnabled('leave') && can('leave.read') },
-      { path: '/attendance', label: 'Attendance', show: isTenantUser && moduleEnabled('attendance') && can('attendance.read') },
-      { path: '/canteen', label: 'Canteen', show: (isCompany || isHrManager || isTeamLead) && moduleEnabled('canteen') && can('canteen.read') },
+      { path: '/leave', label: 'Leave', show: isTenantUser && moduleAccess('leave', 'leave.read') },
+      { path: '/attendance', label: 'Attendance', show: isTenantUser && moduleAccess('attendance', 'attendance.read') },
+      { path: '/canteen', label: 'Canteen', show: (isCompany || isHrManager || isTeamLead) && moduleAccess('canteen', 'canteen.read') },
       { path: '/payroll', label: 'Payroll', show: isTenantUser && moduleEnabled('payroll') && can('payroll.manage') },
       { path: '/payslips', label: 'Payslips', show: isTenantUser && moduleEnabled('payslips') && can('payslips.manage') },
-      { path: '/recruitment', label: 'Recruitment', show: moduleEnabled('recruitment') && (can('recruitment.read') || can('recruitment.manage')) },
-      { path: '/reports', label: 'Reports', show: isTenantUser && moduleEnabled('reports') && can('reports.read') },
+      { path: '/recruitment', label: 'Recruitment', show: moduleEnabled('recruitment') && (can('recruitment.read') || can('recruitment.manage') || this.auth.hasAssignedModuleRole('recruitment')) },
+      { path: '/reports', label: 'Reports', show: isTenantUser && moduleAccess('reports', 'reports.read') },
       { path: '/invitations', label: 'Invitations', show: (isSuper || isCompany || isHrManager) && can('employees.invite') },
     ];
 

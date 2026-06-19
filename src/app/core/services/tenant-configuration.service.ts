@@ -1,6 +1,8 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { Observable, of, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { FALLBACK_SUBSCRIPTION_PLANS, normalizePlanKey } from '../constants/subscription-plans';
 
 export interface TenantFieldConfigInput {
   enabled?: boolean;
@@ -44,6 +46,8 @@ export interface PlatformPlanDefinition {
   priceLkr: number | null;
   description: string;
   defaultModules: string[];
+  sortOrder?: number;
+  isActive?: boolean;
 }
 
 export interface PlatformBillingPlanConfig {
@@ -77,6 +81,9 @@ export interface PlatformModuleDefinition {
 
 @Injectable({ providedIn: 'root' })
 export class TenantConfigurationService {
+  private cachedPlans: PlatformPlanDefinition[] = [];
+  private plansLoaded = false;
+
   constructor(private readonly http: HttpClient) {}
 
   listPlatformModules() {
@@ -91,16 +98,80 @@ export class TenantConfigurationService {
     return this.http.get<PlatformPlanDefinition[]>(`${environment.apiUrl}/platform/plans`);
   }
 
+  loadPlatformPlans(): Observable<PlatformPlanDefinition[]> {
+    if (this.plansLoaded && this.cachedPlans.length) {
+      return of(this.cachedPlans);
+    }
+
+    return this.listPlatformPlans().pipe(
+      tap((rows) => {
+        if (rows.length) {
+          this.cachedPlans = rows;
+          this.plansLoaded = true;
+        }
+      }),
+    );
+  }
+
+  getPlatformPlans(): PlatformPlanDefinition[] {
+    if (this.cachedPlans.length) {
+      return this.cachedPlans;
+    }
+
+    return FALLBACK_SUBSCRIPTION_PLANS.map((plan) => ({
+      key: plan.key,
+      label: plan.label,
+      seats: plan.seats,
+      priceLkr: plan.priceLkr ?? null,
+      description: plan.description,
+      defaultModules: plan.defaultModules ?? [],
+    }));
+  }
+
+  planLabel(plan: string): string {
+    const normalized = normalizePlanKey(plan);
+    const match = this.getPlatformPlans().find((entry) => entry.key === normalized);
+    return match?.label ?? plan.trim();
+  }
+
+  modulesForPlan(plan: string): string[] {
+    const normalized = normalizePlanKey(plan);
+    const match = this.getPlatformPlans().find((entry) => entry.key === normalized);
+    return match?.defaultModules?.length ? match.defaultModules : [];
+  }
+
+  seatsForPlan(plan: string): number {
+    const normalized = normalizePlanKey(plan);
+    const match = this.getPlatformPlans().find((entry) => entry.key === normalized);
+    if (!match || match.seats === null) {
+      return 999999;
+    }
+    return match.seats;
+  }
+
+  seatsDisplay(plan: string, seats?: number): string {
+    const normalized = normalizePlanKey(plan);
+    const definition = this.getPlatformPlans().find((entry) => entry.key === normalized);
+    if (definition?.seats === null) {
+      return 'Unlimited';
+    }
+    return String(seats ?? this.seatsForPlan(plan));
+  }
+
+  savePlatformPlans(plans: PlatformPlanDefinition[]) {
+    return this.http.put<PlatformPlanDefinition[]>(`${environment.apiUrl}/platform/plans`, { plans }).pipe(
+      tap(() => {
+        this.plansLoaded = false;
+      }),
+    );
+  }
+
   getPlatformBilling() {
     return this.http.get<PlatformBillingConfig>(`${environment.apiUrl}/platform/billing`);
   }
 
   savePlatformBilling(dto: PlatformBillingConfig) {
     return this.http.put(`${environment.apiUrl}/platform/billing`, dto);
-  }
-
-  createPlatformModule(dto: { key: string; label: string; description?: string; sortOrder?: number }) {
-    return this.http.post(`${environment.apiUrl}/platform/modules`, dto);
   }
 
   createPlatformField(

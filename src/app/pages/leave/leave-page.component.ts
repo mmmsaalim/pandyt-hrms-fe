@@ -13,7 +13,10 @@ interface LeaveRow {
   startDate: string;
   endDate: string;
   days: number;
+  reason: string;
   status: LeaveStatus;
+  approvalComment?: string | null;
+  rejectionReason?: string | null;
   employee?: {
     employeeCode?: string;
     department?: string;
@@ -48,6 +51,11 @@ export class LeavePageComponent implements OnInit {
   messageType: 'success' | 'error' = 'success';
   activeTab: 'requests' | 'balances' = 'requests';
 
+  showActionModal = false;
+  actionModalMode: 'approve' | 'reject' = 'approve';
+  actionTargetRow: LeaveRow | null = null;
+  actionComment = '';
+
   applyForm = { employeeId: 0, type: '', startDate: '', endDate: '', days: 1, reason: '', status: 'PENDING' as LeaveStatus };
 
   constructor(
@@ -57,9 +65,13 @@ export class LeavePageComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.canApproveLeave = this.auth.hasAnyPermission(['leave.manage']);
     const roles = this.auth.user()?.roles ?? [];
-    this.canManualLeave = roles.includes('COMPANY_ADMIN') || roles.includes('HR_MANAGER') || roles.includes('TEAM_LEAD');
+    const canManageOthers =
+      roles.includes('COMPANY_ADMIN') ||
+      roles.includes('HR_MANAGER') ||
+      roles.includes('TEAM_LEAD');
+    this.canApproveLeave = canManageOthers && this.auth.hasAnyPermission(['leave.manage']);
+    this.canManualLeave = canManageOthers;
     this.loadRows();
     this.loadBalances();
     this.loadLeaveTypes();
@@ -108,6 +120,130 @@ export class LeavePageComponent implements OnInit {
     return `${first} ${last}`.trim() || 'User';
   }
 
+  canActionLeave(row: LeaveRow): boolean {
+    if (row.status !== 'PENDING') {
+      return false;
+    }
+    const end = new Date(row.endDate);
+    end.setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return end >= today;
+  }
+
+  canRevertToPending(row: LeaveRow): boolean {
+    if (row.status !== 'APPROVED' && row.status !== 'REJECTED') {
+      return false;
+    }
+    const end = new Date(row.endDate);
+    end.setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return end >= today;
+  }
+
+  revertToPending(row: LeaveRow): void {
+    if (this.busyRowId || !this.canRevertToPending(row)) { return; }
+    this.busyRowId = row.id;
+    this.leaveService.updateStatus(row.id, 'PENDING').subscribe({
+      next: () => {
+        row.status = 'PENDING';
+        row.approvalComment = null;
+        row.rejectionReason = null;
+        this.busyRowId = null;
+        this.showMsg('Leave request reverted to PENDING.', 'success');
+        this.loadBalances();
+        this.loadRows();
+      },
+      error: (err) => {
+        this.busyRowId = null;
+        this.showMsg(err?.error?.message || 'Failed to revert leave request.', 'error');
+      },
+    });
+  }
+
+  leaveActionTitle(row: LeaveRow): string {
+    if (row.status !== 'PENDING') {
+      return '';
+    }
+    if (!this.canActionLeave(row)) {
+      return 'Leave period has ended — approval is no longer available';
+    }
+    return '';
+  }
+
+  managerNote(row: LeaveRow): string {
+    if (row.status === 'REJECTED' && row.rejectionReason?.trim()) {
+      return row.rejectionReason.trim();
+    }
+    if (row.status === 'APPROVED' && row.approvalComment?.trim()) {
+      return row.approvalComment.trim();
+    }
+    return '';
+  }
+
+  openActionModal(row: LeaveRow, mode: 'approve' | 'reject'): void {
+    if (this.busyRowId || !this.canActionLeave(row)) {
+      return;
+    }
+    this.actionTargetRow = row;
+    this.actionModalMode = mode;
+    this.actionComment = '';
+    this.showActionModal = true;
+  }
+
+  closeActionModal(): void {
+    this.showActionModal = false;
+    this.actionTargetRow = null;
+    this.actionComment = '';
+  }
+
+  submitActionModal(): void {
+    const row = this.actionTargetRow;
+    if (!row || this.busyRowId) {
+      return;
+    }
+
+    const comment = this.actionComment.trim();
+    if (this.actionModalMode === 'reject' && comment.length < 3) {
+      this.showMsg('Please enter a rejection reason (at least 3 characters).', 'error');
+      return;
+    }
+
+    const status: LeaveStatus = this.actionModalMode === 'approve' ? 'APPROVED' : 'REJECTED';
+    this.busyRowId = row.id;
+
+    this.leaveService
+      .updateStatus(row.id, status, {
+        rejectionReason: this.actionModalMode === 'reject' ? comment : undefined,
+        approvalComment: this.actionModalMode === 'approve' ? comment || undefined : undefined,
+      })
+      .subscribe({
+        next: () => {
+          row.status = status;
+          if (this.actionModalMode === 'reject') {
+            row.rejectionReason = comment;
+            row.approvalComment = null;
+          } else {
+            row.approvalComment = comment || null;
+            row.rejectionReason = null;
+          }
+          this.busyRowId = null;
+          this.closeActionModal();
+          this.showMsg(
+            status === 'APPROVED' ? 'Leave approved successfully.' : 'Leave rejected.',
+            'success',
+          );
+          this.loadRows();
+          this.loadBalances();
+        },
+        error: (err) => {
+          this.busyRowId = null;
+          this.showMsg(err?.error?.message || 'Failed to update leave request.', 'error');
+        },
+      });
+  }
+
   applyLeave(): void {
     if (!this.applyForm.type.trim() || !this.applyForm.startDate || !this.applyForm.endDate) {
       this.showMsg('Type, start date and end date are required.', 'error');
@@ -146,12 +282,13 @@ export class LeavePageComponent implements OnInit {
   }
 
   updateStatus(row: LeaveRow, status: LeaveStatus): void {
-    if (this.busyRowId || row.status === status) { return; }
-    this.busyRowId = row.id;
-    this.leaveService.updateStatus(row.id, status).subscribe({
-      next: () => { row.status = status; this.busyRowId = null; this.loadBalances(); },
-      error: () => { this.busyRowId = null; },
-    });
+    if (status === 'APPROVED') {
+      this.openActionModal(row, 'approve');
+      return;
+    }
+    if (status === 'REJECTED') {
+      this.openActionModal(row, 'reject');
+    }
   }
 
   private loadRows(): void {

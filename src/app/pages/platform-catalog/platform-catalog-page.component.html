@@ -2,7 +2,7 @@
   <header class="page-head">
     <div>
       <h2>Platform Configuration</h2>
-      <p>Manage modules, employee profile fields, and subscription billing used by Company Payments.</p>
+      <p>Manage modules, employee profile fields, subscription plans, and billing used by Company Payments.</p>
     </div>
     <span class="badge">{{ modules.length }} modules</span>
   </header>
@@ -17,19 +17,8 @@
 
   <ng-container *ngIf="activeTab === 'modules'">
     <section class="card panel">
-      <h3>Add module</h3>
-      <div class="form-grid">
-        <label>Module key<input [(ngModel)]="moduleForm.key" name="moduleKey" type="text" placeholder="employees" /></label>
-        <label>Label<input [(ngModel)]="moduleForm.label" name="moduleLabel" type="text" placeholder="Employees" /></label>
-        <label>Description<input [(ngModel)]="moduleForm.description" name="moduleDescription" type="text" /></label>
-      </div>
-      <button type="button" class="primary-btn" (click)="createModule()" [disabled]="savingModule">
-        {{ savingModule ? 'Saving...' : 'Add module' }}
-      </button>
-    </section>
-
-    <section class="card panel">
       <h3>Add field to module</h3>
+      <p class="panel-copy">Modules are managed by the platform. You can add custom fields to existing modules below.</p>
       <div class="form-grid">
         <label>
           Module
@@ -78,7 +67,7 @@
   <ng-container *ngIf="activeTab === 'billing'">
     <section class="card panel">
       <h3>Global billing settings</h3>
-      <p class="panel-copy">Flat monthly plan fees per BRD. Overage is charged per extra employee above included seats. Changes apply immediately in Company Payments.</p>
+      <p class="panel-copy">Tax and overage pricing. Plan catalog is stored in the database and editable below.</p>
       <div class="form-grid">
         <label>
           VAT / tax rate (0–1)
@@ -89,48 +78,83 @@
           <input [(ngModel)]="billingForm.overageSeatPriceLkr" name="overageSeatPrice" type="number" min="0" />
         </label>
       </div>
+      <button type="button" class="primary-btn" (click)="saveBilling()" [disabled]="savingBilling">
+        {{ savingBilling ? 'Saving...' : 'Save billing settings' }}
+      </button>
     </section>
 
     <section class="card panel">
-      <h3>Subscription plans</h3>
+      <h3>Subscription plan catalog</h3>
+      <p class="panel-copy">Add or edit plans here without code changes. Saved to platform_settings in the database.</p>
       <table>
         <thead>
           <tr>
-            <th>Plan</th>
-            <th>Included seats</th>
-            <th>Monthly price (LKR)</th>
+            <th>Key</th>
+            <th>Label</th>
+            <th>Seats</th>
+            <th>Price (LKR)</th>
+            <th>Default modules</th>
             <th>Description</th>
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let plan of planLabels">
-            <td><strong>{{ plan.label }}</strong></td>
+          <tr *ngFor="let plan of planCatalog">
+            <td><code>{{ plan.key }}</code></td>
+            <td><input [(ngModel)]="plan.label" [name]="'label-' + plan.key" type="text" /></td>
             <td>
               <input
-                *ngIf="billingForm.plans[plan.key]"
-                [(ngModel)]="billingForm.plans[plan.key].seats"
-                [name]="'seats-' + plan.key"
+                *ngIf="plan.seats !== null"
+                [(ngModel)]="plan.seats"
+                [name]="'seats-catalog-' + plan.key"
                 type="number"
-                min="1"
-                [disabled]="plan.key === 'ENTERPRISE'" />
-              <span *ngIf="plan.key === 'ENTERPRISE'" class="muted">Unlimited</span>
+                min="1" />
+              <span *ngIf="plan.seats === null" class="muted">Unlimited</span>
             </td>
             <td>
               <input
                 *ngIf="billingForm.plans[plan.key]"
                 [(ngModel)]="billingForm.plans[plan.key].monthlyPriceLkr"
-                [name]="'price-' + plan.key"
+                [name]="'price-catalog-' + plan.key"
                 type="number"
-                min="0"
-                [placeholder]="plan.key === 'ENTERPRISE' ? 'Custom' : '0'" />
+                min="0" />
             </td>
-            <td class="muted">{{ plan.description }}</td>
+            <td class="module-picks">
+              <label class="module-pick" *ngFor="let module of modules">
+                <input
+                  type="checkbox"
+                  [checked]="isModuleSelected(plan, module.key)"
+                  (change)="togglePlanModule(plan, module.key, $any($event.target).checked)" />
+                {{ module.label }}
+              </label>
+            </td>
+            <td><input [(ngModel)]="plan.description" [name]="'desc-' + plan.key" type="text" /></td>
           </tr>
         </tbody>
       </table>
-      <button type="button" class="primary-btn" (click)="saveBilling()" [disabled]="savingBilling">
-        {{ savingBilling ? 'Saving...' : 'Save billing configuration' }}
+      <button type="button" class="primary-btn" (click)="savePlanCatalog()" [disabled]="savingPlans">
+        {{ savingPlans ? 'Saving...' : 'Save plan catalog' }}
       </button>
+    </section>
+
+    <section class="card panel">
+      <h3>Add subscription plan</h3>
+      <div class="form-grid">
+        <label>Plan key<input [(ngModel)]="newPlanForm.key" name="newPlanKey" type="text" placeholder="PRO_PLUS" /></label>
+        <label>Label<input [(ngModel)]="newPlanForm.label" name="newPlanLabel" type="text" placeholder="Pro Plus" /></label>
+        <label>Included seats<input [(ngModel)]="newPlanForm.seats" name="newPlanSeats" type="number" min="1" /></label>
+        <label>Monthly price (LKR)<input [(ngModel)]="newPlanForm.priceLkr" name="newPlanPrice" type="number" min="0" /></label>
+        <label>Description<input [(ngModel)]="newPlanForm.description" name="newPlanDescription" type="text" /></label>
+      </div>
+      <div class="module-picks">
+        <label class="module-pick" *ngFor="let module of modules">
+          <input
+            type="checkbox"
+            [checked]="newPlanForm.defaultModules.includes(module.key)"
+            (change)="toggleNewPlanModule(module.key, $any($event.target).checked)" />
+          {{ module.label }}
+        </label>
+      </div>
+      <button type="button" class="primary-btn outline" (click)="addPlan()">Add plan</button>
     </section>
   </ng-container>
 

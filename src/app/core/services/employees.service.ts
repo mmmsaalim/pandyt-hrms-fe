@@ -35,6 +35,7 @@ export class EmployeesService {
     designation: string;
     role: InviteRole;
     employeeCode?: string;
+    managerId?: number;
     customFields?: Record<string, unknown>;
   }) {
     return this.http.post(`${environment.apiUrl}/employees/invite`, dto);
@@ -51,6 +52,7 @@ export class EmployeesService {
       joinedDate?: string;
       employmentStatus?: 'ACTIVE' | 'ON_PROBATION' | 'INACTIVE';
       salary?: number;
+      managerId?: number | null;
       customFields?: Record<string, unknown>;
     },
   ) {

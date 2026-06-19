@@ -1,3 +1,18 @@
+.module-picks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.75rem;
+  max-width: 280px;
+}
+
+.module-pick {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
 .catalog-page {
   display: grid;
   gap: 1rem;

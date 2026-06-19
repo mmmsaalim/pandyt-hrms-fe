@@ -59,7 +59,7 @@
       <div class="panel-head">
         <div>
           <h3>Tenant breakdown</h3>
-          <p>By active users</p>
+          <p>By subscription plan</p>
         </div>
       </div>
 
@@ -99,7 +99,7 @@
         <div class="tenant-list-row" *ngFor="let tenant of tenantsList">
           <span>{{ tenant.name }}</span>
           <span>{{ tenant.companyCode }}</span>
-          <span>{{ tenant.plan }}</span>
+          <span>{{ tenant.planLabel || tenant.plan }}</span>
           <span>{{ tenant.status }}</span>
           <span>{{ tenant.leadStatus }}</span>
           <button type="button" class="action-btn" [routerLink]="['/tenants']" [queryParams]="{ id: tenant.id }">View</button>

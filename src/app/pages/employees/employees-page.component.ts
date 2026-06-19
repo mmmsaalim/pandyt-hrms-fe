@@ -35,6 +35,7 @@ export class EmployeesPageComponent implements OnInit {
     departmentId: 0,
     teamId: 0,
     locationId: 0,
+    managerId: 0,
     designation: '',
     employmentStatus: 'ACTIVE' as 'ACTIVE' | 'ON_PROBATION' | 'INACTIVE',
     customFields: {} as Record<string, unknown>,
@@ -62,6 +63,7 @@ export class EmployeesPageComponent implements OnInit {
     role: 'EMPLOYEE' as InviteRole,
     onboardingMode: 'EMAIL_INVITE' as 'EMAIL_INVITE' | 'MANUAL_ONLY',
     employeeCode: '',
+    managerId: 0,
     customFields: {} as Record<string, unknown>,
   };
 
@@ -339,6 +341,7 @@ export class EmployeesPageComponent implements OnInit {
         designation: this.form.designation.trim(),
         role: this.form.role,
         employeeCode: this.form.employeeCode.trim() || undefined,
+        managerId: this.form.managerId || undefined,
         customFields: Object.keys(this.form.customFields).length ? this.form.customFields : undefined,
       })
       .subscribe({
@@ -354,6 +357,7 @@ export class EmployeesPageComponent implements OnInit {
             role: 'EMPLOYEE',
             onboardingMode: 'EMAIL_INVITE',
             employeeCode: '',
+            managerId: 0,
             customFields: {},
           };
           this.showCreateForm = false;
@@ -384,10 +388,25 @@ export class EmployeesPageComponent implements OnInit {
       departmentId: employee?.departmentId ?? employee?.departmentRelation?.id ?? 0,
       teamId: employee?.teamId ?? employee?.team?.id ?? 0,
       locationId: employee?.locationId ?? employee?.location?.id ?? 0,
+      managerId: employee?.managerId ?? employee?.manager?.id ?? 0,
       designation: employee?.designation ?? '',
       employmentStatus: (employee?.employmentStatus ?? 'ACTIVE') as 'ACTIVE' | 'ON_PROBATION' | 'INACTIVE',
       customFields: { ...(employee?.customFields ?? {}) },
     };
+  }
+
+  get teamLeadOptions(): Array<{ id: number; label: string }> {
+    return this.employees
+      .filter((employee) =>
+        (employee?.user?.roles ?? []).some((entry: any) => entry?.role?.name === 'TEAM_LEAD'),
+      )
+      .map((employee) => ({
+        id: Number(employee.id),
+        label:
+          `${employee?.user?.firstName ?? ''} ${employee?.user?.lastName ?? ''}`.trim() ||
+          employee?.employeeCode ||
+          `Employee #${employee.id}`,
+      }));
   }
 
   fieldOptions(field: TenantFieldRuntimeConfig): string[] {
@@ -428,11 +447,13 @@ export class EmployeesPageComponent implements OnInit {
           departmentId: this.editForm.departmentId,
           teamId: this.editForm.teamId || null,
           locationId: this.editForm.locationId || null,
+          managerId: this.editForm.managerId || null,
           designation: this.editForm.designation.trim(),
           employmentStatus: this.editForm.employmentStatus,
           customFields: this.editForm.customFields,
         }
       : {
+          managerId: this.editForm.managerId || null,
           designation: this.editForm.designation.trim(),
           employmentStatus: this.editForm.employmentStatus,
           customFields: this.editForm.customFields,

@@ -182,6 +182,23 @@ export class AuthService {
     return (current?.enabledModules ?? []).includes(moduleKey);
   }
 
+  /** True when the user was assigned a tenant module role (e.g. ATTENDANCE for attendance). */
+  hasAssignedModuleRole(moduleKey: string): boolean {
+    const roleName = moduleKey.trim().toUpperCase();
+    return (this.user()?.roles ?? []).includes(roleName);
+  }
+
+  /** Module is reachable when tenant module is on and user has read permission or the module role. */
+  canAccessModule(moduleKey: string, readPermissions: string[] = [`${moduleKey}.read`]): boolean {
+    if (!this.hasModule(moduleKey)) {
+      return false;
+    }
+    if (this.hasAnyPermission(readPermissions)) {
+      return true;
+    }
+    return this.hasAssignedModuleRole(moduleKey);
+  }
+
   getModuleFields(moduleKey: string): TenantFieldRuntimeConfig[] {
     return this.user()?.tenantConfig?.fields?.[moduleKey] ?? [];
   }
@@ -192,6 +209,7 @@ export class AuthService {
         enabledModules?: string[];
         permissions?: string[];
         effectivePermissions?: string[];
+        roles?: string[];
       }
     >(`${environment.apiUrl}/auth/tenant-config`);
   }
@@ -201,6 +219,7 @@ export class AuthService {
       enabledModules?: string[];
       permissions?: string[];
       effectivePermissions?: string[];
+      roles?: string[];
     },
   ) {
     const current = this.user();
@@ -210,6 +229,7 @@ export class AuthService {
 
     const nextUser: AuthUser = {
       ...current,
+      roles: config.roles ?? current.roles,
       enabledModules: config.enabledModules ?? current.enabledModules,
       permissions: config.permissions ?? current.permissions,
       effectivePermissions: config.effectivePermissions ?? current.effectivePermissions,

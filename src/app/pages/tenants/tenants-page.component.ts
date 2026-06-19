@@ -9,10 +9,6 @@ import {
 } from '../../core/services/tenant-configuration.service';
 import {
   DEFAULT_EMPLOYEE_PROFILE_FIELDS,
-  SUBSCRIPTION_PLANS,
-  modulesForPlan,
-  planLabel,
-  seatsDisplay,
   seatsForPlan,
 } from '../../core/constants/subscription-plans';
 import {
@@ -78,7 +74,7 @@ export class TenantsPageComponent implements OnInit {
     seats: seatsForPlan('STARTER'),
   };
 
-  readonly planOptions = SUBSCRIPTION_PLANS;
+  planOptions: Array<{ key: string; label: string; seats: number | null; description: string }> = [];
 
   configuringTenantId: number | null = null;
   configBusy = false;
@@ -101,6 +97,17 @@ export class TenantsPageComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    this.tenantConfigurationService.loadPlatformPlans().subscribe({
+      next: (plans) => {
+        this.planOptions = plans.map((plan) => ({
+          key: plan.key,
+          label: plan.label,
+          seats: plan.seats,
+          description: plan.description,
+        }));
+      },
+    });
+
     this.route.queryParamMap.subscribe((params) => {
       this.showCreateForm = params.get('new') === '1';
       if (this.showCreateForm) {
@@ -281,18 +288,18 @@ export class TenantsPageComponent implements OnInit {
   }
 
   formatSeats(plan: string, seats?: number): string {
-    return seatsDisplay(plan, seats);
+    return this.tenantConfigurationService.seatsDisplay(plan, seats);
   }
 
   formatPlanLabel(plan: string): string {
-    return planLabel(plan);
+    return this.tenantConfigurationService.planLabel(plan);
   }
 
   private loadCreateDefaults(plan: string): void {
     this.configPlan = plan;
     this.tenantConfigurationService.listPlatformModules().subscribe({
       next: (modules) => {
-        const preset = modulesForPlan(plan);
+        const preset = this.tenantConfigurationService.modulesForPlan(plan);
         this.configModules = modules.map((module) => ({
           key: module.key,
           label: module.label,
@@ -317,7 +324,7 @@ export class TenantsPageComponent implements OnInit {
   }
 
   private planDefaultModules(plan: string): string[] {
-    return modulesForPlan(plan);
+    return this.tenantConfigurationService.modulesForPlan(plan);
   }
 
   private buildConfigurationPayload() {

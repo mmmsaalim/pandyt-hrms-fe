@@ -19,6 +19,13 @@
   </div>
 
   <section class="config-grid" *ngIf="activeTab === 'users-permissions'">
+    <p class="workflow-banner">
+      <strong>Step 2 — Assign users to modules.</strong>
+      Pick a user and tick which module roles they get (Leave, Attendance, etc.).
+      To change what each role can do (read vs approve), use
+      <button type="button" class="link-btn" (click)="switchTab('access-configuration')">Access Configuration</button>.
+    </p>
+
     <article class="card panel">
       <div class="panel-head">
         <h3>User Access Assignment</h3>
@@ -81,6 +88,14 @@
   </section>
 
   <section class="config-grid" *ngIf="activeTab === 'access-configuration'">
+    <p class="workflow-banner">
+      <strong>Step 1 — Configure role permissions.</strong>
+      This screen edits what a <em>role</em> can do (e.g. Leave: read only vs approve/reject), not which person has the role.
+      After saving here, go to
+      <button type="button" class="link-btn" (click)="switchTab('users-permissions')">Users &amp; Permissions</button>
+      to assign roles to people.
+    </p>
+
     <article class="card panel">
       <div class="panel-head">
         <h3>Tenant Roles</h3>
@@ -124,65 +139,110 @@
       </div>
     </article>
 
-    <article class="card panel">
+    <article class="card panel permissions-panel">
       <div class="panel-head">
         <h3>Permissions Matrix</h3>
-        <span class="badge" *ngIf="selectedRole">{{ selectedRole.name }}</span>
+        <div class="panel-head-actions" *ngIf="selectedRole">
+          <span class="badge">{{ selectedRole.name }}</span>
+          <button
+            type="button"
+            class="primary save-btn"
+            (click)="savePermissions()"
+            [disabled]="savingPermissions || !selectedRoleEditable"
+          >
+            {{ savingPermissions ? 'Saving...' : 'Save' }}
+          </button>
+        </div>
       </div>
 
       <p class="info-text" *ngIf="selectedRole">
         <strong>Who can edit:</strong> Only Company Admin can edit permissions for tenant roles. Super Admin manages system-wide permissions.
       </p>
 
-      <div class="action-ticks" *ngIf="selectedRole">
-        <label class="permission-row" *ngFor="let action of actionFilters">
-          <input
-            type="checkbox"
-            [checked]="isActionFullySelected(action)"
-            [disabled]="!selectedRoleEditable"
-            (change)="toggleActionPermissions(action, $any($event.target).checked)"
-          />
-          <span>{{ actionLabel(action) }}</span>
-        </label>
-      </div>
+      <ng-container *ngIf="selectedRole; else noRoleSelectedTemplate">
+        <div class="permissions-scroll">
+          <div class="action-ticks">
+            <label class="permission-row" *ngFor="let action of actionFilters">
+              <input
+                type="checkbox"
+                [checked]="isActionFullySelected(action)"
+                [disabled]="!selectedRoleEditable"
+                (change)="toggleActionPermissions(action, $any($event.target).checked)"
+              />
+              <span>{{ actionLabel(action) }}</span>
+            </label>
+          </div>
 
-      <div *ngIf="selectedRole; else noRoleSelectedTemplate" class="module-list">
-        <section class="module-block" *ngFor="let group of permissionsByModule">
-          <h4>{{ group.module }}</h4>
-          <label class="permission-row" *ngFor="let permission of group.rows">
-            <input
-              type="checkbox"
-              [checked]="selectedPermissionIds.has(permission.id)"
-              [disabled]="!selectedRoleEditable"
-              (change)="togglePermission(permission.id, $any($event.target).checked)"
-            />
-            <span>{{ permission.permission }}</span>
-          </label>
-        </section>
+          <div class="module-list">
+            <section class="module-block" *ngFor="let group of permissionsByModule">
+              <h4>{{ group.module }}</h4>
+              <label class="permission-row" *ngFor="let permission of group.rows">
+                <input
+                  type="checkbox"
+                  [checked]="selectedPermissionIds.has(permission.id)"
+                  [disabled]="!selectedRoleEditable"
+                  (change)="togglePermission(permission.id, $any($event.target).checked)"
+                />
+                <span>{{ permission.permission }}</span>
+              </label>
+            </section>
+          </div>
+        </div>
 
-        <button
-          type="button"
-          class="primary"
-          (click)="savePermissions()"
-          [disabled]="savingPermissions || !selectedRoleEditable"
-        >
-          {{ savingPermissions ? 'Saving...' : 'Save Permission Matrix' }}
-        </button>
+        <div class="panel-actions">
+          <button
+            type="button"
+            class="primary save-btn"
+            (click)="savePermissions()"
+            [disabled]="savingPermissions || !selectedRoleEditable"
+          >
+            {{ savingPermissions ? 'Saving...' : 'Save Permission Matrix' }}
+          </button>
 
-        <button
-          type="button"
-          class="danger"
-          (click)="clearSelectedModulePermissions()"
-          [disabled]="savingPermissions || !selectedRoleEditable"
-        >
-          Clear Module Access
-        </button>
-      </div>
+          <button
+            type="button"
+            class="danger"
+            (click)="clearSelectedModulePermissions()"
+            [disabled]="savingPermissions || !selectedRoleEditable"
+          >
+            Clear Module Access
+          </button>
+        </div>
+      </ng-container>
     </article>
 
     <article class="card panel">
       <div class="panel-head">
-        <h3>Existing Permissions</h3>
+        <h3 *ngIf="selectedRole">Users with {{ moduleRoleLabel(selectedRole.name) }}</h3>
+        <h3 *ngIf="!selectedRole">Role assignment</h3>
+        <span class="badge" *ngIf="selectedRole">{{ usersWithSelectedRole.length }} users</span>
+      </div>
+
+      <ng-container *ngIf="selectedRole; else pickRoleForUsersTemplate">
+        <p class="help-text">
+          These users were given the <strong>{{ moduleRoleLabel(selectedRole.name) }}</strong> module on
+          Users &amp; Permissions. They all inherit the permissions you set in the matrix for this role.
+        </p>
+
+        <div class="user-list" *ngIf="usersWithSelectedRole.length; else noUsersForRoleTemplate">
+          <div class="user-row" *ngFor="let user of usersWithSelectedRole">
+            <div class="user-name">{{ user.firstName }} {{ user.lastName }}</div>
+            <div class="user-email">{{ user.email }}</div>
+            <button type="button" class="secondary" (click)="goToUserAssignment(user.id)">
+              Edit user access
+            </button>
+          </div>
+        </div>
+
+        <button type="button" class="primary save-btn" (click)="goToUserAssignment()">
+          Assign this role to a user
+        </button>
+      </ng-container>
+    </article>
+
+    <article class="card panel reference-panel">
+      <div class="panel-head">
+        <h3>Permission reference</h3>
         <span class="badge">{{ permissions.length }} items</span>
       </div>
 
@@ -203,45 +263,62 @@
 
 <section class="modal-backdrop" *ngIf="accessModalOpen">
   <article class="modal-card">
-    <div class="panel-head">
+    <div class="panel-head modal-head">
       <h3>Select Modules Access</h3>
-      <button type="button" class="secondary" (click)="closeAccessModal()">Close</button>
+      <div class="modal-head-actions">
+        <button type="button" class="secondary" (click)="closeAccessModal()">Close</button>
+        <button
+          type="button"
+          class="primary save-btn"
+          (click)="saveUserAccess()"
+          [disabled]="savingUserAccess || !selectedUserId"
+        >
+          {{ savingUserAccess ? 'Saving...' : 'Save User Access' }}
+        </button>
+      </div>
     </div>
 
-    <p class="help-text" *ngIf="selectedUser">
-      User: {{ selectedUser.firstName }} {{ selectedUser.lastName }} ({{ selectedUser.email }})
-    </p>
+    <div class="modal-body">
+      <p class="help-text" *ngIf="selectedUser">
+        User: {{ selectedUser.firstName }} {{ selectedUser.lastName }} ({{ selectedUser.email }})
+      </p>
 
-    <div class="module-list">
-      <section class="module-block">
-        <h4>Enabled module access roles</h4>
-        <label class="permission-row" *ngFor="let role of userSelectableModules">
-          <input
-            type="checkbox"
-            [checked]="selectedUserRoleIds.has(role.id)"
-            (change)="toggleUserRole(role.id, $any($event.target).checked)"
-          />
-          <span>{{ moduleRoleLabel(role.name) }}</span>
-        </label>
-            <p class="empty" *ngIf="!userSelectableModules.length && !bootstrappingModules">
-              No module roles found for this tenant. Click Generate Default Modules below.
-            </p>
-            <p class="empty" *ngIf="bootstrappingModules">Creating module roles for your tenant...</p>
-            <button
-              type="button"
-              class="secondary"
-              *ngIf="!userSelectableModules.length"
-              (click)="generateDefaultModules()"
-              [disabled]="bootstrappingModules"
-            >
-              {{ bootstrappingModules ? 'Generating...' : 'Generate Default Modules' }}
-            </button>
-      </section>
+      <div class="module-list">
+        <section class="module-block">
+          <h4>Enabled module access roles</h4>
+          <label class="permission-row" *ngFor="let role of userSelectableModules">
+            <input
+              type="checkbox"
+              [checked]="selectedUserRoleIds.has(role.id)"
+              (change)="toggleUserRole(role.id, $any($event.target).checked)"
+            />
+            <span>{{ moduleRoleLabel(role.name) }}</span>
+          </label>
+          <p class="empty" *ngIf="!userSelectableModules.length && !bootstrappingModules">
+            No module roles found for this tenant. Click Generate Default Modules below.
+          </p>
+          <p class="empty" *ngIf="bootstrappingModules">Creating module roles for your tenant...</p>
+          <button
+            type="button"
+            class="secondary"
+            *ngIf="!userSelectableModules.length"
+            (click)="generateDefaultModules()"
+            [disabled]="bootstrappingModules"
+          >
+            {{ bootstrappingModules ? 'Generating...' : 'Generate Default Modules' }}
+          </button>
+        </section>
+      </div>
     </div>
 
     <div class="modal-actions">
       <button type="button" class="secondary" (click)="closeAccessModal()">Cancel</button>
-      <button type="button" class="primary" (click)="saveUserAccess()" [disabled]="savingUserAccess">
+      <button
+        type="button"
+        class="primary save-btn"
+        (click)="saveUserAccess()"
+        [disabled]="savingUserAccess || !selectedUserId"
+      >
         {{ savingUserAccess ? 'Saving...' : 'Save User Access' }}
       </button>
     </div>
@@ -264,4 +341,12 @@
 
 <ng-template #noUsersTemplate>
   <p class="empty">No users found for this tenant.</p>
+</ng-template>
+
+<ng-template #pickRoleForUsersTemplate>
+  <p class="empty">Select a role on the left to see which users have it.</p>
+</ng-template>
+
+<ng-template #noUsersForRoleTemplate>
+  <p class="empty">No users have this role yet.</p>
 </ng-template>

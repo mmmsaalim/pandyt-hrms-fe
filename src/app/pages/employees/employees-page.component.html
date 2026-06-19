@@ -78,6 +78,13 @@
           <option value="COMPANY_ADMIN" *ngIf="isCompanyAdmin">COMPANY_ADMIN</option>
         </select>
       </label>
+      <label *ngIf="form.role === 'EMPLOYEE'">
+        Reporting manager (team lead)
+        <select [(ngModel)]="form.managerId" name="managerId">
+          <option [ngValue]="0">— None —</option>
+          <option *ngFor="let lead of teamLeadOptions" [ngValue]="lead.id">{{ lead.label }}</option>
+        </select>
+      </label>
 
       <ng-container *ngFor="let field of customFieldDefs">
         <label *ngIf="field.fieldType === 'select'">
@@ -178,6 +185,13 @@
     <label>
       Designation
       <input [(ngModel)]="editForm.designation" name="editDesignation" type="text" />
+    </label>
+    <label>
+      Reporting manager (team lead)
+      <select [(ngModel)]="editForm.managerId" name="editManagerId">
+        <option [ngValue]="0">— None —</option>
+        <option *ngFor="let lead of teamLeadOptions" [ngValue]="lead.id">{{ lead.label }}</option>
+      </select>
     </label>
     <label>
       Employment status

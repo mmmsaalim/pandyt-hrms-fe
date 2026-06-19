@@ -7,7 +7,6 @@ import {
   PlatformPlanDefinition,
   TenantConfigurationService,
 } from '../../core/services/tenant-configuration.service';
-import { SUBSCRIPTION_PLANS } from '../../core/constants/subscription-plans';
 
 @Component({
   selector: 'app-platform-catalog-page',
@@ -19,11 +18,7 @@ import { SUBSCRIPTION_PLANS } from '../../core/constants/subscription-plans';
 export class PlatformCatalogPageComponent implements OnInit {
   activeTab: 'modules' | 'billing' = 'modules';
   modules: PlatformModuleDefinition[] = [];
-  plans: PlatformPlanDefinition[] = SUBSCRIPTION_PLANS.map((plan) => ({
-    ...plan,
-    priceLkr: plan.key === 'FREEMIUM' ? 0 : plan.key === 'STARTER' ? 4000 : plan.key === 'GROWTH' ? 12000 : null,
-    defaultModules: [],
-  }));
+  planCatalog: PlatformPlanDefinition[] = [];
   billingForm: PlatformBillingConfig = {
     taxRate: 0.18,
     overageSeatPriceLkr: 500,
@@ -31,17 +26,22 @@ export class PlatformCatalogPageComponent implements OnInit {
   };
 
   loading = false;
-  savingModule = false;
   savingField = false;
   savingBilling = false;
+  savingPlans = false;
   errorMessage = '';
   successMessage = '';
   selectedModuleKey = '';
 
-  moduleForm = { key: '', label: '', description: '' };
   fieldForm = { fieldKey: '', label: '', fieldType: 'text' };
-
-  readonly planLabels = SUBSCRIPTION_PLANS;
+  newPlanForm = {
+    key: '',
+    label: '',
+    seats: 50,
+    priceLkr: 0,
+    description: '',
+    defaultModules: [] as string[],
+  };
 
   constructor(private readonly tenantConfigurationService: TenantConfigurationService) {}
 
@@ -57,6 +57,8 @@ export class PlatformCatalogPageComponent implements OnInit {
 
   loadAll(): void {
     this.loading = true;
+    this.errorMessage = '';
+
     this.tenantConfigurationService.listPlatformModules().subscribe({
       next: (rows) => {
         this.modules = rows;
@@ -71,64 +73,126 @@ export class PlatformCatalogPageComponent implements OnInit {
       },
     });
 
-    this.tenantConfigurationService.getPlatformBilling().subscribe({
-      next: (billing) => {
-        this.billingForm = billing as PlatformBillingConfig;
-        for (const plan of this.planLabels) {
-          if (!this.billingForm.plans[plan.key]) {
-            this.billingForm.plans[plan.key] = {
-              monthlyPriceLkr:
-                plan.key === 'FREEMIUM' ? 0 : plan.key === 'STARTER' ? 4000 : plan.key === 'GROWTH' ? 12000 : null,
-              seats: plan.seats,
-            };
-          }
-        }
-      },
-    });
-
-    this.tenantConfigurationService.listPlatformPlans().subscribe({
+    this.tenantConfigurationService.loadPlatformPlans().subscribe({
       next: (rows) => {
-        if (rows.length) {
-          this.plans = rows;
-        }
+        this.planCatalog = rows.map((plan) => ({
+          ...plan,
+          defaultModules: plan.defaultModules ?? [],
+        }));
+        this.tenantConfigurationService.getPlatformBilling().subscribe({
+          next: (billing) => {
+            this.billingForm = billing as PlatformBillingConfig;
+            for (const plan of this.planCatalog) {
+              if (!this.billingForm.plans[plan.key]) {
+                this.billingForm.plans[plan.key] = {
+                  monthlyPriceLkr: plan.priceLkr,
+                  seats: plan.seats,
+                };
+              }
+            }
+          },
+        });
       },
     });
   }
 
-  planRow(key: string) {
-    return this.billingForm.plans[key] ?? { monthlyPriceLkr: 0, seats: null };
+  isModuleSelected(plan: PlatformPlanDefinition, moduleKey: string): boolean {
+    return (plan.defaultModules ?? []).includes(moduleKey);
   }
 
-  createModule(): void {
-    if (!this.moduleForm.key.trim() || !this.moduleForm.label.trim()) {
-      this.errorMessage = 'Module key and label are required.';
+  togglePlanModule(plan: PlatformPlanDefinition, moduleKey: string, checked: boolean): void {
+    const current = new Set(plan.defaultModules ?? []);
+    if (checked) {
+      current.add(moduleKey);
+    } else {
+      current.delete(moduleKey);
+    }
+    plan.defaultModules = Array.from(current);
+  }
+
+  toggleNewPlanModule(moduleKey: string, checked: boolean): void {
+    const current = new Set(this.newPlanForm.defaultModules);
+    if (checked) {
+      current.add(moduleKey);
+    } else {
+      current.delete(moduleKey);
+    }
+    this.newPlanForm.defaultModules = Array.from(current);
+  }
+
+  addPlan(): void {
+    const key = this.newPlanForm.key.trim().toUpperCase();
+    const label = this.newPlanForm.label.trim();
+
+    if (!key || !label) {
+      this.errorMessage = 'Plan key and label are required.';
       return;
     }
 
-    this.savingModule = true;
+    if (this.planCatalog.some((plan) => plan.key === key)) {
+      this.errorMessage = `Plan "${key}" already exists.`;
+      return;
+    }
+
+    this.planCatalog = [
+      ...this.planCatalog,
+      {
+        key,
+        label,
+        seats: this.newPlanForm.seats,
+        priceLkr: this.newPlanForm.priceLkr,
+        description: this.newPlanForm.description.trim(),
+        defaultModules: [...this.newPlanForm.defaultModules],
+        sortOrder: this.planCatalog.length + 1,
+        isActive: true,
+      },
+    ];
+
+    this.billingForm.plans[key] = {
+      monthlyPriceLkr: this.newPlanForm.priceLkr,
+      seats: this.newPlanForm.seats,
+    };
+
+    this.newPlanForm = {
+      key: '',
+      label: '',
+      seats: 50,
+      priceLkr: 0,
+      description: '',
+      defaultModules: [],
+    };
+    this.successMessage = 'Plan added locally. Click "Save plan catalog" to persist to the database.';
+  }
+
+  savePlanCatalog(): void {
+    this.savingPlans = true;
     this.errorMessage = '';
     this.successMessage = '';
 
-    this.tenantConfigurationService
-      .createPlatformModule({
-        key: this.moduleForm.key.trim(),
-        label: this.moduleForm.label.trim(),
-        description: this.moduleForm.description.trim() || undefined,
-      })
-      .subscribe({
-        next: () => {
-          this.moduleForm = { key: '', label: '', description: '' };
-          this.successMessage = 'Module added to platform catalog.';
-          this.loadAll();
-        },
-        error: (err) => {
-          this.errorMessage = err?.error?.message || 'Failed to create module.';
-          this.savingModule = false;
-        },
-        complete: () => {
-          this.savingModule = false;
-        },
-      });
+    const payload = this.planCatalog.map((plan) => ({
+      ...plan,
+      priceLkr: this.billingForm.plans[plan.key]?.monthlyPriceLkr ?? plan.priceLkr,
+      seats: plan.seats ?? this.billingForm.plans[plan.key]?.seats ?? null,
+    }));
+
+    this.tenantConfigurationService.savePlatformPlans(payload).subscribe({
+      next: () => {
+        this.tenantConfigurationService.loadPlatformPlans().subscribe({
+          next: (rows) => {
+            this.planCatalog = rows.map((plan) => ({
+              ...plan,
+              defaultModules: plan.defaultModules ?? [],
+            }));
+          },
+        });
+        this.successMessage = 'Subscription plan catalog saved to platform settings.';
+        this.savingPlans = false;
+      },
+      error: (err) => {
+        this.errorMessage = err?.error?.message || 'Failed to save subscription plan catalog.';
+        this.savingPlans = false;
+      },
+    });
   }
 
   createField(): void {

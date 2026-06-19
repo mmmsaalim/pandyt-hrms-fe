@@ -24,8 +24,16 @@ export class LeaveService {
     return this.http.post(`${environment.apiUrl}/leave`, dto);
   }
 
-  updateStatus(id: string, status: LeaveStatus) {
-    return this.http.patch(`${environment.apiUrl}/leave/${id}`, { status });
+  updateStatus(
+    id: string,
+    status: LeaveStatus,
+    options?: { rejectionReason?: string; approvalComment?: string },
+  ) {
+    return this.http.patch(`${environment.apiUrl}/leave/${id}`, {
+      status,
+      rejectionReason: options?.rejectionReason,
+      approvalComment: options?.approvalComment,
+    });
   }
 
   getPolicies() {
