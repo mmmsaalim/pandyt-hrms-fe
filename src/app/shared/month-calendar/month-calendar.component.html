@@ -1,0 +1,43 @@
+<section class="month-calendar">
+  <header class="calendar-head">
+    <button type="button" class="nav-btn" (click)="prevMonth()">‹</button>
+    <div class="month-label">
+      <strong>{{ monthLabel }}</strong>
+      <button type="button" class="today-btn" (click)="goToday()">Today</button>
+    </div>
+    <button type="button" class="nav-btn" (click)="nextMonth()">›</button>
+  </header>
+
+  <p class="calendar-hint" *ngIf="enableRangeSelection">
+    Click a start date, then an end date. Past dates and today are not selectable for leave requests.
+  </p>
+
+  <div class="weekday-row">
+    <span *ngFor="let label of weekdayLabels">{{ label }}</span>
+  </div>
+
+  <div class="calendar-grid">
+    <button
+      type="button"
+      class="day-cell"
+      *ngFor="let cell of calendarCells"
+      [class.empty]="!cell.date"
+      [class.selected]="isSelected(cell.date)"
+      [class.in-range]="isInRange(cell.date)"
+      [class.today]="isToday(cell.date)"
+      [class.disabled]="isDisabled(cell.date)"
+      [disabled]="!cell.date || isDisabled(cell.date)"
+      (click)="selectDate(cell.date)"
+    >
+      <span class="day-number" *ngIf="cell.day">{{ cell.day }}</span>
+      <span class="marker-row" *ngIf="cell.markers.length">
+        <span
+          class="marker-dot"
+          *ngFor="let marker of cell.markers | slice:0:3"
+          [ngClass]="marker.tone || 'default'"
+          [title]="marker.label || ''"
+        ></span>
+      </span>
+    </button>
+  </div>
+</section>

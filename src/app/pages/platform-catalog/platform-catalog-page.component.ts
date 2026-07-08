@@ -7,33 +7,32 @@ import {
   PlatformPlanDefinition,
   TenantConfigurationService,
 } from '../../core/services/tenant-configuration.service';
+import { moduleIcon } from '../../core/constants/module-icons';
+import { RouterLink } from '@angular/router';
 
 @Component({
   selector: 'app-platform-catalog-page',
   standalone: true,
-  imports: [NgFor, NgIf, FormsModule],
+  imports: [NgFor, NgIf, FormsModule, RouterLink],
   templateUrl: './platform-catalog-page.component.html',
   styleUrl: './platform-catalog-page.component.scss',
 })
 export class PlatformCatalogPageComponent implements OnInit {
-  activeTab: 'modules' | 'billing' = 'modules';
   modules: PlatformModuleDefinition[] = [];
   planCatalog: PlatformPlanDefinition[] = [];
   billingForm: PlatformBillingConfig = {
     taxRate: 0.18,
-    overageSeatPriceLkr: 500,
+    overageSeatPriceLkr: 50,
     plans: {},
   };
 
   loading = false;
-  savingField = false;
   savingBilling = false;
   savingPlans = false;
   errorMessage = '';
   successMessage = '';
   selectedModuleKey = '';
 
-  fieldForm = { fieldKey: '', label: '', fieldType: 'text' };
   newPlanForm = {
     key: '',
     label: '',
@@ -43,16 +42,24 @@ export class PlatformCatalogPageComponent implements OnInit {
     defaultModules: [] as string[],
   };
 
+  readonly moduleIcon = moduleIcon;
+
   constructor(private readonly tenantConfigurationService: TenantConfigurationService) {}
+
+  /** Example overage calculation shown in global billing settings. */
+  billingPreview(): string {
+    const seatPrice = this.billingForm.overageSeatPriceLkr ?? 0;
+    const taxRate = this.billingForm.taxRate ?? 0;
+    const starter = this.billingForm.plans['STARTER'];
+    const base = starter?.monthlyPriceLkr ?? 4000;
+    const overageSeats = 5;
+    const subtotal = base + overageSeats * seatPrice;
+    const total = subtotal * (1 + taxRate);
+    return `Starter (55 employees): LKR ${base.toLocaleString()} plan + ${overageSeats} × LKR ${seatPrice.toLocaleString()} overage + VAT ≈ LKR ${Math.round(total).toLocaleString()}/mo`;
+  }
 
   ngOnInit(): void {
     this.loadAll();
-  }
-
-  setTab(tab: 'modules' | 'billing'): void {
-    this.activeTab = tab;
-    this.errorMessage = '';
-    this.successMessage = '';
   }
 
   loadAll(): void {
@@ -175,6 +182,13 @@ export class PlatformCatalogPageComponent implements OnInit {
       seats: plan.seats ?? this.billingForm.plans[plan.key]?.seats ?? null,
     }));
 
+    for (const plan of payload) {
+      if (this.billingForm.plans[plan.key]) {
+        this.billingForm.plans[plan.key].monthlyPriceLkr = plan.priceLkr;
+        this.billingForm.plans[plan.key].seats = plan.seats;
+      }
+    }
+
     this.tenantConfigurationService.savePlatformPlans(payload).subscribe({
       next: () => {
         this.tenantConfigurationService.loadPlatformPlans().subscribe({
@@ -185,7 +199,13 @@ export class PlatformCatalogPageComponent implements OnInit {
             }));
           },
         });
-        this.successMessage = 'Subscription plan catalog saved to platform settings.';
+        this.tenantConfigurationService.getPlatformBilling().subscribe({
+          next: (billing) => {
+            this.billingForm = billing as PlatformBillingConfig;
+          },
+        });
+        this.successMessage =
+          'Subscription plan catalog saved. Prices and seat limits are synced to Company Payments billing.';
         this.savingPlans = false;
       },
       error: (err) => {
@@ -193,38 +213,6 @@ export class PlatformCatalogPageComponent implements OnInit {
         this.savingPlans = false;
       },
     });
-  }
-
-  createField(): void {
-    if (!this.selectedModuleKey || !this.fieldForm.fieldKey.trim() || !this.fieldForm.label.trim()) {
-      this.errorMessage = 'Select a module and provide field key and label.';
-      return;
-    }
-
-    this.savingField = true;
-    this.errorMessage = '';
-    this.successMessage = '';
-
-    this.tenantConfigurationService
-      .createPlatformField(this.selectedModuleKey, {
-        fieldKey: this.fieldForm.fieldKey.trim(),
-        label: this.fieldForm.label.trim(),
-        fieldType: this.fieldForm.fieldType,
-      })
-      .subscribe({
-        next: () => {
-          this.fieldForm = { fieldKey: '', label: '', fieldType: 'text' };
-          this.successMessage = 'Field added to platform catalog.';
-          this.loadAll();
-        },
-        error: (err) => {
-          this.errorMessage = err?.error?.message || 'Failed to create field.';
-          this.savingField = false;
-        },
-        complete: () => {
-          this.savingField = false;
-        },
-      });
   }
 
   saveBilling(): void {

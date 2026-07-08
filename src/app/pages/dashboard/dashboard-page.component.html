@@ -6,7 +6,7 @@
         <span class="tenant-label">Signed in to</span>
         <strong>{{ tenantName }}</strong>
       </div>
-      <p *ngIf="isSuperAdmin">Platform overview: All tenants and operations across the system.</p>
+      <p *ngIf="isSuperAdmin">Platform billing overview: tenants, users, subscription plans, and monthly charge readiness.</p>
       <p *ngIf="isCompanyAdmin">Company operations: Manage your employees, leave, attendance, and payroll.</p>
       <p *ngIf="isEmployeeView">Here is your personal dashboard for attendance, leave, and payslips.</p>
     </div>
@@ -27,25 +27,42 @@
     </article>
   </section>
 
+  <section class="panel people-tools-panel" *ngIf="showPeopleTools">
+    <div class="panel-head">
+      <div>
+        <h3>People tools</h3>
+        <p>Quick access to HR letters and team feedback — included on every plan.</p>
+      </div>
+    </div>
+    <div class="people-tools-actions">
+      <a class="people-tool-btn letters" routerLink="/letters">
+        <span class="tool-icon">✉️</span>
+        <span class="tool-copy">
+          <strong>Write HR Letter</strong>
+          <small>Generate employment letters and notices</small>
+        </span>
+      </a>
+      <a class="people-tool-btn feedback" routerLink="/feedback">
+        <span class="tool-icon">💬</span>
+        <span class="tool-copy">
+          <strong>Team Feedback</strong>
+          <small>Record feedback for HR review and future AI scoring</small>
+        </span>
+      </a>
+    </div>
+  </section>
+
   <!-- Super Admin Platform Dashboard -->
   <section class="middle-grid" *ngIf="isSuperAdmin">
     <article class="panel growth-panel">
       <div class="panel-head">
         <div>
-          <h3>Platform growth</h3>
-          <p>Net users across all tenants (last 7 months)</p>
+          <h3>Platform user growth</h3>
+          <p>New active users across all tenants (last 7 months)</p>
         </div>
-        <span class="chip">+34.2%</span>
       </div>
-
       <div class="line-wrap">
         <svg viewBox="0 0 100 50" preserveAspectRatio="none" aria-hidden="true">
-          <defs>
-            <linearGradient id="growthFill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stop-color="#f47421" stop-opacity="0.35"></stop>
-              <stop offset="100%" stop-color="#f47421" stop-opacity="0.02"></stop>
-            </linearGradient>
-          </defs>
           <polyline class="line" [attr.points]="chartPoints"></polyline>
           <polygon class="area" [attr.points]="chartPoints + ' 100,50 0,50'"></polygon>
         </svg>
@@ -58,15 +75,13 @@
     <article class="panel split-panel">
       <div class="panel-head">
         <div>
-          <h3>Tenant breakdown</h3>
-          <p>By subscription plan</p>
+          <h3>Tenants by plan</h3>
+          <p>Subscription mix for billing</p>
         </div>
       </div>
-
       <div class="donut" [style.--donut-gradient]="'conic-gradient(' + donutGradient + ')'">
         <span class="hole"></span>
       </div>
-
       <div class="legend">
         <div class="legend-item" *ngFor="let item of split">
           <span class="dot" [style.background]="item.color"></span>
@@ -81,28 +96,52 @@
     <article class="panel tenant-list-panel">
       <div class="panel-head">
         <div>
-          <h3>All Tenants</h3>
-          <p>Manage all registered tenants</p>
+          <h3>Pending leads</h3>
+          <p>Latest workspace access requests (top 5)</p>
         </div>
-        <a routerLink="/tenants">View all</a>
+        <a routerLink="/leads">View all leads</a>
       </div>
-
       <div class="tenant-list">
         <div class="tenant-list-row header">
-          <span>Company Name</span>
-          <span>Code</span>
-          <span>Plan</span>
-          <span>Status</span>
-          <span>Lead Status</span>
-          <span></span>
+          <span>Company</span>
+          <span>Requested plan</span>
+          <span>Team size</span>
+          <span>Submitted</span>
         </div>
-        <div class="tenant-list-row" *ngFor="let tenant of tenantsList">
-          <span>{{ tenant.name }}</span>
-          <span>{{ tenant.companyCode }}</span>
-          <span>{{ tenant.planLabel || tenant.plan }}</span>
-          <span>{{ tenant.status }}</span>
-          <span>{{ tenant.leadStatus }}</span>
-          <button type="button" class="action-btn" [routerLink]="['/tenants']" [queryParams]="{ id: tenant.id }">View</button>
+        <div class="tenant-list-row" *ngFor="let lead of pendingLeads">
+          <span>{{ lead.name }}</span>
+          <span>{{ lead.plan }}</span>
+          <span>{{ lead.employeeCount ?? '—' }}</span>
+          <span>{{ lead.createdAt | date: 'mediumDate' }}</span>
+        </div>
+        <p class="panel-copy" *ngIf="!pendingLeads.length">No pending leads right now.</p>
+      </div>
+    </article>
+
+    <article class="panel tenant-list-panel full-width-panel">
+      <div class="panel-head">
+        <div>
+          <h3>Monthly billing report</h3>
+          <p>All tenants — subscription plan, active users, and employee count for charging</p>
+        </div>
+        <a routerLink="/company-payments">Open payments</a>
+      </div>
+      <div class="tenant-list billing-report">
+        <div class="tenant-list-row header">
+          <span>Company</span>
+          <span>Plan</span>
+          <span>Active users</span>
+          <span>Employees</span>
+          <span>Included seats</span>
+          <span>Status</span>
+        </div>
+        <div class="tenant-list-row" *ngFor="let row of billingReport">
+          <span>{{ row.name }}</span>
+          <span>{{ row.planLabel || row.plan }}</span>
+          <span>{{ row.activeUsers }}</span>
+          <span>{{ row.activeEmployees }}</span>
+          <span>{{ row.includedSeats }}</span>
+          <span>{{ row.status }}</span>
         </div>
       </div>
     </article>
@@ -179,17 +218,26 @@
     <article class="panel attendance-panel">
       <div class="panel-head">
         <div>
-          <h3>Payroll activity</h3>
-          <p>Processed payroll runs by month</p>
+          <h3>Leave trends</h3>
+          <p>Approved leave requests per month (last 7 months)</p>
         </div>
       </div>
-
-      <div class="bars">
-        <div class="bar-col" *ngFor="let value of payrollSeries; let i = index">
-          <span class="bar payroll-bar" [style.height.px]="attendanceHeight(value * 28 + 24)"></span>
-          <label>{{ payrollLabels[i] }}</label>
+      <div class="line-wrap">
+        <svg viewBox="0 0 100 50" preserveAspectRatio="none" aria-hidden="true">
+          <defs>
+            <linearGradient id="leaveFill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#10b7c7" stop-opacity="0.35"></stop>
+              <stop offset="100%" stop-color="#10b7c7" stop-opacity="0.02"></stop>
+            </linearGradient>
+          </defs>
+          <polyline class="line leave-line" [attr.points]="buildLeaveChartPoints()"></polyline>
+          <polygon class="area leave-area" [attr.points]="buildLeaveChartPoints() + ' 100,50 0,50'"></polygon>
+        </svg>
+        <div class="months">
+          <span *ngFor="let month of months">{{ month }}</span>
         </div>
       </div>
+      <div class="panel-copy" *ngIf="hasNoLeaveTrendData()">No approved leave data yet.</div>
     </article>
 
     <article class="panel approvals-panel">
@@ -219,7 +267,83 @@
     </article>
   </section>
 
+  <!-- Company Admin: Recruitment Funnel + Recent Hires -->
+  <section class="bottom-grid" *ngIf="isCompanyAdmin">
+    <article class="panel funnel-panel">
+      <div class="panel-head">
+        <div>
+          <h3>Recruitment funnel</h3>
+          <p>Candidates by pipeline stage</p>
+        </div>
+        <a routerLink="/recruitment">View pipeline</a>
+      </div>
+      <div class="funnel-bars" *ngIf="recruitmentFunnel.length">
+        <div class="funnel-row" *ngFor="let item of recruitmentFunnel">
+          <span class="funnel-label">{{ item.stage | titlecase }}</span>
+          <div class="funnel-track">
+            <div class="funnel-fill" [style.width.%]="funnelBarWidth(item.count)"></div>
+          </div>
+          <span class="funnel-count">{{ item.count }}</span>
+        </div>
+      </div>
+      <p class="panel-copy" *ngIf="hasNoRecruitmentFunnelData()">No candidates in the pipeline yet.</p>
+    </article>
+
+    <article class="panel tenant-list-panel">
+      <div class="panel-head">
+        <div>
+          <h3>Recent hires</h3>
+          <p>Latest employees joined</p>
+        </div>
+        <a routerLink="/employees">All employees</a>
+      </div>
+      <div class="tenant-list">
+        <div class="tenant-list-row header">
+          <span>Name</span>
+          <span>Designation</span>
+          <span>Department</span>
+          <span>Joined</span>
+        </div>
+        <div class="tenant-list-row" *ngFor="let hire of recentHires">
+          <span>{{ (hire.user?.firstName || '') + ' ' + (hire.user?.lastName || '') | titlecase }}</span>
+          <span>{{ hire.designation }}</span>
+          <span>{{ hire.department }}</span>
+          <span>{{ hire.joinedDate | date: 'mediumDate' }}</span>
+        </div>
+        <p class="panel-copy" *ngIf="!recentHires.length">No recent hires found.</p>
+      </div>
+    </article>
+  </section>
+
   <section class="employee-grid" *ngIf="isEmployeeView && employeeData">
+    <!-- Quick actions -->
+    <article class="panel quick-actions-panel">
+      <div class="panel-head">
+        <div>
+          <h3>Quick actions</h3>
+          <p>Common tasks for you</p>
+        </div>
+      </div>
+      <div class="quick-actions-grid">
+        <a class="quick-action-btn" routerLink="/leave" [queryParams]="{new: '1'}">
+          <span class="qa-icon">🌴</span>
+          <span>Request Leave</span>
+        </a>
+        <a class="quick-action-btn" routerLink="/payslips">
+          <span class="qa-icon">💳</span>
+          <span>View Payslip</span>
+        </a>
+        <a class="quick-action-btn" routerLink="/attendance">
+          <span class="qa-icon">🕐</span>
+          <span>Clock In/Out</span>
+        </a>
+        <a class="quick-action-btn" routerLink="/profile">
+          <span class="qa-icon">👤</span>
+          <span>My Profile</span>
+        </a>
+      </div>
+    </article>
+
     <article class="panel profile-panel">
       <div class="panel-head">
         <div>
@@ -255,6 +379,62 @@
 
     <app-leave-balance-display></app-leave-balance-display>
 
+    <!-- Team birthdays -->
+    <article class="panel employee-list-panel">
+      <div class="panel-head">
+        <div>
+          <h3>Team birthdays</h3>
+          <p>Colleagues with birthdays in the next 30 days</p>
+        </div>
+      </div>
+      <div class="list-row" *ngFor="let b of employeeData.teamBirthdays">
+        <span class="qa-icon">🎂</span>
+        <div>
+          <strong>{{ b.name }}</strong>
+          <small>{{ b.date | date: 'MMM d' }}</small>
+        </div>
+        <span class="badge" *ngIf="b.daysUntil === 0">Today!</span>
+        <span class="badge" *ngIf="b.daysUntil === 1">Tomorrow</span>
+        <span *ngIf="b.daysUntil > 1">in {{ b.daysUntil }} days</span>
+      </div>
+      <p class="panel-copy" *ngIf="!employeeData.teamBirthdays?.length">No team birthdays in the next 30 days.</p>
+    </article>
+
+    <!-- Upcoming public holidays -->
+    <article class="panel employee-list-panel">
+      <div class="panel-head">
+        <div>
+          <h3>Upcoming public holidays</h3>
+          <p>Sri Lanka — next 5 holidays</p>
+        </div>
+      </div>
+      <div class="list-row" *ngFor="let h of employeeData.upcomingHolidays">
+        <span class="qa-icon">🇱🇰</span>
+        <div>
+          <strong>{{ h.name }}</strong>
+          <small>{{ h.date | date: 'MMM d, y' }}</small>
+        </div>
+        <span class="badge" *ngIf="h.daysUntil === 0">Today</span>
+        <span *ngIf="h.daysUntil > 0">in {{ h.daysUntil }} days</span>
+      </div>
+    </article>
+
+    <article class="panel employee-list-panel">
+      <div class="panel-head">
+        <div>
+          <h3>Pending approvals</h3>
+          <p>Your leave requests awaiting action</p>
+        </div>
+        <a routerLink="/leave">All requests</a>
+      </div>
+      <div class="list-row" *ngFor="let item of employeeData.leaveRequests">
+        <span>{{ item.type }} ({{ item.days }}d)</span>
+        <strong>{{ item.status }}</strong>
+        <small>{{ item.startDate | date: 'MMM d' }} – {{ item.endDate | date: 'MMM d' }}</small>
+      </div>
+      <p class="panel-copy" *ngIf="!employeeData.leaveRequests?.length">No recent leave requests.</p>
+    </article>
+
     <article class="panel employee-list-panel">
       <div class="panel-head">
         <div>
@@ -266,20 +446,6 @@
         <span>{{ item.date | date: 'mediumDate' }}</span>
         <strong>{{ item.status }}</strong>
         <small>{{ item.hours }}h</small>
-      </div>
-    </article>
-
-    <article class="panel employee-list-panel">
-      <div class="panel-head">
-        <div>
-          <h3>Recent leave requests</h3>
-          <p>Latest 5 requests</p>
-        </div>
-      </div>
-      <div class="list-row" *ngFor="let item of employeeData.leaveRequests">
-        <span>{{ item.type }} ({{ item.days }}d)</span>
-        <strong>{{ item.status }}</strong>
-        <small>{{ item.startDate | date: 'MMM d' }} - {{ item.endDate | date: 'MMM d' }}</small>
       </div>
     </article>
 

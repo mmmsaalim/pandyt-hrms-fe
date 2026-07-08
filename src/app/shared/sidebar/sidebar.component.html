@@ -1,12 +1,12 @@
 <aside class="sidebar" [class.open]="open">
   <div class="brand">
-    <div class="brand-mark">P</div>
+    <div class="brand-mark">{{ companyInitial }}</div>
     <div class="brand-copy">
-      <strong>PANDYT</strong>
-      <span>HR cloud platform</span>
+      <strong>{{ companyName }}</strong>
+      <span>HR workspace</span>
     </div>
   </div>
-  <p class="brand-note">Client workspaces powered by Pandyt services.</p>
+  <p class="brand-note">Attendance, leave, payroll, and more — for your team.</p>
   <nav>
     <ng-container *ngFor="let item of navItems()">
       <!-- Flat nav item -->
@@ -16,7 +16,8 @@
         routerLinkActive="active"
         (click)="closed.emit()"
       >
-        {{ item.label }}
+        <span class="nav-icon" aria-hidden="true">{{ item.icon }}</span>
+        <span class="nav-label">{{ item.label }}</span>
       </a>
 
       <!-- Group with children -->
@@ -28,7 +29,8 @@
           (click)="toggleGroup(item.key)"
         >
           <span class="group-arrow">›</span>
-          {{ item.label }}
+          <span class="nav-icon" aria-hidden="true">{{ item.icon }}</span>
+          <span class="nav-label">{{ item.label }}</span>
         </button>
         <div *ngIf="isGroupExpanded(item.key)" class="group-items">
           <a
@@ -38,7 +40,8 @@
             class="group-item"
             (click)="closed.emit()"
           >
-            {{ child.label }}
+            <span class="nav-icon nav-icon--child" aria-hidden="true">{{ child.icon }}</span>
+            <span class="nav-label">{{ child.label }}</span>
           </a>
         </div>
       </div>

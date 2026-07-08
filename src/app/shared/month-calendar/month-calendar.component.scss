@@ -1,0 +1,124 @@
+.month-calendar {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.calendar-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.month-label {
+  display: grid;
+  justify-items: center;
+  gap: 0.25rem;
+}
+
+.nav-btn,
+.today-btn {
+  border: 1px solid var(--border);
+  background: #fff;
+  border-radius: 10px;
+  padding: 0.35rem 0.65rem;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.today-btn {
+  font-size: 0.75rem;
+  color: #9a3412;
+}
+
+.weekday-row,
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.35rem;
+}
+
+.weekday-row span {
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.day-cell {
+  min-height: 58px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #fff;
+  padding: 0.35rem;
+  display: grid;
+  align-content: start;
+  gap: 0.25rem;
+  cursor: pointer;
+}
+
+.day-cell.empty {
+  visibility: hidden;
+}
+
+.day-cell.today {
+  border-color: #f47421;
+}
+
+.day-cell.selected {
+  background: #fff7ed;
+  border-color: #f47421;
+  box-shadow: inset 0 0 0 1px #f47421;
+}
+
+.day-cell.in-range:not(.selected) {
+  background: #fffaf3;
+  border-color: #fed7aa;
+}
+
+.day-cell.disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+  background: #f8fafc;
+}
+
+.calendar-hint {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.day-number {
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.marker-row {
+  display: flex;
+  gap: 0.2rem;
+  flex-wrap: wrap;
+}
+
+.marker-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: #8b98b7;
+}
+
+.marker-dot.leave,
+.marker-dot.pending {
+  background: #f6a912;
+}
+
+.marker-dot.approved {
+  background: #55bf67;
+}
+
+.marker-dot.rejected {
+  background: #e048b2;
+}
+
+.marker-dot.attendance {
+  background: #10b7c7;
+}

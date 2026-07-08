@@ -60,16 +60,6 @@ export const SRI_LANKA_LEAVE_POLICIES: LeavePolicyPreset[] = [
     description: 'Maternity — 12 weeks.',
     genderScope: 'FEMALE',
   },
-  {
-    code: 'paternity',
-    name: 'Paternity',
-    days: 3,
-    carryForwardLimit: 0,
-    accrualRate: 0,
-    sortOrder: 6,
-    description: 'Paternity — 3 days.',
-    genderScope: 'MALE',
-  },
 ];
 
 export function cloneLeavePresets(): LeavePolicyPreset[] {

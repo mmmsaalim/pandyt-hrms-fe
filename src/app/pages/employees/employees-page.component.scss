@@ -81,6 +81,28 @@
 	gap: 0.65rem;
 }
 
+.full-width {
+	grid-column: 1 / -1;
+}
+
+.bank-details-panel {
+	margin-top: 0.25rem;
+	padding: 0.85rem;
+	border: 1px solid var(--border);
+	border-radius: 12px;
+	background: #fff;
+}
+
+.bank-details-panel h5 {
+	margin: 0 0 0.65rem;
+	color: var(--text);
+	font-family: var(--font-display);
+}
+
+.bank-grid {
+	margin-top: 0;
+}
+
 label {
 	display: grid;
 	gap: 0.25rem;
@@ -176,4 +198,21 @@ th {
 	margin: 0.5rem 0;
 	font-size: 0.85rem;
 	color: #6b7280;
+}
+
+@media (max-width: 900px) {
+	.table-head {
+		flex-direction: column;
+		align-items: flex-start;
+	}
+
+	.table-actions {
+		flex-wrap: wrap;
+		width: 100%;
+	}
+
+	.form-grid,
+	.dialog-grid {
+		grid-template-columns: 1fr;
+	}
 }

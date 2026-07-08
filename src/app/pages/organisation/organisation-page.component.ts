@@ -1,8 +1,9 @@
 import { Component, OnInit } from '@angular/core';
-import { NgClass, NgFor, NgIf } from '@angular/common';
+import { NgFor, NgIf } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { OrganisationService } from '../../core/services/organisation.service';
 import { AuthService } from '../../core/services/auth.service';
+import { EmployeesService } from '../../core/services/employees.service';
 import { ConfirmDialogComponent } from '../../shared/dialogs/confirm-dialog.component';
 import { EditDialogShellComponent } from '../../shared/dialogs/edit-dialog-shell.component';
 
@@ -11,7 +12,7 @@ type DeleteTarget = { type: 'location' | 'department' | 'team'; item: any };
 @Component({
   selector: 'app-organisation-page',
   standalone: true,
-  imports: [NgFor, NgIf, NgClass, FormsModule, ConfirmDialogComponent, EditDialogShellComponent],
+  imports: [NgFor, NgIf, FormsModule, ConfirmDialogComponent, EditDialogShellComponent],
   templateUrl: './organisation-page.component.html',
   styleUrl: './organisation-page.component.scss',
 })
@@ -20,6 +21,7 @@ export class OrganisationPageComponent implements OnInit {
   locations: any[] = [];
   departments: any[] = [];
   teams: any[] = [];
+  employeeOptions: Array<{ id: number; label: string }> = [];
 
   isCompanyAdmin = false;
   message = '';
@@ -31,7 +33,7 @@ export class OrganisationPageComponent implements OnInit {
   locationForm = { name: '', address: '' };
 
   showDepartmentForm = false;
-  departmentForm = { name: '', locationId: 0 };
+  departmentForm = { name: '', locationId: 0, managerId: 0 };
 
   showTeamForm = false;
   teamForm = { name: '', departmentId: 0 };
@@ -42,7 +44,7 @@ export class OrganisationPageComponent implements OnInit {
   editBusy = false;
 
   locationEditForm = { name: '', address: '' };
-  departmentEditForm = { name: '', locationId: 0 };
+  departmentEditForm = { name: '', locationId: 0, managerId: 0 };
   teamEditForm = { name: '', departmentId: 0 };
 
   deleteTarget: DeleteTarget | null = null;
@@ -51,6 +53,7 @@ export class OrganisationPageComponent implements OnInit {
   constructor(
     private readonly orgService: OrganisationService,
     private readonly auth: AuthService,
+    private readonly employeesService: EmployeesService,
   ) {}
 
   ngOnInit(): void {
@@ -63,6 +66,19 @@ export class OrganisationPageComponent implements OnInit {
     this.orgService.getLocations().subscribe((res: any) => (this.locations = res));
     this.orgService.getDepartments().subscribe((res: any) => (this.departments = res));
     this.orgService.getTeams().subscribe((res: any) => (this.teams = res));
+    this.employeesService.list().subscribe({
+      next: (res: any) => {
+        this.employeeOptions = (res?.data ?? res ?? []).map((emp: any) => ({
+          id: Number(emp.id),
+          label: `${emp.user?.firstName ?? ''} ${emp.user?.lastName ?? ''}`.trim() || emp.employeeCode || `#${emp.id}`,
+        }));
+      },
+    });
+  }
+
+  managerLabel(managerId: number | null | undefined): string {
+    if (!managerId) return '—';
+    return this.employeeOptions.find((e) => e.id === managerId)?.label ?? `#${managerId}`;
   }
 
   isBusy(id: number): boolean {
@@ -96,11 +112,12 @@ export class OrganisationPageComponent implements OnInit {
       .createDepartment({
         name: this.departmentForm.name.trim(),
         locationId: this.departmentForm.locationId || undefined,
+        managerId: this.departmentForm.managerId || null,
       })
       .subscribe({
         next: () => {
           this.showMsg('Department created.', 'success');
-          this.departmentForm = { name: '', locationId: 0 };
+          this.departmentForm = { name: '', locationId: 0, managerId: 0 };
           this.showDepartmentForm = false;
           this.loadAll();
         },
@@ -160,7 +177,11 @@ export class OrganisationPageComponent implements OnInit {
 
   openEditDepartment(item: any): void {
     this.editingDepartment = item;
-    this.departmentEditForm = { name: item.name ?? '', locationId: item.locationId ?? item.location?.id ?? 0 };
+    this.departmentEditForm = {
+      name: item.name ?? '',
+      locationId: item.locationId ?? item.location?.id ?? 0,
+      managerId: item.managerId ?? item.manager?.id ?? 0,
+    };
   }
 
   closeDepartmentEdit(): void {
@@ -175,6 +196,7 @@ export class OrganisationPageComponent implements OnInit {
       .updateDepartment(this.editingDepartment.id, {
         name: this.departmentEditForm.name.trim(),
         locationId: this.departmentEditForm.locationId || null,
+        managerId: this.departmentEditForm.managerId || null,
       })
       .subscribe({
         next: () => {

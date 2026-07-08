@@ -4,10 +4,10 @@
     <div class="table-actions">
       <span class="badge" *ngIf="seatLimit">{{ seatUsage }} / {{ seatLimit }} seats</span>
       <span class="badge">{{ employees.length }} records</span>
-      <button *ngIf="canInviteEmployees" type="button" class="add-btn outline" (click)="openManualCreateForm()" [disabled]="isAtSeatLimit()">
+      <button *ngIf="canInviteEmployees" type="button" class="btn-outline" (click)="openManualCreateForm()" [disabled]="isAtSeatLimit()">
         + Manual Entry
       </button>
-      <button *ngIf="canInviteEmployees" type="button" class="add-btn" (click)="openEmailCreateForm()" [disabled]="isAtSeatLimit()">
+      <button *ngIf="canInviteEmployees" type="button" class="btn-primary" (click)="openEmailCreateForm()" [disabled]="isAtSeatLimit()">
         + Email Invite
       </button>
     </div>
@@ -20,7 +20,7 @@
   <section class="create-panel" *ngIf="canInviteEmployees && showCreateForm">
     <div class="panel-head-inline">
       <h4>{{ form.onboardingMode === 'MANUAL_ONLY' ? 'Manual employee entry' : 'Invite employee by email' }}</h4>
-      <button type="button" class="btn-cancel" (click)="closeCreateForm()">Cancel</button>
+      <button type="button" class="btn-secondary" (click)="closeCreateForm()">Cancel</button>
     </div>
     <div class="form-grid">
       <label *ngIf="form.onboardingMode === 'EMAIL_INVITE'">
@@ -86,7 +86,7 @@
         </select>
       </label>
 
-      <ng-container *ngFor="let field of customFieldDefs">
+      <ng-container *ngFor="let field of profileCustomFields">
         <label *ngIf="field.fieldType === 'select'">
           {{ field.label }}<span *ngIf="field.required"> *</span>
           <select [(ngModel)]="form.customFields[field.fieldKey]" [name]="'create-custom-' + field.fieldKey">
@@ -102,19 +102,43 @@
             [type]="field.fieldType === 'number' ? 'number' : field.fieldType === 'date' ? 'date' : 'text'" />
         </label>
       </ng-container>
+
+      <section class="bank-details-panel full-width">
+        <h5>Bank details (salary transfer)</h5>
+        <p class="field-hint">Required for payroll — enter the employee's salary bank account in Sri Lanka.</p>
+        <div class="form-grid bank-grid">
+          <ng-container *ngFor="let field of bankCustomFields">
+            <label *ngIf="field.fieldType === 'select'">
+              {{ field.label }}<span *ngIf="field.required"> *</span>
+              <select [(ngModel)]="form.customFields[field.fieldKey]" [name]="'create-bank-' + field.fieldKey">
+                <option [ngValue]="''">— Select —</option>
+                <option *ngFor="let option of fieldOptions(field)" [ngValue]="option">{{ option }}</option>
+              </select>
+            </label>
+            <label *ngIf="field.fieldType !== 'select'">
+              {{ field.label }}<span *ngIf="field.required"> *</span>
+              <input
+                [(ngModel)]="form.customFields[field.fieldKey]"
+                [name]="'create-bank-' + field.fieldKey"
+                [type]="field.fieldType === 'number' ? 'number' : field.fieldType === 'date' ? 'date' : 'text'" />
+            </label>
+          </ng-container>
+        </div>
+      </section>
     </div>
 
     <p class="field-hint" *ngIf="customFieldDefs.length === 0">
-      No profile fields are enabled for this tenant. Super Admin can enable fields in Tenants → Configure, or add fields in Configuration → Platform Catalog.
+      No profile fields are enabled for this tenant. Company Admin can enable fields under Configuration → Module & Templates.
     </p>
     <p class="error" *ngIf="errorMessage">{{ errorMessage }}</p>
-    <button type="button" class="add-btn" (click)="createEmployee()" [disabled]="creating">
+    <button type="button" class="btn-primary" (click)="createEmployee()" [disabled]="creating">
       {{ creating ? 'Creating...' : form.onboardingMode === 'MANUAL_ONLY' ? 'Create Manual Employee' : 'Create & Send Invite' }}
     </button>
   </section>
 
   <p class="success" *ngIf="successMessage">{{ successMessage }}</p>
 
+  <div class="table-scroll">
   <table>
     <thead><tr><th>Name</th><th>Code</th><th>Department</th><th>Designation</th><th>Salary (LKR)</th><th>Status</th><th>Actions</th></tr></thead>
     <tbody>
@@ -144,6 +168,7 @@
       </tr>
     </tbody>
   </table>
+  </div>
 </section>
 
 <app-edit-dialog-shell
@@ -187,6 +212,10 @@
       <input [(ngModel)]="editForm.designation" name="editDesignation" type="text" />
     </label>
     <label>
+      Date of birth
+      <input [(ngModel)]="editForm.dateOfBirth" name="editDateOfBirth" type="date" />
+    </label>
+    <label>
       Reporting manager (team lead)
       <select [(ngModel)]="editForm.managerId" name="editManagerId">
         <option [ngValue]="0">— None —</option>
@@ -202,7 +231,7 @@
       </select>
     </label>
 
-    <ng-container *ngFor="let field of customFieldDefs">
+    <ng-container *ngFor="let field of profileCustomFields">
       <label *ngIf="field.fieldType === 'select'">
         {{ field.label }}<span *ngIf="field.required"> *</span>
         <select [(ngModel)]="editForm.customFields[field.fieldKey]" [name]="'custom-' + field.fieldKey">
@@ -218,6 +247,28 @@
           [type]="field.fieldType === 'number' ? 'number' : field.fieldType === 'date' ? 'date' : 'text'" />
       </label>
     </ng-container>
+
+    <section class="bank-details-panel full-width">
+      <h5>Bank details</h5>
+      <div class="dialog-grid bank-grid">
+        <ng-container *ngFor="let field of bankCustomFields">
+          <label *ngIf="field.fieldType === 'select'">
+            {{ field.label }}<span *ngIf="field.required"> *</span>
+            <select [(ngModel)]="editForm.customFields[field.fieldKey]" [name]="'edit-bank-' + field.fieldKey">
+              <option [ngValue]="''">— Select —</option>
+              <option *ngFor="let option of fieldOptions(field)" [ngValue]="option">{{ option }}</option>
+            </select>
+          </label>
+          <label *ngIf="field.fieldType !== 'select'">
+            {{ field.label }}<span *ngIf="field.required"> *</span>
+            <input
+              [(ngModel)]="editForm.customFields[field.fieldKey]"
+              [name]="'edit-bank-' + field.fieldKey"
+              [type]="field.fieldType === 'number' ? 'number' : field.fieldType === 'date' ? 'date' : 'text'" />
+          </label>
+        </ng-container>
+      </div>
+    </section>
   </div>
 </app-edit-dialog-shell>
 

@@ -1,6 +1,116 @@
-<section class="grid cards">
-  <article class="card" *ngFor="let card of cards">
-    <p>{{ card.label }}</p>
-    <h2>{{ card.value }}</h2>
-  </article>
+<section class="reports-page" *ngIf="!isSuperAdmin">
+  <header class="page-head">
+    <h2>Reports</h2>
+    <p>Summary counts for your company workspace.</p>
+  </header>
+
+  <div class="grid cards">
+    <article class="card" *ngFor="let card of cards">
+      <p>{{ card.label }}</p>
+      <h2>{{ card.value }}</h2>
+    </article>
+  </div>
+</section>
+
+<section class="reports-page platform" *ngIf="isSuperAdmin">
+  <header class="page-head">
+    <h2>Platform Reports</h2>
+    <p>Tenant-wise billing snapshot: subscription plan, active users, and employee counts for monthly charging.</p>
+  </header>
+
+  <p *ngIf="errorMessage" class="error">{{ errorMessage }}</p>
+
+  <div class="grid cards">
+    <article class="card">
+      <p>Total tenants</p>
+      <h2>{{ tenantRows.length }}</h2>
+    </article>
+    <article class="card">
+      <p>Active users</p>
+      <h2>{{ totalUsers() }}</h2>
+    </article>
+    <article class="card">
+      <p>Active employees</p>
+      <h2>{{ totalEmployees() }}</h2>
+    </article>
+  </div>
+
+  <section class="card table-card">
+    <div class="table-head">
+      <h3>Tenant billing report</h3>
+      <div class="table-actions">
+        <button type="button" class="refresh-btn" (click)="loadPlatformTenants()" [disabled]="loadingTenants">
+          {{ loadingTenants ? 'Refreshing...' : 'Refresh' }}
+        </button>
+        <button type="button" class="refresh-btn" (click)="printReport()">Print</button>
+      </div>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th><input type="checkbox" [checked]="allTenantsSelected" (change)="toggleAllTenants($event)" /></th>
+          <th>Company</th>
+          <th>Code</th>
+          <th>Plan</th>
+          <th>Status</th>
+          <th>Active Users</th>
+          <th>Inactive Users</th>
+          <th>Employees</th>
+          <th>Seats</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let row of tenantRows">
+          <td><input type="checkbox" [checked]="isTenantSelected(row.id)" (change)="toggleTenantSelection(row.id)" /></td>
+          <td><strong>{{ row.name }}</strong></td>
+          <td>{{ row.companyCode || '—' }}</td>
+          <td>{{ row.plan }}</td>
+          <td>{{ row.status }}</td>
+          <td>{{ row.activeUsers }}</td>
+          <td>{{ row.inactiveUsers }}</td>
+          <td>{{ row.activeEmployees }}</td>
+          <td>{{ row.seats || '—' }}</td>
+          <td>
+            <button type="button" class="link-btn" (click)="viewTenantUsers(row)">
+              {{ selectedTenantId === row.id ? 'Hide users' : 'View users' }}
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p *ngIf="!loadingTenants && !tenantRows.length" class="muted">No converted tenants found.</p>
+  </section>
+
+  <section class="card table-card" *ngIf="selectedTenantId">
+    <div class="table-head">
+      <h3>Users in {{ selectedTenantName }}</h3>
+      <span class="muted" *ngIf="loadingUsers">Loading users...</span>
+    </div>
+
+    <table *ngIf="!loadingUsers">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Status</th>
+          <th>Roles</th>
+          <th>Joined</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let user of tenantUsers">
+          <td>{{ user.name }}</td>
+          <td>{{ user.email }}</td>
+          <td>{{ user.status }}</td>
+          <td>{{ user.roles.join(', ') || '—' }}</td>
+          <td>{{ user.createdAt | date: 'mediumDate' }}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p *ngIf="!loadingUsers && !tenantUsers.length" class="muted">No users found for this tenant.</p>
+  </section>
 </section>

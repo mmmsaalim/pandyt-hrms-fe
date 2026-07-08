@@ -1,8 +1,18 @@
 .module-picks {
+  max-width: 320px;
+}
+
+.module-pick-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.4rem 0.5rem;
+}
+
+.module-picks--new {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.35rem 0.75rem;
-  max-width: 280px;
+  gap: 0.4rem 0.75rem;
+  margin-bottom: 0.75rem;
 }
 
 .module-pick {
@@ -11,6 +21,50 @@
   gap: 0.35rem;
   font-size: 0.78rem;
   white-space: nowrap;
+  cursor: pointer;
+  padding: 0.2rem 0.35rem;
+  border-radius: 8px;
+  transition: background 0.15s ease;
+}
+
+.module-pick:hover {
+  background: #fff7ed;
+}
+
+.module-icon {
+  font-size: 0.95rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.module-label {
+  line-height: 1.2;
+}
+
+.field-hint {
+  font-size: 0.75rem;
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.billing-preview {
+  margin: 0 0 0.75rem;
+  padding: 0.55rem 0.75rem;
+  background: #f8fafc;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.82rem;
+  color: #334155;
+}
+
+.panel-copy a {
+  color: #c2410c;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.panel-copy a:hover {
+  text-decoration: underline;
 }
 
 .catalog-page {

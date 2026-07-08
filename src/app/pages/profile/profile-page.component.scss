@@ -26,6 +26,27 @@
   font-size: 1rem;
 }
 
+.profile-section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 0.85rem;
+}
+
+.profile-section-head h3 {
+  margin-bottom: 0.25rem;
+}
+
+.profile-section-head .hint {
+  margin: 0;
+}
+
+.profile-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
 .info-grid,
 .form-grid {
   display: grid;
@@ -55,6 +76,13 @@ select {
   background: #fff;
 }
 
+input:disabled,
+select:disabled {
+  background: #f8fafc;
+  color: #64748b;
+  cursor: not-allowed;
+}
+
 .save-btn {
   margin-top: 0.85rem;
   border: 0;
@@ -64,6 +92,17 @@ select {
   font-weight: 700;
   padding: 0.55rem 1rem;
   cursor: pointer;
+}
+
+.save-btn.secondary {
+  margin-top: 0;
+  background: #f3f4f6;
+  color: #1f2937;
+}
+
+.save-btn:disabled {
+  opacity: 0.7;
+  cursor: wait;
 }
 
 .hint,

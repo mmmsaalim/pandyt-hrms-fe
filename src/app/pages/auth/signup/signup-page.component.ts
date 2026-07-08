@@ -1,9 +1,14 @@
 import { CommonModule } from '@angular/common';
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
-import { SUBSCRIPTION_PLANS } from '../../../core/constants/subscription-plans';
+import { moduleIcon } from '../../../core/constants/module-icons';
+import {
+  MODULE_LABELS,
+  SubscriptionPlanDefinition,
+} from '../../../core/constants/subscription-plans';
+import { TenantConfigurationService } from '../../../core/services/tenant-configuration.service';
 
 @Component({
   selector: 'app-signup-page',
@@ -12,11 +17,14 @@ import { SUBSCRIPTION_PLANS } from '../../../core/constants/subscription-plans';
   templateUrl: './signup-page.component.html',
   styleUrl: './signup-page.component.scss',
 })
-export class SignupPageComponent {
+export class SignupPageComponent implements OnInit {
   loading = false;
   successMessage = '';
   errorMessage = '';
-  readonly freemiumPlan = SUBSCRIPTION_PLANS.find((plan) => plan.key === 'FREEMIUM');
+  showFormModal = false;
+  subscriptionPlans: SubscriptionPlanDefinition[] = [];
+  selectedPlanKey = '';
+  readonly moduleLabels = MODULE_LABELS;
 
   readonly form = this.fb.group({
     companyName: ['', [Validators.required, Validators.minLength(2)]],
@@ -32,14 +40,53 @@ export class SignupPageComponent {
   constructor(
     private readonly fb: FormBuilder,
     private readonly auth: AuthService,
+    private readonly tenantConfigurationService: TenantConfigurationService,
   ) {}
 
+  ngOnInit(): void {
+    this.tenantConfigurationService.loadPlatformPlans().subscribe({
+      next: (plans) => {
+        this.subscriptionPlans = plans.filter((plan) => plan.isActive !== false);
+      },
+      error: () => {
+        this.subscriptionPlans = this.tenantConfigurationService.getPlatformPlans();
+      },
+    });
+  }
+
+  get selectedPlan(): SubscriptionPlanDefinition | undefined {
+    return this.subscriptionPlans.find((plan) => plan.key === this.selectedPlanKey);
+  }
+
+  openPlanForm(planKey: string): void {
+    this.selectedPlanKey = planKey;
+    this.errorMessage = '';
+    this.successMessage = '';
+    const plan = this.subscriptionPlans.find((entry) => entry.key === planKey);
+    if (plan?.seats && plan.seats > 0) {
+      this.form.patchValue({ employeeCount: plan.seats });
+    }
+    this.showFormModal = true;
+  }
+
+  closePlanForm(): void {
+    if (this.loading) return;
+    this.showFormModal = false;
+  }
+
+  readonly moduleIcon = moduleIcon;
+
+  moduleLabel(key: string): string {
+    return this.moduleLabels[key] ?? key;
+  }
+
   submit(): void {
-    if (this.form.invalid) {
+    if (this.form.invalid || !this.selectedPlanKey) {
       return;
     }
 
-    const { companyName, companyCode, adminName, adminEmail, adminPhone, employeeCount, address, notes } = this.form.getRawValue();
+    const { companyName, companyCode, adminName, adminEmail, adminPhone, employeeCount, address, notes } =
+      this.form.getRawValue();
     if (!companyName || !adminName || !adminEmail || !adminPhone || !employeeCount) {
       return;
     }
@@ -57,27 +104,28 @@ export class SignupPageComponent {
         adminPhone: adminPhone.trim(),
         employeeCount: Number(employeeCount),
         address: address?.trim() || undefined,
-        source: 'Free signup page',
+        source: 'Workspace access request',
         notes: notes?.trim() || undefined,
+        requestedPlan: this.selectedPlanKey,
       })
       .subscribe({
         next: (res) => {
           this.successMessage =
             res.message ||
-            'Signup submitted. Your request is now pending lead and super admin approval.';
+            `Access request submitted for ${this.selectedPlan?.label ?? 'Freemium'} plan. Super admin will review your lead and activate sign-in.`;
           this.form.reset({
             companyName: '',
             companyCode: '',
             adminName: '',
             adminEmail: '',
             adminPhone: '',
-            employeeCount: 10,
+            employeeCount: this.selectedPlan?.seats && this.selectedPlan.seats > 0 ? this.selectedPlan.seats : 10,
             address: '',
             notes: '',
           });
         },
         error: (err) => {
-          this.errorMessage = err?.error?.message || 'Unable to submit signup request.';
+          this.errorMessage = err?.error?.message || 'Unable to submit access request.';
           this.loading = false;
         },
         complete: () => {

@@ -27,6 +27,9 @@ interface PaymentRow {
   totalDue: number | null;
   renewalDate: string;
   createdAt: string;
+  billingContactEmails?: string[];
+  companyAdminEmail?: string | null;
+  billingRemindersEnabled?: boolean;
 }
 
 @Component({
@@ -144,6 +147,17 @@ export class CompanyPaymentsPageComponent implements OnInit {
     return `LKR ${Number(row.totalDue ?? 0).toLocaleString()}`;
   }
 
+  billingEmailsLabel(row: PaymentRow): string {
+    const billingEmails = row.billingContactEmails ?? [];
+    if (billingEmails.length > 0) {
+      return billingEmails.join(', ');
+    }
+    if (row.companyAdminEmail) {
+      return `${row.companyAdminEmail} (admin fallback)`;
+    }
+    return 'Not set';
+  }
+
   overdueRows(): PaymentRow[] {
     return this.rows().filter((row) => row.billingStatus === 'OVERDUE');
   }
@@ -177,7 +191,7 @@ export class CompanyPaymentsPageComponent implements OnInit {
       this.tenantsService.sendOverdueReminder(Number(dialog.row.tenantId)).subscribe({
         next: () => {
           this.actionType.set('success');
-          this.actionMessage.set(`Reminder sent to ${dialog.row?.companyName}.`);
+          this.actionMessage.set(`Reminder sent to billing contacts for ${dialog.row?.companyName}.`);
           this.confirmDialog.set(null);
         },
         error: (err) => {

@@ -1,0 +1,133 @@
+<section class="settings-page" *ngIf="!loading; else loadingState">
+  <header class="page-head">
+    <div>
+      <h2>Workspace module settings</h2>
+      <p>Configure custom fields inside your subscription modules.</p>
+    </div>
+    <span class="badge" *ngIf="config">{{ config.plan }} plan</span>
+  </header>
+
+  <p class="success" *ngIf="successMessage">{{ successMessage }}</p>
+  <p class="error" *ngIf="errorMessage">{{ errorMessage }}</p>
+
+  <ng-container *ngIf="showTemplateSettings">
+    <section class="card panel">
+      <h3>Letterhead (used for HR letters & print)</h3>
+      <p class="panel-copy">
+        Fill in your company details here. When you click <strong>Print</strong> on an HR letter, this information appears at the top of the page.
+        Save settings after editing.
+      </p>
+      <div class="form-grid">
+        <label>Display name<input [(ngModel)]="letterhead.companyDisplayName" name="letterDisplayName" type="text" /></label>
+        <label>Address<input [(ngModel)]="letterhead.address" name="letterAddress" type="text" /></label>
+        <label>Phone<input [(ngModel)]="letterhead.phone" name="letterPhone" type="text" /></label>
+        <label>Email<input [(ngModel)]="letterhead.email" name="letterEmail" type="email" /></label>
+        <label>Logo URL<input [(ngModel)]="letterhead.logoUrl" name="letterLogo" type="url" placeholder="https://..." /></label>
+      </div>
+    </section>
+
+    <section class="card panel">
+      <h3>Report templates</h3>
+      <p class="panel-copy">Create company-specific report layouts. Only available inside your subscribed Reports module.</p>
+      <div class="form-grid">
+        <label>Template name<input [(ngModel)]="newReportTemplate.name" name="reportName" type="text" placeholder="Monthly headcount" /></label>
+        <label>
+          Type
+          <select [(ngModel)]="newReportTemplate.type" name="reportType">
+            <option value="HEADCOUNT">Headcount</option>
+            <option value="LEAVE">Leave</option>
+            <option value="ATTENDANCE">Attendance</option>
+            <option value="PAYROLL">Payroll</option>
+            <option value="GENERAL">General</option>
+          </select>
+        </label>
+        <label class="full-width">
+          Notes / layout hints
+          <textarea [(ngModel)]="newReportTemplate.content" name="reportContent" rows="2"></textarea>
+        </label>
+      </div>
+      <button type="button" class="outline-btn" (click)="addReportTemplate()">Add report template</button>
+      <ul class="template-list" *ngIf="reportTemplates.length">
+        <li *ngFor="let template of reportTemplates">
+          <strong>{{ template.name }}</strong>
+          <span>{{ template.type }}</span>
+          <button type="button" class="link-btn" (click)="removeReportTemplate(template.id)">Remove</button>
+        </li>
+      </ul>
+    </section>
+
+    <section class="card panel">
+      <h3>Payslip template</h3>
+      <label>
+        Default payslip layout
+        <select [(ngModel)]="payslipTemplateKey" name="payslipTemplateKey">
+          <option *ngFor="let option of payslipTemplates" [value]="option.key">{{ option.label }}</option>
+        </select>
+      </label>
+    </section>
+  </ng-container>
+
+  <section class="card panel">
+    <h3>Module fields (subscription scope only)</h3>
+    <p class="panel-copy">Add custom fields or toggle platform fields within modules included in your plan.</p>
+
+    <label>
+      Module
+      <select [(ngModel)]="selectedModuleKey" name="moduleKey">
+        <option *ngFor="let module of config?.modules" [value]="module.key">{{ moduleLabel(module.key) }}</option>
+      </select>
+    </label>
+
+    <div class="form-grid add-field-grid">
+      <label>Field key<input [(ngModel)]="fieldForm.fieldKey" name="fieldKey" type="text" placeholder="badge_no" /></label>
+      <label>Label<input [(ngModel)]="fieldForm.label" name="fieldLabel" type="text" placeholder="Badge number" /></label>
+      <label>
+        Type
+        <select [(ngModel)]="fieldForm.fieldType" name="fieldType">
+          <option value="text">Text</option>
+          <option value="number">Number</option>
+          <option value="date">Date</option>
+          <option value="select">Select</option>
+          <option value="boolean">Boolean</option>
+        </select>
+      </label>
+      <button type="button" class="primary-btn" (click)="createField()" [disabled]="savingField">
+        {{ savingField ? 'Adding...' : 'Add custom field' }}
+      </button>
+    </div>
+
+    <table *ngIf="selectedModule() as module">
+      <thead>
+        <tr><th>Field</th><th>Type</th><th>Enabled</th><th>Required</th><th>Source</th></tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let field of module.fields">
+          <td>{{ field.label }} <code>{{ field.fieldKey }}</code></td>
+          <td>{{ field.fieldType }}</td>
+          <td>
+            <input
+              type="checkbox"
+              [checked]="isFieldEnabled(module.key, field.fieldKey)"
+              (change)="toggleField(module.key, field.fieldKey, 'enabled', $any($event.target).checked)" />
+          </td>
+          <td>
+            <input
+              type="checkbox"
+              [disabled]="!isFieldEnabled(module.key, field.fieldKey)"
+              [checked]="isFieldRequired(module.key, field.fieldKey)"
+              (change)="toggleField(module.key, field.fieldKey, 'required', $any($event.target).checked)" />
+          </td>
+          <td>{{ field.isCustom ? 'Custom' : 'Platform' }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <button type="button" class="primary-btn save-btn" (click)="save()" [disabled]="saving">
+    {{ saving ? 'Saving...' : 'Save workspace settings' }}
+  </button>
+</section>
+
+<ng-template #loadingState>
+  <p class="muted">Loading module settings...</p>
+</ng-template>

@@ -88,7 +88,21 @@ export class TenantsService {
     seats?: number;
     enabledModules?: string[];
     moduleFeatures?: Record<string, Record<string, { enabled?: boolean; required?: boolean }>>;
-    config?: { locale?: string; currency?: string; fiscalYearStartMonth?: number };
+    config?: { locale?: string; currency?: string; fiscalYearStartMonth?: number; payslipTemplateKey?: string; leaveSetup?: unknown };
+    billingContactEmails?: string[];
+    billingReminderDays?: number[];
+    companyProfile?: {
+      brNumber?: string;
+      registeredAddress?: string;
+      city?: string;
+      district?: string;
+      industryType?: string;
+      companyPhone?: string;
+      companyEmail?: string;
+      adminPhone?: string;
+      tinNumber?: string;
+      website?: string;
+    };
   }) {
     return this.http.post(`${environment.apiUrl}/tenants/onboard`, dto);
   }
@@ -102,6 +116,18 @@ export class TenantsService {
       seats?: number;
       status?: 'ACTIVE' | 'SUSPENDED';
       leadStatus?: 'PENDING' | 'CONVERTED' | 'DELETED';
+      companyProfile?: {
+        brNumber?: string;
+        registeredAddress?: string;
+        city?: string;
+        district?: string;
+        industryType?: string;
+        companyPhone?: string;
+        companyEmail?: string;
+        adminPhone?: string;
+        tinNumber?: string;
+        website?: string;
+      };
     },
   ) {
     return this.http.patch(`${environment.apiUrl}/tenants/${id}`, dto);
@@ -117,7 +143,7 @@ export class TenantsService {
       plan?: string;
       enabledModules?: string[];
       moduleFeatures?: Record<string, Record<string, { enabled?: boolean; required?: boolean; sortOrder?: number }>>;
-      config?: { locale?: string; currency?: string; fiscalYearStartMonth?: number };
+      config?: { locale?: string; currency?: string; fiscalYearStartMonth?: number; payslipTemplateKey?: string; leaveSetup?: unknown };
     },
   ) {
     return this.http.put(`${environment.apiUrl}/tenants/${tenantId}/configuration`, dto);

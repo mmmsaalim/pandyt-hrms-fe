@@ -1,46 +1,100 @@
-<div class="auth-shell">
-  <section class="brand-panel">
+<div class="auth-shell signup-shell">
+  <section class="plans-panel">
     <span class="brand-pill">Pandyt SaaS</span>
-    <h1>Start Free</h1>
-    <p class="lead">Create your FlowHR workspace and submit it for review in minutes.</p>
-    <ul>
-      <li>Free setup request with no payment details required.</li>
-      <li>Freemium plan: up to {{ freemiumPlan?.seats }} employees with Core HR + Leave modules.</li>
-      <li>Your company appears in the lead queue for review.</li>
-      <li>Super admin approval activates your workspace for sign in.</li>
-    </ul>
+    <h1>Choose your starting plan</h1>
+    <p class="lead">
+      Select a plan to continue. A short form opens so you can submit your workspace access request for super admin review.
+    </p>
+
+    <div class="plans-grid">
+      <button
+        type="button"
+        class="plan-card"
+        *ngFor="let plan of subscriptionPlans"
+        [class.popular]="plan.key === 'STARTER'"
+        (click)="openPlanForm(plan.key)"
+      >
+        <div class="plan-head">
+          <h3>{{ plan.label }}</h3>
+          <span class="popular-badge" *ngIf="plan.key === 'STARTER'">Popular</span>
+        </div>
+        <p class="plan-price">
+          <strong>{{ plan.priceLkr === null || plan.priceLkr === 0 ? 'Free' : ('LKR ' + (plan.priceLkr | number)) }}</strong>
+          <span *ngIf="plan.priceLkr && plan.priceLkr > 0">/ month</span>
+        </p>
+        <p class="plan-seats">{{ plan.seats === null ? 'Unlimited employees' : 'Up to ' + plan.seats + ' employees' }}</p>
+        <ul class="module-list">
+          <li *ngFor="let moduleKey of plan.defaultModules">
+            <span class="module-icon" aria-hidden="true">{{ moduleIcon(moduleKey) }}</span>
+            {{ moduleLabel(moduleKey) }}
+          </li>
+        </ul>
+        <span class="plan-cta">Select plan →</span>
+      </button>
+    </div>
+
+    <div class="auth-links">
+      <a routerLink="/login">Already have access? Sign in</a>
+    </div>
   </section>
+</div>
 
-  <div class="auth-card">
-    <span class="mini-brand">FREE SIGNUP</span>
-    <h2>Create a free workspace request</h2>
-    <p>Your request will go to the lead queue, then super admin approves activation.</p>
+<section class="modal-backdrop" *ngIf="showFormModal" (click)="closePlanForm()">
+  <article class="modal-card" (click)="$event.stopPropagation()">
+    <header class="modal-head">
+      <div>
+        <span class="mini-brand">WORKSPACE ACCESS REQUEST</span>
+        <h2>Company onboarding details</h2>
+      </div>
+      <button type="button" class="back-btn" (click)="closePlanForm()">← Back to plans</button>
+    </header>
 
-    <div class="plan-summary" *ngIf="freemiumPlan">
-      <strong>{{ freemiumPlan.label }} plan</strong>
-      <span>{{ freemiumPlan.description }}</span>
+    <div class="selected-plan-box" *ngIf="selectedPlan as plan">
+      <div>
+        <span class="box-label">Selected plan</span>
+        <strong>{{ plan.label }}</strong>
+      </div>
+      <div>
+        <span class="box-label">Included</span>
+        <span>{{ plan.seats === null ? 'Unlimited seats' : plan.seats + ' seats' }} · {{ plan.defaultModules?.length || 0 }} modules</span>
+      </div>
+      <div>
+        <span class="box-label">Price</span>
+        <strong>{{ plan.priceLkr === null || plan.priceLkr === 0 ? 'Free' : ('LKR ' + (plan.priceLkr | number) + '/month') }}</strong>
+      </div>
+    </div>
+
+    <div class="requirements-box">
+      <strong>What we need to create your tenant</strong>
+      <ul>
+        <li>Legal company name and preferred workspace code</li>
+        <li>Primary admin name, email, and phone</li>
+        <li>Expected team size and location</li>
+        <li>Optional notes for Pandyt review</li>
+      </ul>
     </div>
 
     <form [formGroup]="form" (ngSubmit)="submit()">
       <p *ngIf="errorMessage" class="error">{{ errorMessage }}</p>
       <p *ngIf="successMessage" class="success">{{ successMessage }}</p>
 
-      <label>Company name</label>
+      <label>Company name *</label>
       <input type="text" formControlName="companyName" placeholder="Acme Holdings" />
 
       <label>Preferred company code (optional)</label>
       <input type="text" formControlName="companyCode" placeholder="acme" />
+      <small>Used as your sign-in workspace identifier after approval.</small>
 
-      <label>Admin full name</label>
+      <label>Admin full name *</label>
       <input type="text" formControlName="adminName" placeholder="Amaal Perera" />
 
-      <label>Admin work email</label>
+      <label>Admin work email *</label>
       <input type="email" formControlName="adminEmail" placeholder="admin@acme.com" />
 
-      <label>Admin phone number</label>
+      <label>Admin phone number *</label>
       <input type="tel" formControlName="adminPhone" placeholder="+94 77 123 4567" />
 
-      <label>Expected employee count</label>
+      <label>Expected employee count *</label>
       <input type="number" formControlName="employeeCount" min="1" placeholder="25" />
 
       <label>Company address / city</label>
@@ -49,13 +103,12 @@
       <label>Notes for Pandyt team</label>
       <textarea formControlName="notes" rows="3" placeholder="Best time to call, modules needed, current HR process..."></textarea>
 
-      <button type="submit" [disabled]="form.invalid || loading">
-        {{ loading ? 'Submitting...' : 'Submit free signup' }}
-      </button>
+      <div class="modal-actions">
+        <button type="button" class="secondary-btn" (click)="closePlanForm()" [disabled]="loading">Back to plans</button>
+        <button type="submit" class="submit-btn" [disabled]="form.invalid || loading || !selectedPlanKey">
+          {{ loading ? 'Submitting...' : 'Submit access request' }}
+        </button>
+      </div>
     </form>
-
-    <div class="auth-links">
-      <a routerLink="/login">Back to sign in</a>
-    </div>
-  </div>
-</div>
+  </article>
+</section>

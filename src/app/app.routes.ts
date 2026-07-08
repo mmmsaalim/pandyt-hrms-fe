@@ -23,10 +23,12 @@ import { InvitationsPageComponent } from './pages/invitations/invitations-page.c
 import { ConfigurationPageComponent } from './pages/configuration/configuration-page.component';
 import { OrganisationPageComponent } from './pages/organisation/organisation-page.component';
 import { CareersPageComponent } from './pages/careers-page.component';
-import { CrossTenantReportsComponent } from './pages/cross-tenant-reports/cross-tenant-reports.component';
 import { PlatformCatalogPageComponent } from './pages/platform-catalog/platform-catalog-page.component';
 import { ProfilePageComponent } from './pages/profile/profile-page.component';
 import { CanteenPageComponent } from './pages/canteen/canteen-page.component';
+import { TenantModuleSettingsPageComponent } from './pages/configuration/tenant-module-settings-page.component';
+import { LettersPageComponent } from './pages/letters/letters-page.component';
+import { FeedbackPageComponent } from './pages/feedback/feedback-page.component';
 
 export const appRoutes: Routes = [
   { path: 'login', component: LoginComponent },
@@ -65,12 +67,6 @@ export const appRoutes: Routes = [
       {
         path: 'platform/catalog',
         component: PlatformCatalogPageComponent,
-        canActivate: [roleGuard],
-        data: { roles: ['SUPER_ADMIN'] },
-      },
-      {
-        path: 'cross-tenant-reports',
-        component: CrossTenantReportsComponent,
         canActivate: [roleGuard],
         data: { roles: ['SUPER_ADMIN'] },
       },
@@ -155,7 +151,7 @@ export const appRoutes: Routes = [
         component: ReportsPageComponent,
         canActivate: [roleGuard],
         data: {
-          roles: ['COMPANY_ADMIN', 'HR_MANAGER', 'TEAM_LEAD', 'EMPLOYEE'],
+          roles: ['SUPER_ADMIN', 'COMPANY_ADMIN', 'HR_MANAGER', 'TEAM_LEAD', 'EMPLOYEE'],
           permissions: ['reports.read'],
           module: 'reports',
         },
@@ -188,7 +184,27 @@ export const appRoutes: Routes = [
             component: ConfigurationPageComponent,
             data: { tab: 'access-configuration' },
           },
+          {
+            path: 'module-settings',
+            component: TenantModuleSettingsPageComponent,
+          },
         ],
+      },
+      {
+        path: 'letters',
+        component: LettersPageComponent,
+        canActivate: [roleGuard],
+        data: {
+          roles: ['COMPANY_ADMIN', 'HR_MANAGER', 'TEAM_LEAD'],
+        },
+      },
+      {
+        path: 'feedback',
+        component: FeedbackPageComponent,
+        canActivate: [roleGuard],
+        data: {
+          roles: ['HR_MANAGER', 'TEAM_LEAD', 'COMPANY_ADMIN'],
+        },
       },
     ],
   },

@@ -42,6 +42,7 @@
     <thead>
       <tr>
         <th>Company</th>
+        <th>Billing emails</th>
         <th>Plan</th>
         <th>Tenant Status</th>
         <th>Billing Status</th>
@@ -63,6 +64,7 @@
           <div class="company">{{ row.companyName }}</div>
           <div class="muted">{{ row.tenantId }}</div>
         </td>
+        <td class="billing-emails">{{ billingEmailsLabel(row) }}</td>
         <td>{{ row.plan }}</td>
         <td>{{ tenantStatusLabel(row.status) }}</td>
         <td><span [class]="statusClass(row.billingStatus)">{{ billingStatusLabel(row.billingStatus) }}</span></td>
@@ -94,7 +96,7 @@
         </td>
       </tr>
       <tr *ngIf="rows().length === 0">
-        <td colspan="13" class="empty">No tenants found.</td>
+        <td colspan="14" class="empty">No tenants found.</td>
       </tr>
     </tbody>
   </table>
@@ -112,7 +114,7 @@
   [message]="confirmDialog()?.mode === 'all'
     ? ('Send payment reminders to all overdue companies (' + overdueRows().length + ')?')
     : ('Send overdue payment reminder to ' + (confirmDialog()?.row?.companyName || 'this company') + '?')"
-  [detail]="'This sends reminder emails to company admin users.'"
+  [detail]="'Payment reminders go to billing contact emails when set. If none are set, the company admin email is used as fallback.'"
   confirmText="Send reminder"
   tone="primary"
   [busy]="sendingAll() || remindingTenantId() !== null"
@@ -123,7 +125,7 @@
 <app-edit-dialog-shell
   *ngIf="settingsTenant()"
   title="Billing Reminder Settings"
-  [subtitle]="'Customize reminder contacts and templates for ' + (settingsTenant()?.companyName || '')"
+  [subtitle]="'Payment reminders for ' + (settingsTenant()?.companyName || '') + '. Billing emails from tenant onboarding appear here and can be edited anytime.'"
   submitText="Save settings"
   [busy]="settingsSaving()"
   [disableSubmit]="settingsLoading()"
@@ -141,8 +143,9 @@
     </label>
 
     <label>
-      Custom recipient emails (comma separated)
-      <input [(ngModel)]="settingsForm.recipientEmailsCsv" name="recipientEmailsCsv" type="text" />
+      Billing contact emails (comma separated)
+      <input [(ngModel)]="settingsForm.recipientEmailsCsv" name="recipientEmailsCsv" type="text" placeholder="finance@company.lk, accounts@company.lk" />
+      <small>These emails receive payment reminders. If empty, reminders fall back to the company admin login email.</small>
     </label>
 
     <label>

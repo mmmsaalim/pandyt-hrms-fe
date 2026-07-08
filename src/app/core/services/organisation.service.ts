@@ -30,11 +30,11 @@ export class OrganisationService {
     return this.http.get(`${environment.apiUrl}/organisation/departments`);
   }
 
-  createDepartment(dto: { name: string; locationId?: number }) {
+  createDepartment(dto: { name: string; locationId?: number; managerId?: number | null }) {
     return this.http.post(`${environment.apiUrl}/organisation/departments`, dto);
   }
 
-  updateDepartment(id: number, dto: { name?: string; locationId?: number | null }) {
+  updateDepartment(id: number, dto: { name?: string; locationId?: number | null; managerId?: number | null }) {
     return this.http.patch(`${environment.apiUrl}/organisation/departments/${id}`, dto);
   }
 

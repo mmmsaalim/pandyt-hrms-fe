@@ -1,0 +1,84 @@
+<section class="feedback-page card table-card">
+  <div class="table-head">
+    <div>
+      <h3>Team Feedback</h3>
+      <p>Capture manager feedback for employees. Stored for HR review and future AI scoring.</p>
+    </div>
+  </div>
+
+  <p *ngIf="message" [class]="messageType === 'success' ? 'success' : 'error'">{{ message }}</p>
+
+  <section class="create-panel" *ngIf="canSubmit">
+    <h4>Submit feedback</h4>
+    <div class="form-grid">
+      <label>
+        Employee
+        <select [(ngModel)]="form.subjectEmployeeId">
+          <option [ngValue]="0">— Select employee —</option>
+          <option *ngFor="let employee of employeeOptions" [ngValue]="employee.id">{{ employee.label }}</option>
+        </select>
+      </label>
+      <label>
+        Category
+        <select [(ngModel)]="form.category">
+          <option *ngFor="let category of categories" [value]="category.value">{{ category.label }}</option>
+        </select>
+      </label>
+      <label class="rating-field">
+        Rating
+        <div class="star-rating" role="group" aria-label="Rating from 1 to 5 stars">
+          <button
+            type="button"
+            *ngFor="let star of starOptions"
+            class="star-btn"
+            [class.active]="star <= form.rating"
+            [attr.aria-pressed]="star <= form.rating"
+            [attr.aria-label]="star + ' star' + (star === 1 ? '' : 's')"
+            (click)="setRating(star)">
+            ★
+          </button>
+          <span class="rating-label">{{ form.rating }} / 5</span>
+        </div>
+      </label>
+      <label>
+        Related module
+        <select [(ngModel)]="form.contextModule">
+          <option value="employees">Employees</option>
+          <option value="leave">Leave</option>
+          <option value="attendance">Attendance</option>
+          <option value="performance">Performance</option>
+        </select>
+      </label>
+      <label class="full-width">
+        Feedback
+        <textarea [(ngModel)]="form.body" rows="4" placeholder="Describe observed behavior, strengths, or improvement areas..."></textarea>
+      </label>
+    </div>
+    <button type="button" class="btn-primary" (click)="submit()" [disabled]="saving">
+      {{ saving ? 'Saving...' : 'Save feedback' }}
+    </button>
+  </section>
+
+  <table *ngIf="!loading">
+    <thead>
+      <tr><th>Date</th><th>Subject</th><th>Category</th><th>Rating</th><th>Module</th><th>Feedback</th></tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let row of rows">
+        <td>{{ row.createdAt | date: 'medium' }}</td>
+        <td>{{ row.subjectLabel || '—' }}</td>
+        <td>{{ row.category }}</td>
+        <td>
+          <span class="star-display" *ngIf="row.rating; else noRating">
+            <span *ngFor="let star of starOptions" [class.filled]="star <= row.rating!">★</span>
+          </span>
+          <ng-template #noRating>—</ng-template>
+        </td>
+        <td>{{ row.contextModule || '—' }}</td>
+        <td>{{ row.body }}</td>
+      </tr>
+    </tbody>
+  </table>
+  <p *ngIf="loading" class="muted">Loading feedback...</p>
+  <p *ngIf="!loading && !rows.length" class="muted">No feedback recorded yet.</p>
+</section>

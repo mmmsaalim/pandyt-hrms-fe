@@ -2,10 +2,12 @@
   <div class="table-head">
     <h3>Organisation</h3>
     <div class="table-actions">
-      <button type="button" class="tab-btn" [ngClass]="{active: activeTab === 'tree'}" (click)="activeTab = 'tree'">Tree</button>
-      <button type="button" class="tab-btn" [ngClass]="{active: activeTab === 'locations'}" (click)="activeTab = 'locations'">Locations</button>
-      <button type="button" class="tab-btn" [ngClass]="{active: activeTab === 'departments'}" (click)="activeTab = 'departments'">Departments</button>
-      <button type="button" class="tab-btn" [ngClass]="{active: activeTab === 'teams'}" (click)="activeTab = 'teams'">Teams</button>
+      <div class="tab-group" role="tablist" aria-label="Organisation views">
+        <button type="button" class="tab-btn" [class.active]="activeTab === 'tree'" (click)="activeTab = 'tree'">Tree</button>
+        <button type="button" class="tab-btn" [class.active]="activeTab === 'locations'" (click)="activeTab = 'locations'">Locations</button>
+        <button type="button" class="tab-btn" [class.active]="activeTab === 'departments'" (click)="activeTab = 'departments'">Departments</button>
+        <button type="button" class="tab-btn" [class.active]="activeTab === 'teams'" (click)="activeTab = 'teams'">Teams</button>
+      </div>
     </div>
   </div>
 
@@ -16,10 +18,24 @@
       <div *ngFor="let loc of tree" class="tree-location">
         <h4>📍 {{ loc.name }}</h4>
         <div *ngFor="let dept of loc.departments" class="tree-department">
-          <strong>🏢 {{ dept.name }}</strong>
+          <div class="tree-node-head">
+            <strong>🏢 {{ dept.name }}</strong>
+            <span class="badge">{{ dept._count?.employees ?? 0 }} employees</span>
+            <span class="manager-chip" *ngIf="dept.managerName">👤 {{ dept.managerName }}</span>
+          </div>
+          <div *ngFor="let employee of dept.employees" class="tree-employee">
+            <span>{{ employee.name || employee.employeeCode }}</span>
+            <small>{{ employee.employeeCode }}</small>
+          </div>
           <div *ngFor="let team of dept.teams" class="tree-team">
-            <span>👥 {{ team.name }}</span>
-            <span class="badge">{{ team._count?.employees ?? 0 }} employees</span>
+            <div class="tree-node-head">
+              <span>👥 {{ team.name }}</span>
+              <span class="badge">{{ team._count?.employees ?? 0 }} employees</span>
+            </div>
+            <div *ngFor="let employee of team.employees" class="tree-employee">
+              <span>{{ employee.name || employee.employeeCode }}</span>
+              <small>{{ employee.employeeCode }}</small>
+            </div>
           </div>
         </div>
       </div>
@@ -41,6 +57,7 @@
       </div>
       <button type="button" class="add-btn" (click)="createLocation()">Create</button>
     </section>
+    <div class="table-scroll">
     <table>
       <thead><tr><th>ID</th><th>Name</th><th>Address</th><th *ngIf="isCompanyAdmin">Actions</th></tr></thead>
       <tbody>
@@ -55,6 +72,7 @@
         </tr>
       </tbody>
     </table>
+    </div>
   </ng-container>
 
   <ng-container *ngIf="activeTab === 'departments'">
@@ -73,16 +91,24 @@
             <option *ngFor="let l of locations" [ngValue]="l.id">{{ l.name }}</option>
           </select>
         </label>
+        <label>Department manager (optional)
+          <select [(ngModel)]="departmentForm.managerId">
+            <option [ngValue]="0">— None —</option>
+            <option *ngFor="let e of employeeOptions" [ngValue]="e.id">{{ e.label }}</option>
+          </select>
+        </label>
       </div>
       <button type="button" class="add-btn" (click)="createDepartment()">Create</button>
     </section>
+    <div class="table-scroll">
     <table>
-      <thead><tr><th>ID</th><th>Name</th><th>Location</th><th *ngIf="isCompanyAdmin">Actions</th></tr></thead>
+      <thead><tr><th>ID</th><th>Name</th><th>Location</th><th>Manager</th><th *ngIf="isCompanyAdmin">Actions</th></tr></thead>
       <tbody>
         <tr *ngFor="let d of departments">
           <td>{{ d.id }}</td>
           <td>{{ d.name }}</td>
           <td>{{ d.location?.name ?? '—' }}</td>
+          <td>{{ managerLabel(d.managerId ?? d.manager?.id) }}</td>
           <td class="row-actions" *ngIf="isCompanyAdmin">
             <button type="button" class="action-btn edit" (click)="openEditDepartment(d)" [disabled]="isBusy(d.id)">Edit</button>
             <button type="button" class="action-btn delete" (click)="promptDelete('department', d)" [disabled]="isBusy(d.id)">Delete</button>
@@ -90,6 +116,7 @@
         </tr>
       </tbody>
     </table>
+    </div>
   </ng-container>
 
   <ng-container *ngIf="activeTab === 'teams'">
@@ -111,6 +138,7 @@
       </div>
       <button type="button" class="add-btn" (click)="createTeam()">Create</button>
     </section>
+    <div class="table-scroll">
     <table>
       <thead><tr><th>ID</th><th>Name</th><th>Department</th><th *ngIf="isCompanyAdmin">Actions</th></tr></thead>
       <tbody>
@@ -125,6 +153,7 @@
         </tr>
       </tbody>
     </table>
+    </div>
   </ng-container>
 </section>
 
@@ -146,7 +175,7 @@
 <app-edit-dialog-shell
   *ngIf="editingDepartment"
   title="Edit Department"
-  subtitle="Update department name and location"
+  subtitle="Update department name, location and manager"
   submitText="Save changes"
   [busy]="editBusy"
   [disableSubmit]="!departmentEditForm.name.trim()"
@@ -158,6 +187,12 @@
       <select [(ngModel)]="departmentEditForm.locationId">
         <option [ngValue]="0">— None —</option>
         <option *ngFor="let l of locations" [ngValue]="l.id">{{ l.name }}</option>
+      </select>
+    </label>
+    <label>Department manager
+      <select [(ngModel)]="departmentEditForm.managerId">
+        <option [ngValue]="0">— None —</option>
+        <option *ngFor="let e of employeeOptions" [ngValue]="e.id">{{ e.label }}</option>
       </select>
     </label>
   </div>

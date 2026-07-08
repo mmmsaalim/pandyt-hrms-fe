@@ -1,24 +1,21 @@
 <div class="auth-shell">
   <section class="brand-panel">
-    <span class="brand-pill">Pandyt SaaS</span>
-    <h1>PANDYT</h1>
-    <p class="lead">HR operations software delivered to your company as a Pandyt-managed platform.</p>
+    <span class="brand-pill">HR Cloud</span>
+    <h1>Your company workspace</h1>
+    <p class="lead">Everything your HR team needs — in one secure place.</p>
     <ul>
-      <li>Attendance, payroll, recruitment, and reporting in one workspace.</li>
-      <li>Built for client companies using Pandyt services, not white-labeled away.</li>
-      <li>Secure role-based access for every company team.</li>
+      <li>Track attendance, leave, payroll, and payslips without switching tools.</li>
+      <li>Manage employees, recruitment, and HR letters from a single dashboard.</li>
+      <li>Role-based access so each person only sees what they need.</li>
     </ul>
   </section>
 
   <div class="auth-card">
-    <span class="mini-brand">PANDYT HR CLOUD</span>
+    <span class="mini-brand">Sign in</span>
     <h2>Sign in to your company workspace</h2>
-    <p>Access your organisation's HR tools powered by Pandyt.</p>
+    <p>Use the email and password provided by your company admin.</p>
     <form [formGroup]="form" (ngSubmit)="submit()">
       <p *ngIf="errorMessage" class="error">{{ errorMessage }}</p>
-      <label>Company code</label>
-      <input type="text" formControlName="companyCode" placeholder="tnt1" />
-      <small>For SUPER_ADMIN you can leave this blank. Tenant users must provide stored company code.</small>
       <label>Email</label>
       <input type="email" formControlName="email" placeholder="name@company.com" />
       <label>Password</label>
@@ -29,7 +26,7 @@
     <div class="auth-links">
       <a routerLink="/forgot-password">Forgot password?</a>
       <a routerLink="/accept-invitation">Accept invitation</a>
-      <a routerLink="/signup">Create free workspace</a>
+      <a routerLink="/signup">Request workspace access</a>
     </div>
   </div>
 </div>

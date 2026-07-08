@@ -51,6 +51,17 @@ h2, h3 { font-family: var(--font-display); margin-top: 0; }
   border-collapse: collapse;
 }
 
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  width: 100%;
+  margin-bottom: 0.35rem;
+}
+
+.table-scroll table {
+  min-width: 720px;
+}
+
 .table-card th, .table-card td {
   text-align: left;
   padding: 0.72rem;
@@ -83,4 +94,176 @@ h2, h3 { font-family: var(--font-display); margin-top: 0; }
 
 @media (max-width: 900px) {
   .table-card { overflow-x: auto; }
+}
+
+/* Shared button system — use these classes across all pages */
+.btn-primary,
+.add-btn,
+.primary-btn,
+.save-btn,
+.new-btn {
+  border: 0;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #f68d46 0%, #f47421 100%);
+  color: #fff;
+  font-weight: 700;
+  padding: 0.5rem 0.85rem;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.btn-primary:disabled,
+.add-btn:disabled,
+.primary-btn:disabled,
+.save-btn:disabled,
+.new-btn:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+.btn-outline,
+.add-btn.outline,
+.outline-btn {
+  border: 1px solid #d4a574;
+  border-radius: 10px;
+  background: #fff;
+  color: #6f3f1b;
+  font-weight: 700;
+  padding: 0.5rem 0.85rem;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.btn-secondary,
+.btn-cancel {
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: #0f172a;
+  font-weight: 700;
+  padding: 0.45rem 0.8rem;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.btn-danger {
+  border: 0;
+  border-radius: 10px;
+  background: #b42318;
+  color: #fff;
+  font-weight: 700;
+  padding: 0.45rem 0.8rem;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.btn-link,
+.link-btn {
+  border: 0;
+  background: transparent;
+  color: var(--brand-deep);
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0.25rem 0.35rem;
+  font-family: inherit;
+}
+
+.action-btn {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--text);
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.28rem 0.55rem;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.action-btn.edit,
+.action-btn.copy {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.action-btn.delete,
+.action-btn.danger {
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #b42318;
+}
+
+.action-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.module-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.module-chip {
+  display: inline-flex;
+  align-items: center;
+  background: var(--brand-soft);
+  color: var(--brand-deep);
+  border-radius: 999px;
+  padding: 0.28rem 0.65rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.module-chip.core-tool {
+  background: #eef4ff;
+  color: #244282;
+}
+
+.table-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.tab-group,
+.tab-strip {
+  display: inline-flex;
+  gap: 0.25rem;
+  padding: 0.28rem;
+  background: #fff4ea;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  flex-wrap: wrap;
+}
+
+.tab-btn {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  border-radius: 8px;
+  padding: 0.42rem 0.9rem;
+  font-weight: 600;
+  font-size: 0.88rem;
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+  transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.tab-btn:hover:not(.active) {
+  color: var(--brand-deep);
+  background: rgba(244, 116, 33, 0.1);
+}
+
+.tab-btn.active {
+  background: linear-gradient(180deg, #f68d46 0%, #f47421 100%);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(244, 116, 33, 0.28);
 }

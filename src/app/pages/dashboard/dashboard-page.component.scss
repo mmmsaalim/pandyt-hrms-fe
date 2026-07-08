@@ -66,6 +66,78 @@
 	gap: 0.9rem;
 }
 
+.people-tools-panel {
+	padding: 1rem 1.1rem 1.1rem;
+
+	.panel-head {
+		margin-bottom: 0.85rem;
+	}
+
+	h3 {
+		margin: 0;
+		font-size: 1.05rem;
+	}
+
+	p {
+		margin: 0.2rem 0 0;
+		color: var(--muted);
+		font-size: 0.86rem;
+	}
+}
+
+.people-tools-actions {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(220px, 1fr));
+	gap: 0.75rem;
+}
+
+.people-tool-btn {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	padding: 0.85rem 1rem;
+	border-radius: 14px;
+	border: 1px solid var(--border);
+	background: #fafbff;
+	text-decoration: none;
+	color: inherit;
+	transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+
+	&:hover {
+		border-color: #d7e3ff;
+		box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
+		transform: translateY(-1px);
+	}
+
+	&.letters {
+		background: linear-gradient(180deg, #fff8f3 0%, #fff 100%);
+	}
+
+	&.feedback {
+		background: linear-gradient(180deg, #f4fbff 0%, #fff 100%);
+	}
+
+	.tool-icon {
+		font-size: 1.35rem;
+		line-height: 1;
+	}
+
+	.tool-copy {
+		display: grid;
+		gap: 0.15rem;
+
+		strong {
+			font-size: 0.92rem;
+		}
+
+		small {
+			color: var(--muted);
+			font-size: 0.78rem;
+			line-height: 1.35;
+		}
+	}
+}
+
 .stat-card,
 .panel {
 	background: #fff;
@@ -153,12 +225,18 @@
 
   .tenant-list-row {
     display: grid;
-    grid-template-columns: 2fr 1fr 1fr 1fr 1fr auto;
+    grid-template-columns: 2fr 1fr 1fr 1fr auto;
     align-items: center;
     gap: 0.8rem;
     padding: 0.55rem 0;
     border-bottom: 1px solid #edf0f7;
+  }
 
+  &.billing-report .tenant-list-row {
+    grid-template-columns: 2fr 1fr 0.8fr 0.8fr 0.8fr 0.8fr;
+  }
+
+  .tenant-list-row {
     &.header {
       font-weight: 700;
       color: var(--muted);
@@ -182,6 +260,16 @@
       font-weight: 700;
     }
   }
+}
+
+.full-width-panel {
+  grid-column: 1 / -1;
+}
+
+.panel-copy {
+  color: var(--muted);
+  font-size: 0.85rem;
+  margin: 0.5rem 0 0;
 }
 
 .panel {
@@ -485,7 +573,134 @@
 		grid-template-columns: 1fr;
 	}
 
+	.people-tools-actions {
+		grid-template-columns: 1fr;
+	}
+
 	.line-wrap svg {
 		height: 170px;
+	}
+}
+
+/* Leave trend line color */
+.leave-line {
+	stroke: #10b7c7;
+	stroke-width: 2;
+	fill: none;
+}
+
+.leave-area {
+	fill: url(#leaveFill);
+}
+
+/* Recruitment funnel */
+.funnel-panel {
+	min-width: 0;
+}
+
+.funnel-bars {
+	display: flex;
+	flex-direction: column;
+	gap: 0.55rem;
+	margin-top: 0.5rem;
+}
+
+.funnel-row {
+	display: grid;
+	grid-template-columns: 90px 1fr 36px;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.funnel-label {
+	font-size: 0.83rem;
+	color: var(--muted);
+	font-weight: 500;
+}
+
+.funnel-track {
+	background: #f0f2f5;
+	border-radius: 99px;
+	height: 10px;
+	overflow: hidden;
+}
+
+.funnel-fill {
+	background: linear-gradient(90deg, #f47421, #f6a912);
+	height: 100%;
+	border-radius: 99px;
+	transition: width 0.4s ease;
+	min-width: 4px;
+}
+
+.funnel-count {
+	font-size: 0.83rem;
+	font-weight: 700;
+	color: #222;
+	text-align: right;
+}
+
+/* Quick actions */
+.quick-actions-panel {
+	grid-column: span 2;
+}
+
+.quick-actions-grid {
+	display: grid;
+	grid-template-columns: repeat(4, 1fr);
+	gap: 0.75rem;
+	margin-top: 0.5rem;
+}
+
+.quick-action-btn {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 0.4rem;
+	padding: 1rem 0.75rem;
+	border-radius: 10px;
+	background: #f7f8fa;
+	border: 1px solid #e8eaf0;
+	color: #1a1a2e;
+	text-decoration: none;
+	font-size: 0.85rem;
+	font-weight: 600;
+	transition: background 0.15s, box-shadow 0.15s;
+	cursor: pointer;
+
+	&:hover {
+		background: #eef1ff;
+		border-color: #c5ceff;
+		box-shadow: 0 2px 8px rgba(90, 100, 220, 0.08);
+	}
+
+	.qa-icon {
+		font-size: 1.6rem;
+	}
+}
+
+/* Birthday/holiday rows */
+.list-row .qa-icon {
+	font-size: 1.2rem;
+	flex-shrink: 0;
+}
+
+.list-row .badge {
+	font-size: 0.72rem;
+	padding: 0.15rem 0.55rem;
+	border-radius: 99px;
+	background: #fff3e0;
+	color: #c05800;
+	font-weight: 700;
+	white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+	.quick-actions-grid {
+		grid-template-columns: repeat(2, 1fr);
+	}
+
+	.quick-actions-panel {
+		grid-column: span 1;
 	}
 }

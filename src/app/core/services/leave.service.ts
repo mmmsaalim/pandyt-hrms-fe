@@ -44,4 +44,8 @@ export class LeaveService {
     const params = employeeId ? `?employeeId=${employeeId}` : '';
     return this.http.get(`${environment.apiUrl}/leave/balances${params}`);
   }
+
+  delete(id: string) {
+    return this.http.delete(`${environment.apiUrl}/leave/${id}`);
+  }
 }

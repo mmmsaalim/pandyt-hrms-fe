@@ -2,6 +2,19 @@
 	display: block;
 }
 
+.table-scroll table {
+	min-width: 980px;
+}
+
+.company-profile-panel h5 {
+	margin: 0 0 0.35rem;
+}
+
+.form-grid .span-2,
+.dialog-grid .span-2 {
+	grid-column: 1 / -1;
+}
+
 .table-head {
 	display: flex;
 	justify-content: space-between;
@@ -229,4 +242,31 @@ th {
 .action-btn.danger {
 	background: #fee2e2;
 	color: #991b1b;
+}
+
+@media (max-width: 900px) {
+	.table-head {
+		flex-direction: column;
+		align-items: flex-start;
+	}
+
+	.table-actions {
+		width: 100%;
+		justify-content: space-between;
+	}
+
+	.form-grid,
+	.dialog-grid {
+		grid-template-columns: 1fr;
+	}
+
+	.leave-setup-panel .panel-head {
+		flex-direction: column;
+		align-items: flex-start;
+	}
+
+	.leave-policy-table {
+		display: block;
+		overflow-x: auto;
+	}
 }

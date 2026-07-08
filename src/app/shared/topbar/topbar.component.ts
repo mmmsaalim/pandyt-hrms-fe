@@ -33,6 +33,10 @@ export class TopbarComponent {
     return this.auth.user()?.email ?? '';
   }
 
+  get companyName(): string {
+    return this.auth.user()?.tenantName?.trim() ?? '';
+  }
+
   openProfile(): void {
     this.profileOpen = true;
     this.profileLoading = true;

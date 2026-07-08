@@ -1,0 +1,60 @@
+<section class="letters-page">
+  <header class="page-head">
+    <div>
+      <h2>HR Letters</h2>
+      <p>Compose letters with your company letterhead and print them for employees.</p>
+      <p class="muted" *ngIf="!isCompanyAdmin">You only see letters you created. Company admins can view all letters.</p>
+    </div>
+    <button type="button" class="primary-btn" (click)="openComposer()">New letter</button>
+  </header>
+
+  <p class="success" *ngIf="successMessage">{{ successMessage }}</p>
+  <p class="error" *ngIf="errorMessage">{{ errorMessage }}</p>
+
+  <section class="card panel" *ngIf="showComposer">
+    <h3>{{ editingId ? 'Edit letter' : 'Compose letter' }}</h3>
+    <div class="form-grid">
+      <label>Title<input [(ngModel)]="form.title" name="title" type="text" /></label>
+      <label>
+        Type
+        <select [(ngModel)]="form.letterType" name="letterType">
+          <option *ngFor="let type of letterTypes" [value]="type.value">{{ type.label }}</option>
+        </select>
+      </label>
+      <label>Recipient<input [(ngModel)]="form.recipientName" name="recipientName" type="text" placeholder="Employee name" /></label>
+      <label class="full-width">
+        Body
+        <textarea [(ngModel)]="form.body" name="body" rows="10" placeholder="Write your letter content..."></textarea>
+      </label>
+    </div>
+    <div class="actions">
+      <button type="button" class="primary-btn" (click)="save()" [disabled]="saving">{{ saving ? 'Saving...' : 'Save letter' }}</button>
+      <button type="button" class="outline-btn" (click)="closeComposer()">Cancel</button>
+    </div>
+  </section>
+
+  <section class="card panel">
+    <h3>Saved letters</h3>
+    <p *ngIf="loading" class="muted">Loading...</p>
+    <table *ngIf="!loading && letters.length">
+      <thead>
+        <tr><th>Title</th><th>Type</th><th>Recipient</th><th *ngIf="isCompanyAdmin">Created by</th><th>Updated</th><th></th></tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let letter of letters">
+          <td>{{ letter.title }}</td>
+          <td>{{ letter.letterType }}</td>
+          <td>{{ letter.recipientName || '—' }}</td>
+          <td *ngIf="isCompanyAdmin">{{ creatorLabel(letter) }}</td>
+          <td>{{ letter.updatedAt | date: 'medium' }}</td>
+          <td class="row-actions">
+            <button type="button" class="link-btn" (click)="print(letter.id)">Print</button>
+            <button type="button" class="link-btn" (click)="openComposer(letter)">Edit</button>
+            <button type="button" class="link-btn danger" (click)="remove(letter.id)">Delete</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <p *ngIf="!loading && !letters.length" class="muted">No letters yet. Create one to get started.</p>
+  </section>
+</section>

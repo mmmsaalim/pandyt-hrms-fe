@@ -18,6 +18,7 @@ export class ProfilePageComponent implements OnInit {
   errorMessage = '';
   successMessage = '';
   profile: any = null;
+  editMode = false;
   customFieldDefs: TenantFieldRuntimeConfig[] = [];
   editForm = {
     designation: '',
@@ -53,6 +54,7 @@ export class ProfilePageComponent implements OnInit {
           designation: profile?.designation ?? '',
           customFields: { ...(profile?.customFields ?? {}) },
         };
+        this.editMode = false;
         this.loading = false;
       },
       error: (err) => {
@@ -65,6 +67,36 @@ export class ProfilePageComponent implements OnInit {
   fieldOptions(field: TenantFieldRuntimeConfig): string[] {
     const options = field.options as { values?: string[] } | undefined;
     return options?.values ?? [];
+  }
+
+  departmentLabel(): string {
+    const department = this.profile?.departmentRelation?.name || this.profile?.department || 'Not assigned';
+    const team = this.profile?.team?.name;
+    return team ? `${department} / ${team}` : department;
+  }
+
+  managerLabel(): string {
+    const manager = this.profile?.manager;
+    if (!manager) {
+      return 'Not assigned';
+    }
+
+    return `${manager.user?.firstName ?? ''} ${manager.user?.lastName ?? ''}`.trim() || manager.employeeCode;
+  }
+
+  enableEdit(): void {
+    this.editMode = true;
+    this.successMessage = '';
+    this.errorMessage = '';
+  }
+
+  cancelEdit(): void {
+    this.editForm = {
+      designation: this.profile?.designation ?? '',
+      customFields: { ...(this.profile?.customFields ?? {}) },
+    };
+    this.editMode = false;
+    this.errorMessage = '';
   }
 
   saveProfile(): void {
@@ -91,6 +123,7 @@ export class ProfilePageComponent implements OnInit {
       .subscribe({
         next: (profile: any) => {
           this.profile = profile;
+          this.editMode = false;
           this.successMessage = 'Profile updated successfully.';
         },
         error: (err) => {

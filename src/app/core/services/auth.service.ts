@@ -84,6 +84,7 @@ export class AuthService {
     address?: string;
     source?: string;
     notes?: string;
+    requestedPlan?: string;
   }) {
     return this.http.post<{ message: string; companyCode: string; requiresApproval: boolean }>(
       `${environment.apiUrl}/auth/signup`,

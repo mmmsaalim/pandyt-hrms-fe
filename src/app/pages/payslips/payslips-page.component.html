@@ -1,48 +1,100 @@
-<section class="card table-card">
-  <div class="table-head">
-    <h3>Payslips</h3><span class="badge">{{ rows.length }}</span>
-    <p *ngIf="downloadError" class="error">{{ downloadError }}</p>
-  </div>
-  <table>
-    <thead>
-      <tr>
-        <th>Employee</th>
-        <th>Period</th>
-        <th>Basic Pay</th>
-        <th>Gross</th>
-        <th>EPF (Emp 8%)</th>
-        <th>EPF (Emp 12%)</th>
-        <th>ETF (3%)</th>
-        <th>PAYE</th>
-        <th>Net Pay</th>
-        <th>Status</th>
-        <th>Download</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr *ngFor="let r of rows">
-        <td>{{ r.employee?.user?.firstName }} {{ r.employee?.user?.lastName }}</td>
-        <td>{{ r.payrollRun?.period ?? '—' }}</td>
-        <td>{{ r.basicPay | currency:'LKR':'symbol':'1.2-2' }}</td>
-        <td>{{ r.grossPay | currency:'LKR':'symbol':'1.2-2' }}</td>
-        <td>{{ r.epfEmployee | currency:'LKR':'symbol':'1.2-2' }}</td>
-        <td>{{ r.epfEmployer | currency:'LKR':'symbol':'1.2-2' }}</td>
-        <td>{{ r.etfEmployer | currency:'LKR':'symbol':'1.2-2' }}</td>
-        <td>{{ r.payeTax | currency:'LKR':'symbol':'1.2-2' }}</td>
-        <td><strong>{{ r.netPay | currency:'LKR':'symbol':'1.2-2' }}</strong></td>
-        <td><span class="badge">{{ r.status }}</span></td>
-        <td>
-          <button
-            class="ghost"
-            (click)="download(r.id)"
-            [disabled]="downloadingId === r.id">
-            {{ downloadingId === r.id ? 'Downloading...' : '⬇ Download' }}
-          </button>
-        </td>
-      </tr>
-    </tbody>
-  </table>
-  <p *ngIf="rows.length === 0" class="empty-state">
-    No payslips found. Process a payroll run first to generate payslips.
-  </p>
-</section>
+<section class="card table-card payslips-page">
+  <div class="table-head">
+    <div class="head-copy">
+      <h3>Payslips</h3>
+      <span class="badge">{{ rows.length }}</span>
+    </div>
+    <p *ngIf="downloadError" class="error">{{ downloadError }}</p>
+  </div>
+
+  <div class="table-scroll desktop-table" *ngIf="rows.length">
+    <table>
+      <thead>
+        <tr>
+          <th class="sticky-col" rowspan="2">Employee</th>
+          <th rowspan="2">Period</th>
+          <th rowspan="2">Basic Pay</th>
+          <th rowspan="2">Gross</th>
+          <th colspan="2" class="group-header">{{ statutory.labels.employeeDeductions }}</th>
+          <th colspan="2" class="group-header">{{ statutory.labels.employerContributions }}</th>
+          <th rowspan="2">Net Pay</th>
+          <th rowspan="2">Status</th>
+          <th rowspan="2">Download</th>
+        </tr>
+        <tr>
+          <th>{{ statutory.labels.epfEmployee }}</th>
+          <th>{{ statutory.labels.paye }}</th>
+          <th>{{ statutory.labels.epfEmployer }}</th>
+          <th>{{ statutory.labels.etfEmployer }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let r of rows">
+          <td class="sticky-col">
+            {{ r.employee?.user?.firstName }} {{ r.employee?.user?.lastName }}
+          </td>
+          <td>{{ r.payrollRun?.period ?? '—' }}</td>
+          <td>{{ r.basicPay | currency:'LKR':'symbol':'1.2-2' }}</td>
+          <td>{{ r.grossPay | currency:'LKR':'symbol':'1.2-2' }}</td>
+          <td class="deduction">{{ r.epfEmployee | currency:'LKR':'symbol':'1.2-2' }}</td>
+          <td class="deduction">{{ r.payeTax | currency:'LKR':'symbol':'1.2-2' }}</td>
+          <td class="employer">{{ r.epfEmployer | currency:'LKR':'symbol':'1.2-2' }}</td>
+          <td class="employer">{{ r.etfEmployer | currency:'LKR':'symbol':'1.2-2' }}</td>
+          <td><strong>{{ r.netPay | currency:'LKR':'symbol':'1.2-2' }}</strong></td>
+          <td><span class="badge">{{ r.status }}</span></td>
+          <td>
+            <button
+              class="ghost"
+              type="button"
+              (click)="download(r.id)"
+              [disabled]="downloadingId === r.id">
+              {{ downloadingId === r.id ? 'Downloading...' : '⬇ Download' }}
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="mobile-cards" *ngIf="rows.length">
+    <article class="payslip-card" *ngFor="let r of rows">
+      <div class="card-top">
+        <div>
+          <strong>{{ r.employee?.user?.firstName }} {{ r.employee?.user?.lastName }}</strong>
+          <small>{{ r.payrollRun?.period ?? '—' }}</small>
+        </div>
+        <span class="badge">{{ r.status }}</span>
+      </div>
+      <div class="card-grid">
+        <div><span>Net pay</span><strong>{{ r.netPay | currency:'LKR':'symbol':'1.2-2' }}</strong></div>
+        <div><span>Gross</span><strong>{{ r.grossPay | currency:'LKR':'symbol':'1.2-2' }}</strong></div>
+        <div><span>Basic</span><strong>{{ r.basicPay | currency:'LKR':'symbol':'1.2-2' }}</strong></div>
+        <div><span>{{ statutory.labels.paye }}</span><strong>{{ r.payeTax | currency:'LKR':'symbol':'1.2-2' }}</strong></div>
+      </div>
+      <div class="statutory-block">
+        <p class="statutory-title">{{ statutory.labels.employeeDeductions }}</p>
+        <div class="card-grid compact">
+          <div><span>{{ statutory.labels.epfEmployee }}</span><strong>{{ r.epfEmployee | currency:'LKR':'symbol':'1.2-2' }}</strong></div>
+        </div>
+      </div>
+      <div class="statutory-block employer-block">
+        <p class="statutory-title">{{ statutory.labels.employerContributions }}</p>
+        <div class="card-grid compact">
+          <div><span>{{ statutory.labels.epfEmployer }}</span><strong>{{ r.epfEmployer | currency:'LKR':'symbol':'1.2-2' }}</strong></div>
+          <div><span>{{ statutory.labels.etfEmployer }}</span><strong>{{ r.etfEmployer | currency:'LKR':'symbol':'1.2-2' }}</strong></div>
+        </div>
+      </div>
+      <button
+        class="ghost download-btn"
+        type="button"
+        (click)="download(r.id)"
+        [disabled]="downloadingId === r.id">
+        {{ downloadingId === r.id ? 'Downloading...' : '⬇ Download payslip' }}
+      </button>
+    </article>
+  </div>
+
+  <p *ngIf="rows.length === 0" class="empty-state">
+    No payslips found. Process a payroll run first to generate payslips.
+  </p>
+</section>

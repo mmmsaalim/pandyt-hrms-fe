@@ -12,6 +12,18 @@ export interface SubscriptionPlanDefinition {
   defaultModules?: string[];
 }
 
+export const MODULE_LABELS: Record<string, string> = {
+  employees: 'Core HR / Employees',
+  organisation: 'Organisation',
+  leave: 'Leave',
+  attendance: 'Attendance',
+  payroll: 'Payroll',
+  payslips: 'Payslips',
+  recruitment: 'Recruitment (ATS)',
+  reports: 'Reports',
+  canteen: 'Canteen',
+};
+
 export const FALLBACK_SUBSCRIPTION_PLANS: SubscriptionPlanDefinition[] = [
   {
     key: 'FREEMIUM',
@@ -114,9 +126,16 @@ export const DEFAULT_EMPLOYEE_PROFILE_FIELDS = [
   'nic',
   'epfNo',
   'etfNo',
+  'tinNo',
   'dateOfBirth',
   'phone',
   'gender',
   'emergencyContact',
   'employmentType',
+  'address',
+  'bankName',
+  'bankBranch',
+  'bankAccount',
 ];
+
+export const EMPLOYEE_BANK_FIELD_KEYS = ['bankName', 'bankBranch', 'bankAccount'];

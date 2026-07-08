@@ -40,6 +40,7 @@ export class ConfigurationPageComponent implements OnInit {
   selectedPermissionIds = new Set<number>();
   selectedUserId: number | null = null;
   selectedUserRoleIds = new Set<number>();
+  userSearch = '';
   accessModalOpen = false;
   readonly actionFilters = ['read', 'create', 'update', 'delete', 'manage'];
 
@@ -73,6 +74,17 @@ export class ConfigurationPageComponent implements OnInit {
 
   get selectedUser(): ConfigUser | undefined {
     return this.users.find((user) => user.id === this.selectedUserId);
+  }
+
+  get filteredUsersForPicker(): ConfigUser[] {
+    const term = this.userSearch.trim().toLowerCase();
+    if (!term) {
+      return this.users;
+    }
+    return this.users.filter((user) => {
+      const haystack = `${user.firstName} ${user.lastName} ${user.email}`.toLowerCase();
+      return haystack.includes(term);
+    });
   }
 
   get tenantRoles(): ConfigRole[] {

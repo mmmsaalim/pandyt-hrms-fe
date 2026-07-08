@@ -114,6 +114,12 @@ thead th {
 	color: #334155;
 }
 
+.action-btn.withdraw {
+	background: #fff7ed;
+	color: #c2410c;
+	border: 1px solid #fed7aa;
+}
+
 .action-btn:disabled {
 	opacity: 0.55;
 	cursor: not-allowed;
@@ -245,6 +251,78 @@ thead th {
 
 .note-approved {
 	color: #166534;
+}
+
+.calendar-layout {
+	display: grid;
+	grid-template-columns: minmax(280px, 420px) 1fr;
+	gap: 1rem;
+	align-items: start;
+}
+
+.list-filters {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.65rem 0.85rem;
+	align-items: end;
+	margin-bottom: 0.85rem;
+	padding: 0.75rem;
+	border: 1px solid var(--border);
+	border-radius: 12px;
+	background: #fafafa;
+
+	label {
+		display: grid;
+		gap: 0.25rem;
+		font-size: 0.78rem;
+		color: var(--muted);
+		min-width: 130px;
+	}
+
+	input,
+	select {
+		border: 1px solid var(--border);
+		border-radius: 8px;
+		padding: 0.45rem 0.55rem;
+		background: #fff;
+		font: inherit;
+	}
+}
+
+.filter-clear {
+	margin-left: auto;
+}
+
+.empty-filter-msg {
+	margin: 0.5rem 0;
+}
+
+.calendar-side {
+	display: grid;
+	gap: 0.65rem;
+}
+
+.calendar-day-heading {
+	margin-top: 0.5rem;
+}
+
+.calendar-apply-btn {
+	justify-self: start;
+}
+
+.calendar-item {
+	display: grid;
+	gap: 0.2rem;
+	padding: 0.65rem 0.75rem;
+	border: 1px solid var(--border);
+	border-radius: 12px;
+	background: #fafafa;
+}
+
+@media (max-width: 900px) {
+	.calendar-layout {
+		grid-template-columns: 1fr;
+	}
 }
 
 @media (max-width: 640px) {

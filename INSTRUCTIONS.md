@@ -142,9 +142,12 @@ Company Admin must **not** get UI to toggle tenant modules — only Super Admin 
 
 **Tenants page (`/tenants`)**
 - Create tenant (plan, seats, admin invite)
+- Create tenant also captures billing contact emails and initial organisation setup (locations, departments, teams) so the new company admin does not start with empty department/team dropdowns.
+- Sri Lanka defaults are implicit: `en-LK`, `LKR`, April fiscal year, and the standard LKR payslip template. Do not show those as onboarding fields for the current Sri Lanka-only product.
+- Company code is shown for login/reference only. Do not add "Copy company code" buttons back to tenant tables or onboarding success messages.
 - **Configure Tenant** modal per active tenant:
   - Subscription plan dropdown (applies preset defaults to module checkboxes)
-  - Locale / currency / fiscal year start month
+  - Included seats from the selected plan
   - Module checkboxes (Employees, Organisation, Leave, Attendance, …)
   - Per-module custom field toggles (enabled / required) — e.g. Religion, NIC on Employees
 - Save → `PUT /api/tenants/:id/configuration`
@@ -153,7 +156,13 @@ Company Admin must **not** get UI to toggle tenant modules — only Super Admin 
 - Add modules and fields to the global catalog (Super Admin only)
 - APIs via `tenant-configuration.service.ts`
 
-Sidebar (Super Admin): Dashboard, Tenants, Platform Catalog, Cross-Tenant Reports, Leads, Company Payments, Invitations.
+Sidebar (Super Admin): Dashboard, Tenants, Leads, Company Payments, Platform Reports; Configuration group → Subscription & Billing, Invitations.
+
+**Core HR tools (included on all plans)**
+- Invitations, HR Letters, and Team Feedback are always available — they are **not** subscription module toggles.
+- Dashboard → **People tools** panel links to `/letters` and `/feedback` for Company Admin, HR Manager, and Team Lead.
+- Invitations live under the **Configuration** sidebar group (not main nav).
+- Company Admin can list and submit team feedback (`GET`/`POST /api/feedback`).
 
 ### 14.3 Company Admin Configuration UX
 
@@ -165,7 +174,11 @@ Sidebar (Super Admin): Dashboard, Tenants, Platform Catalog, Cross-Tenant Report
 **Access Configuration tab**
 - Edit permission checkboxes for tenant-scoped roles
 
-Configuration sidebar group auto-expands for Company Admin.
+Configuration sidebar group auto-expands for Company Admin and for HR Managers with invitation access.
+
+**Core HR tools (included on all plans)**
+- Invitations, HR Letters, Team Feedback — shown as chips on tenant onboarding; not gated by `enabledModules`.
+- Main sidebar no longer lists Letters, Feedback, or Invitations; use Dashboard people tools or Configuration → Invitations.
 
 ### 14.4 Auth Session Fields (Login Response)
 
@@ -193,6 +206,7 @@ Key helpers in `auth.service.ts`:
 **Employees page**
 - Loads organisation APIs only when `auth.hasModule('organisation')`
 - Renders custom employee fields from tenant config
+- Employee profile page opens in read-only mode. Users click "Edit profile" to update enabled personal/custom fields; HR-owned fields like department, team, role, status, and salary remain read-only there.
 
 ### 14.6 API Integration
 
@@ -368,7 +382,7 @@ Also wired in FE service:
 | 5 | Tree tab renders location-centric API | ✅ Done | depends on BE `getTree()` shape |
 | 6 | Edit/delete actions in tables | ✅ Done | `organisation.service.ts`, `organisation-page.component.*` |
 | 7 | Employee form: pick department/team/location | ✅ Done | `employees-page.component.*` |
-| 8 | Department manager picker | ⏳ Next | after employee FK wiring |
+| 8 | Department manager picker | ✅ Done | `organisation-page.component.*` — employee dropdown in create/edit forms; manager shown in table + tree |
 
 ### 12.6 Rules for AI Agents Working on Org UI
 
@@ -414,3 +428,41 @@ These are enforced UX behaviors and should not be regressed:
 - Employee delete UX guard:
 	- In employee table, delete action for `COMPANY_ADMIN` targets is disabled for company admin users.
 	- Tooltip/message must clearly state only super admin can delete company admin users.
+
+---
+
+## 15) Recent Additions (BRD Gap-Fill)
+
+### 15.1 Employee Date of Birth
+- `dateOfBirth` date input added to Employee edit dialog (`employees-page.component.html`).
+- Pre-populated from `employee.dateOfBirth` when editing.
+- Sent to `PATCH /api/employees/:id` as optional ISO date string.
+
+### 15.2 Leave Presets — Paternity Removed
+- `SRI_LANKA_LEAVE_POLICIES` in `core/constants/leave-presets.ts` no longer includes Paternity.
+- Tenant create form (Tenants page) will no longer show Paternity in default leave table.
+
+### 15.3 Dashboard — BRD 6.1 Gap-Fill
+Company Admin / HR Manager view now shows:
+- KPI cards: Total Employees, Open Positions, Monthly Burn Rate (real LKR), Attendance % (today).
+- Leave trends line chart (7-month sparkline using `leaveTrendSeries`).
+- Recruitment funnel bar chart (candidates by pipeline stage).
+- Recent hires table (last 5 joined employees).
+- Pending approvals cards (unchanged).
+
+Employee view now shows:
+- Quick actions panel: Request Leave, View Payslip, Clock In/Out, My Profile.
+- Team birthdays: colleagues with DOB in next 30 days (requires DOB populated on employee records).
+- Upcoming public holidays: next 5 Sri Lanka public holidays.
+- Pending approvals (own leave requests).
+
+### 15.4 Organisation — Department Manager
+- Department create/edit forms show an employee dropdown for manager assignment.
+- Departments table shows manager name column.
+- Tree view shows manager chip on department nodes.
+- `organisation.service.ts` calls `list()` from `EmployeesService` to populate dropdown.
+
+### 15.5 Attendance Settings
+- New **Settings** tab on Attendance page (visible to COMPANY_ADMIN / HR_MANAGER).
+- Configure: work start/end time, late arrival grace (minutes) + action, early departure grace + action.
+- Saved to `GET/PATCH /api/attendance/settings`.

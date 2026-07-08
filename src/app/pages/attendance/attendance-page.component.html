@@ -2,16 +2,58 @@
   <div class="table-head">
     <h3>Attendance</h3>
     <div class="table-actions">
-      <span class="badge">{{ rows.length }}</span>
-      <button type="button" class="add-btn" (click)="clockIn()" [disabled]="busy">Clock In</button>
-      <button type="button" class="add-btn secondary" (click)="clockOut()" [disabled]="busy">Clock Out</button>
-      <button *ngIf="canOverrideAttendance" type="button" class="add-btn outline" (click)="toggleManualEntry()">
+      <div class="tab-group" role="tablist" aria-label="Attendance views">
+        <button type="button" class="tab-btn" [class.active]="activeTab === 'list'" (click)="activeTab = 'list'">List</button>
+        <button type="button" class="tab-btn" [class.active]="activeTab === 'calendar'" (click)="activeTab = 'calendar'">Calendar</button>
+        <button *ngIf="canOverrideAttendance" type="button" class="tab-btn" [class.active]="activeTab === 'settings'" (click)="loadSettingsTab()">Settings</button>
+      </div>
+      <button type="button" class="btn-primary" (click)="clockIn()" [disabled]="busy">Clock In</button>
+      <button type="button" class="btn-secondary" (click)="clockOut()" [disabled]="busy">Clock Out</button>
+      <button *ngIf="canOverrideAttendance" type="button" class="btn-outline" (click)="toggleManualEntry()">
         {{ showOverrideForm ? 'Cancel Manual Entry' : '+ Manual Entry' }}
       </button>
     </div>
   </div>
 
   <p *ngIf="message" class="{{ messageType === 'success' ? 'success' : 'error' }}">{{ message }}</p>
+
+  <section class="list-filters">
+    <label>
+      From
+      <input [(ngModel)]="listFilters.dateFrom" (ngModelChange)="onListFilterChange()" type="date" name="attFrom" />
+    </label>
+    <label>
+      To
+      <input [(ngModel)]="listFilters.dateTo" (ngModelChange)="onListFilterChange()" type="date" name="attTo" />
+    </label>
+    <label>
+      Status
+      <select [(ngModel)]="listFilters.status" (ngModelChange)="onListFilterChange()" name="attStatus">
+        <option value="ALL">All statuses</option>
+        <option value="PRESENT">Present</option>
+        <option value="LATE">Late</option>
+        <option value="EARLY_DEPARTURE">Early departure</option>
+        <option value="LATE_AND_EARLY">Late &amp; early</option>
+        <option value="INCOMPLETE">Incomplete</option>
+        <option value="ON_LEAVE">On leave</option>
+        <option value="HOLIDAY">Holiday</option>
+        <option value="WEEKEND">Weekend</option>
+        <option value="ABSENT">Absent</option>
+      </select>
+    </label>
+    <label *ngIf="canViewAllEmployees">
+      Employee
+      <select [(ngModel)]="listFilters.employeeId" (ngModelChange)="onListFilterChange()" name="attEmployee">
+        <option [ngValue]="0">All employees</option>
+        <option *ngFor="let employee of employees" [ngValue]="employee.id">{{ employee.name }}</option>
+      </select>
+    </label>
+    <label *ngIf="canViewAllEmployees">
+      Search
+      <input [(ngModel)]="listFilters.search" (ngModelChange)="onListFilterChange()" type="search" placeholder="Name or email" name="attSearch" />
+    </label>
+    <button type="button" class="btn-secondary filter-clear" (click)="clearListFilters()">Clear filters</button>
+  </section>
 
   <section class="create-panel" *ngIf="showOverrideForm">
     <h4>Manual Attendance Entry</h4>
@@ -33,10 +75,31 @@
     <button type="button" class="add-btn" (click)="submitOverride()" [disabled]="busy">Save Entry</button>
   </section>
 
-  <table>
-    <thead><tr><th>Employee</th><th>Date</th><th>Clock In</th><th>Clock Out</th><th>Hours</th><th>Status</th></tr></thead>
+  <ng-container *ngIf="activeTab === 'calendar'">
+    <div class="calendar-layout">
+      <app-month-calendar
+        [markers]="calendarMarkers"
+        [selectedDate]="selectedCalendarDate"
+        (selectedDateChange)="onCalendarDateSelected($event)"
+      ></app-month-calendar>
+      <div class="calendar-side">
+        <h4 *ngIf="selectedCalendarDate">Attendance on {{ selectedCalendarDate + 'T12:00:00' | date: 'mediumDate' }}</h4>
+        <p *ngIf="!selectedCalendarDate" class="text-muted">Select a date to browse filtered attendance records.</p>
+        <div class="calendar-item" *ngFor="let r of calendarFilteredRows">
+          <strong>{{ employeeName(r) }}</strong>
+          <small>{{ employeeEmail(r) }}</small>
+          <span class="badge" [ngClass]="r.status?.toLowerCase()?.split(':')[0]?.trim()">{{ r.status }}</span>
+          <small>{{ r.clockIn | date:'shortTime' }} – {{ r.clockOut | date:'shortTime' }} · {{ r.hours }}h</small>
+        </div>
+        <p *ngIf="selectedCalendarDate && !calendarFilteredRows.length" class="text-muted">No attendance records on this date.</p>
+      </div>
+    </div>
+  </ng-container>
+
+  <table *ngIf="activeTab === 'list'">
+    <thead><tr><th>Employee</th><th>Date</th><th>Clock In</th><th>Clock Out</th><th>Hours</th><th>OT</th><th>Status</th></tr></thead>
     <tbody>
-      <tr *ngFor="let r of rows">
+      <tr *ngFor="let r of paginatedListRows">
         <td class="employee-cell">
           <div><strong>{{ employeeName(r) }}</strong></div>
           <div><small>{{ employeeEmail(r) }}</small></div>
@@ -45,8 +108,285 @@
         <td>{{ r.clockIn | date:'shortTime' }}</td>
         <td>{{ r.clockOut | date:'shortTime' }}</td>
         <td>{{ r.hours }}</td>
+        <td>{{ r.overtimeHours || 0 }}</td>
         <td><span class="badge" [ngClass]="r.status?.toLowerCase()?.split(':')[0]?.trim()">{{ r.status }}</span></td>
       </tr>
     </tbody>
   </table>
+  <p *ngIf="activeTab === 'list' && !filteredListRows.length" class="text-muted empty-filter-msg">No attendance records match your filters.</p>
+  <app-list-pagination
+    *ngIf="activeTab === 'list'"
+    [pagination]="listPagination"
+    (pageChange)="onListPageChange($event)"
+    (limitChange)="onListLimitChange($event)"
+  ></app-list-pagination>
+
+  <!-- Attendance Settings Tab -->
+  <ng-container *ngIf="activeTab === 'settings' && canOverrideAttendance">
+    <section class="settings-layout">
+      <nav class="settings-nav" aria-label="Attendance settings sections">
+        <button type="button" class="settings-nav-btn" [class.active]="settingsSection === 'schedule'" (click)="setSettingsSection('schedule')">Work Schedule</button>
+        <button type="button" class="settings-nav-btn" [class.active]="settingsSection === 'late'" (click)="setSettingsSection('late')">Late Rules</button>
+        <button type="button" class="settings-nav-btn" [class.active]="settingsSection === 'early'" (click)="setSettingsSection('early')">Early Departure</button>
+        <button type="button" class="settings-nav-btn" [class.active]="settingsSection === 'overtime'" (click)="setSettingsSection('overtime')">Overtime Rules</button>
+        <button type="button" class="settings-nav-btn" [class.active]="settingsSection === 'missing'" (click)="setSettingsSection('missing')">Missing Attendance</button>
+        <button type="button" class="settings-nav-btn" [class.active]="settingsSection === 'payroll'" (click)="setSettingsSection('payroll')">Payroll Integration</button>
+        <button type="button" class="settings-nav-btn" [class.active]="settingsSection === 'shifts'" (click)="setSettingsSection('shifts')">Shift Management</button>
+        <button type="button" class="settings-nav-btn" [class.active]="settingsSection === 'holidays'" (click)="setSettingsSection('holidays')">Holidays &amp; Weekends</button>
+      </nav>
+
+      <div class="settings-panel">
+        <section *ngIf="settingsSection === 'schedule'">
+          <h4>Work schedule</h4>
+          <p class="field-hint">Company default hours. Employees can inherit these or use an assigned shift.</p>
+          <div class="settings-grid">
+            <label>
+              Schedule mode
+              <select [(ngModel)]="settingsForm.scheduleMode" name="scheduleMode">
+                <option *ngFor="let option of scheduleModeOptions" [value]="option.value">{{ option.label }}</option>
+              </select>
+            </label>
+            <label>
+              Work start time
+              <input [(ngModel)]="settingsForm.workStartTime" name="workStartTime" type="time" />
+            </label>
+            <label>
+              Work end time
+              <input [(ngModel)]="settingsForm.workEndTime" name="workEndTime" type="time" />
+            </label>
+          </div>
+        </section>
+
+        <section *ngIf="settingsSection === 'late'">
+          <h4>Late arrival rules</h4>
+          <p class="field-hint">Grace periods, enforcement actions, and escalation for repeated late arrivals.</p>
+          <div class="settings-grid">
+            <label>
+              Late arrival grace (minutes)
+              <input [(ngModel)]="settingsForm.lateArrivalGraceMinutes" name="lateGrace" type="number" min="0" max="120" />
+            </label>
+            <label>
+              Late arrival action
+              <select [(ngModel)]="settingsForm.lateArrivalAction" name="lateAction">
+                <option *ngFor="let option of actionOptions" [value]="option.value">{{ option.label }}</option>
+              </select>
+            </label>
+            <label>
+              Repeated late threshold
+              <input [(ngModel)]="settingsForm.lateArrivalRepeatedThreshold" name="lateThreshold" type="number" min="1" max="30" />
+              <span class="field-hint">Escalate after this many late arrivals in a month</span>
+            </label>
+            <label>
+              Escalation action
+              <select [(ngModel)]="settingsForm.lateArrivalEscalationAction" name="lateEscalation">
+                <option *ngFor="let option of actionOptions" [value]="option.value">{{ option.label }}</option>
+              </select>
+            </label>
+          </div>
+        </section>
+
+        <section *ngIf="settingsSection === 'early'">
+          <h4>Early departure rules</h4>
+          <div class="settings-grid">
+            <label>
+              Early departure grace (minutes)
+              <input [(ngModel)]="settingsForm.earlyDepartureGraceMinutes" name="earlyGrace" type="number" min="0" max="120" />
+            </label>
+            <label>
+              Early departure action
+              <select [(ngModel)]="settingsForm.earlyDepartureAction" name="earlyAction">
+                <option *ngFor="let option of actionOptions" [value]="option.value">{{ option.label }}</option>
+              </select>
+            </label>
+          </div>
+        </section>
+
+        <section *ngIf="settingsSection === 'overtime'">
+          <h4>Overtime rules</h4>
+          <p class="field-hint">Configure when overtime starts, minimum duration, rounding, and pay multipliers.</p>
+          <div class="settings-grid">
+            <label class="checkbox-row">
+              <input [(ngModel)]="settingsForm.overtimeEnabled" name="overtimeEnabled" type="checkbox" />
+              Enable overtime tracking
+            </label>
+            <label class="checkbox-row">
+              <input [(ngModel)]="settingsForm.overtimeRules.startAfterScheduledEnd" name="otAfterEnd" type="checkbox" />
+              OT starts after scheduled end time
+            </label>
+            <label>
+              Minimum OT (minutes)
+              <input [(ngModel)]="settingsForm.overtimeRules.minimumMinutes" name="otMin" type="number" min="0" max="120" />
+            </label>
+            <label>
+              Round OT to (minutes)
+              <input [(ngModel)]="settingsForm.overtimeRules.roundToMinutes" name="otRound" type="number" min="0" max="60" />
+            </label>
+            <label>
+              Weekday multiplier
+              <input [(ngModel)]="settingsForm.overtimeRules.weekdayMultiplier" name="otWeekday" type="number" min="1" max="5" step="0.1" />
+            </label>
+            <label>
+              Weekend multiplier
+              <input [(ngModel)]="settingsForm.overtimeRules.weekendMultiplier" name="otWeekend" type="number" min="1" max="5" step="0.1" />
+            </label>
+            <label>
+              Public holiday multiplier
+              <input [(ngModel)]="settingsForm.overtimeRules.holidayMultiplier" name="otHoliday" type="number" min="1" max="5" step="0.1" />
+            </label>
+            <label>
+              Compensation mode
+              <select [(ngModel)]="settingsForm.overtimeRules.compensationMode" name="otComp">
+                <option value="PAY">Pay in payroll</option>
+                <option value="TIME_OFF">Grant time off</option>
+                <option value="NONE">Track only (no pay)</option>
+              </select>
+            </label>
+            <label class="checkbox-row">
+              <input [(ngModel)]="settingsForm.overtimeRules.requiresApproval" name="otApproval" type="checkbox" />
+              Require manager approval before payroll
+            </label>
+          </div>
+        </section>
+
+        <section *ngIf="settingsSection === 'missing'">
+          <h4>Missing attendance</h4>
+          <p class="field-hint">How to handle missing clock-in, clock-out, or both.</p>
+          <div class="settings-grid">
+            <label>
+              Missing clock-in
+              <select [(ngModel)]="settingsForm.missingClockInAction" name="missingIn">
+                <option *ngFor="let option of missingAttendanceOptions" [value]="option.value">{{ option.label }}</option>
+              </select>
+            </label>
+            <label>
+              Missing clock-out
+              <select [(ngModel)]="settingsForm.missingClockOutAction" name="missingOut">
+                <option *ngFor="let option of missingAttendanceOptions" [value]="option.value">{{ option.label }}</option>
+              </select>
+            </label>
+            <label>
+              Missing both
+              <select [(ngModel)]="settingsForm.missingBothAction" name="missingBoth">
+                <option *ngFor="let option of missingAttendanceOptions" [value]="option.value">{{ option.label }}</option>
+              </select>
+            </label>
+            <label class="checkbox-row">
+              <input [(ngModel)]="settingsForm.autoAbsentEnabled" name="autoAbsent" type="checkbox" />
+              Auto-mark absent when no attendance
+            </label>
+            <label class="checkbox-row">
+              <input [(ngModel)]="settingsForm.requireManagerApproval" name="managerApproval" type="checkbox" />
+              Require manager approval for corrections
+            </label>
+          </div>
+        </section>
+
+        <section *ngIf="settingsSection === 'payroll'">
+          <h4>Payroll integration</h4>
+          <p class="field-hint">Payroll uses attendance together with leave, holidays, weekends, shifts, and overtime — never attendance alone.</p>
+          <div class="settings-grid">
+            <label class="checkbox-row">
+              <input [(ngModel)]="settingsForm.payrollIntegration.useAttendanceForPayableHours" name="payHours" type="checkbox" />
+              Calculate payable hours from attendance
+            </label>
+            <label class="checkbox-row">
+              <input [(ngModel)]="settingsForm.payrollIntegration.ignoreApprovedLeave" name="payLeave" type="checkbox" />
+              Ignore approved leave days
+            </label>
+            <label class="checkbox-row">
+              <input [(ngModel)]="settingsForm.payrollIntegration.ignoreCompanyHolidays" name="payHoliday" type="checkbox" />
+              Ignore company holidays
+            </label>
+            <label class="checkbox-row">
+              <input [(ngModel)]="settingsForm.payrollIntegration.ignoreWeekends" name="payWeekend" type="checkbox" />
+              Ignore weekends
+            </label>
+            <label class="checkbox-row">
+              <input [(ngModel)]="settingsForm.payrollIntegration.deductLateArrivals" name="payLate" type="checkbox" />
+              Deduct salary for late arrivals
+            </label>
+            <label class="checkbox-row">
+              <input [(ngModel)]="settingsForm.payrollIntegration.deductEarlyDepartures" name="payEarly" type="checkbox" />
+              Deduct salary for early departures
+            </label>
+            <label class="checkbox-row">
+              <input [(ngModel)]="settingsForm.payrollIntegration.deductAbsences" name="payAbsent" type="checkbox" />
+              Deduct salary for absences
+            </label>
+            <label class="checkbox-row">
+              <input [(ngModel)]="settingsForm.payrollIntegration.includeOvertime" name="payOt" type="checkbox" />
+              Include overtime in payroll
+            </label>
+            <label>
+              Missing clock-out policy
+              <select [(ngModel)]="settingsForm.payrollIntegration.missingClockOutPolicy" name="payMissingOut">
+                <option value="USE_SCHEDULED_END">Use scheduled end time</option>
+                <option value="FLAG">Flag for review</option>
+                <option value="ABSENT">Treat as absent</option>
+              </select>
+            </label>
+          </div>
+        </section>
+
+        <section *ngIf="settingsSection === 'shifts'">
+          <h4>Shift management</h4>
+          <p class="field-hint">Define multiple shifts per company. Assign shifts to employees from the Employees page.</p>
+          <div class="settings-grid">
+            <label>Shift name<input [(ngModel)]="shiftForm.name" name="shiftName" type="text" placeholder="Morning shift" /></label>
+            <label>Start time<input [(ngModel)]="shiftForm.startTime" name="shiftStart" type="time" /></label>
+            <label>End time<input [(ngModel)]="shiftForm.endTime" name="shiftEnd" type="time" /></label>
+            <label>Break (minutes)<input [(ngModel)]="shiftForm.breakMinutes" name="shiftBreak" type="number" min="0" /></label>
+            <label class="checkbox-row"><input [(ngModel)]="shiftForm.isNightShift" name="shiftNight" type="checkbox" /> Night shift</label>
+            <label class="checkbox-row"><input [(ngModel)]="shiftForm.isDefault" name="shiftDefault" type="checkbox" /> Default shift</label>
+            <label class="checkbox-row"><input [(ngModel)]="shiftForm.overtimeEligible" name="shiftOt" type="checkbox" /> Overtime eligible</label>
+          </div>
+          <button type="button" class="btn-secondary" (click)="addShift()" [disabled]="settingsBusy">Add shift</button>
+          <div class="inline-list" *ngIf="shifts.length">
+            <div class="inline-list-item" *ngFor="let shift of shifts">
+              <div>
+                <strong>{{ shift.name }}</strong>
+                <small>{{ shift.startTime }} – {{ shift.endTime }} · Break {{ shift.breakMinutes }}m</small>
+              </div>
+              <button type="button" class="btn-outline danger" (click)="removeShift(shift.id)">Remove</button>
+            </div>
+          </div>
+        </section>
+
+        <section *ngIf="settingsSection === 'holidays'">
+          <h4>Holidays &amp; weekends</h4>
+          <div class="settings-grid">
+            <label>
+              Weekend pattern
+              <select [(ngModel)]="settingsForm.weekendPreset" name="weekendPreset" (ngModelChange)="onWeekendPresetChange()">
+                <option *ngFor="let option of weekendPresetOptions" [value]="option.value">{{ option.label }}</option>
+              </select>
+            </label>
+          </div>
+          <h5>Company holidays</h5>
+          <div class="settings-grid">
+            <label>Holiday name<input [(ngModel)]="holidayForm.name" name="holidayName" type="text" placeholder="New Year" /></label>
+            <label>Date<input [(ngModel)]="holidayForm.date" name="holidayDate" type="date" /></label>
+            <label class="checkbox-row"><input [(ngModel)]="holidayForm.isPaid" name="holidayPaid" type="checkbox" /> Paid holiday</label>
+          </div>
+          <button type="button" class="btn-secondary" (click)="addHoliday()" [disabled]="settingsBusy">Add holiday</button>
+          <div class="inline-list" *ngIf="holidays.length">
+            <div class="inline-list-item" *ngFor="let holiday of holidays">
+              <div>
+                <strong>{{ holiday.name }}</strong>
+                <small>{{ holiday.date | date:'mediumDate' }} · {{ holiday.isPaid ? 'Paid' : 'Unpaid' }}</small>
+              </div>
+              <button type="button" class="btn-outline danger" (click)="removeHoliday(holiday.id)">Remove</button>
+            </div>
+          </div>
+        </section>
+
+        <div class="settings-actions" *ngIf="settingsSection !== 'shifts'">
+          <button type="button" class="btn-primary" (click)="saveSettings()" [disabled]="settingsBusy">
+            {{ settingsBusy ? 'Saving...' : 'Save settings' }}
+          </button>
+        </div>
+        <p *ngIf="settingsMessage" [class]="settingsMessageType === 'success' ? 'success' : 'error'">{{ settingsMessage }}</p>
+      </div>
+    </section>
+  </ng-container>
 </section>

@@ -7,27 +7,6 @@
   gap: 1rem;
 }
 
-.tab-strip {
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-
-.tab-btn {
-  border: 1px solid var(--border);
-  background: #fff;
-  color: var(--text);
-  border-radius: 999px;
-  padding: 0.42rem 0.85rem;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.tab-btn.active {
-  border-color: var(--brand);
-  color: var(--brand-strong);
-}
-
 .config-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -95,9 +74,60 @@
 }
 
 .role-create,
-.assign-grid {
+.assign-grid,
+.assign-panel {
   display: grid;
   gap: 0.55rem;
+}
+
+.assign-panel {
+  gap: 0.75rem;
+}
+
+.search-label input[type='search'] {
+  width: 100%;
+}
+
+.user-picker-list {
+  display: grid;
+  gap: 0.45rem;
+  max-height: 220px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.45rem;
+  background: #fafafa;
+}
+
+.user-picker-item {
+  display: grid;
+  gap: 0.1rem;
+  text-align: left;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  padding: 0.55rem 0.65rem;
+  cursor: pointer;
+}
+
+.user-picker-item strong {
+  font-size: 0.9rem;
+  color: #0f172a;
+}
+
+.user-picker-item span {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.user-picker-item.selected {
+  border-color: #f47421;
+  background: #fff7ed;
+  box-shadow: inset 0 0 0 1px #f47421;
+}
+
+.user-picker-item:hover {
+  border-color: #fdba74;
 }
 
 label {
@@ -299,6 +329,7 @@ select {
 .reference-panel {
   opacity: 0.92;
 }
+.warning-text {
   font-size: 0.85rem;
   color: var(--muted);
   margin: 0 0 0.65rem;

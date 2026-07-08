@@ -3,7 +3,7 @@
     <h3>Tenants / Companies</h3>
     <div class="table-actions">
       <span class="badge">{{ activePagination.total + archivedPagination.total }}</span>
-      <button type="button" class="add-btn" (click)="openCreateForm()">+ New Tenant</button>
+      <button type="button" class="btn-primary" (click)="openCreateForm()">+ New Tenant</button>
     </div>
   </div>
 
@@ -39,39 +39,80 @@
         <span class="field-hint">Auto-set from plan ({{ formatSeats(form.subscriptionPlan, form.seats) }} included)</span>
       </label>
       <label>
-        Locale
-        <input [(ngModel)]="configLocale.locale" name="createLocale" type="text" />
-      </label>
-      <label>
-        Currency
-        <input [(ngModel)]="configLocale.currency" name="createCurrency" type="text" />
-      </label>
-      <label>
-        Fiscal year start month
-        <input [(ngModel)]="configLocale.fiscalYearStartMonth" name="createFiscalMonth" type="number" min="1" max="12" />
-      </label>
-      <label>
-        Payslip template
-        <select [(ngModel)]="configLocale.payslipTemplateKey" name="createPayslipTemplate">
-          <option *ngFor="let option of payslipTemplateOptions" [value]="option.key">{{ option.label }}</option>
-        </select>
+        Billing contact emails
+        <input [(ngModel)]="form.billingContactEmails" name="billingContactEmails" type="text" placeholder="finance@acme.lk, admin@acme.lk" />
+        <span class="field-hint">Finance or accounts emails for payment reminders. These appear in Company Payments and are used instead of the admin login email when set.</span>
       </label>
     </div>
+
+    <section class="config-panel company-profile-panel">
+      <h5>Company details (Sri Lanka)</h5>
+      <p class="field-hint">
+        Registry and statutory details for billing, payroll setup, and compliance. Company Admin can refine these later.
+      </p>
+      <div class="form-grid">
+        <label>
+          Business Registration No (BR)
+          <input [(ngModel)]="companyProfile.brNumber" name="companyBrNumber" type="text" placeholder="PV 12345" />
+          <span class="field-hint">Registrar of Companies — PV/BRC number</span>
+        </label>
+        <label>
+          Industry
+          <select [(ngModel)]="companyProfile.industryType" name="companyIndustry">
+            <option value="">Select industry</option>
+            <option *ngFor="let industry of industryOptions" [value]="industry">{{ industry }}</option>
+          </select>
+        </label>
+        <label>
+          District
+          <select [(ngModel)]="companyProfile.district" name="companyDistrict">
+            <option value="">Select district</option>
+            <option *ngFor="let district of districtOptions" [value]="district">{{ district }}</option>
+          </select>
+        </label>
+        <label>
+          City / town
+          <input [(ngModel)]="companyProfile.city" name="companyCity" type="text" placeholder="Colombo 03" />
+        </label>
+        <label class="span-2">
+          Registered address
+          <input [(ngModel)]="companyProfile.registeredAddress" name="companyAddress" type="text" placeholder="No. 10, Galle Road, Colombo" />
+        </label>
+        <label>
+          Company phone
+          <input [(ngModel)]="companyProfile.companyPhone" name="companyPhone" type="tel" placeholder="+94 11 234 5678" />
+        </label>
+        <label>
+          Admin phone
+          <input [(ngModel)]="companyProfile.adminPhone" name="adminPhone" type="tel" placeholder="+94 77 123 4567" />
+        </label>
+        <label>
+          Company email
+          <input [(ngModel)]="companyProfile.companyEmail" name="companyEmail" type="email" placeholder="info@acme.lk" />
+        </label>
+        <label>
+          TIN (Tax ID)
+          <input [(ngModel)]="companyProfile.tinNumber" name="companyTin" type="text" placeholder="123456789" />
+          <span class="field-hint">Inland Revenue Department tax identification</span>
+        </label>
+        <label>
+          Website
+          <input [(ngModel)]="companyProfile.website" name="companyWebsite" type="url" placeholder="https://acme.lk" />
+        </label>
+      </div>
+    </section>
 
     <section class="config-panel leave-setup-panel" *ngIf="isLeaveModuleEnabled()">
       <div class="panel-head">
         <h5>Leave policies (Sri Lanka defaults — editable)</h5>
         <button type="button" class="action-btn" (click)="resetLeavePoliciesToSriLanka()">Reset to SL defaults</button>
       </div>
-      <p class="field-hint">Annual, Casual, Sick, Medical, Maternity, and Paternity. Adjust days and accrual per company.</p>
+      <p class="field-hint">Sri Lanka defaults are pre-filled. Adjust only the annual entitlement needed for this company.</p>
       <table class="leave-policy-table">
         <thead>
           <tr>
             <th>Type</th>
             <th>Days</th>
-            <th>Carry forward</th>
-            <th>Monthly accrual</th>
-            <th>Scope</th>
             <th></th>
           </tr>
         </thead>
@@ -79,15 +120,6 @@
           <tr *ngFor="let policy of leavePolicies; let i = index">
             <td><input [(ngModel)]="policy.name" [name]="'createLeaveName' + i" type="text" /></td>
             <td><input [(ngModel)]="policy.days" [name]="'createLeaveDays' + i" type="number" min="0" step="0.5" /></td>
-            <td><input [(ngModel)]="policy.carryForwardLimit" [name]="'createLeaveCarry' + i" type="number" min="0" step="0.5" /></td>
-            <td><input [(ngModel)]="policy.accrualRate" [name]="'createLeaveAccrual' + i" type="number" min="0" step="0.01" /></td>
-            <td>
-              <select [(ngModel)]="policy.genderScope" [name]="'createLeaveScope' + i">
-                <option value="ALL">All</option>
-                <option value="FEMALE">Female</option>
-                <option value="MALE">Male</option>
-              </select>
-            </td>
             <td><button type="button" class="action-btn danger" (click)="removeLeavePolicyRow(i)">Remove</button></td>
           </tr>
         </tbody>
@@ -95,26 +127,31 @@
       <button type="button" class="action-btn" (click)="addLeavePolicyRow()">+ Add leave type</button>
     </section>
 
-    <section class="config-panel" *ngIf="configModules.length">
-      <h5>Tenant modules and features</h5>
-      <div class="module-block" *ngFor="let module of configModules">
-        <label class="module-toggle">
-          <input type="checkbox" [(ngModel)]="module.enabled" [name]="'create-module-' + module.key" />
-          {{ module.label }}
-        </label>
-        <div class="field-grid" *ngIf="module.enabled && module.fields.length">
-          <label *ngFor="let field of module.fields" class="field-toggle">
-            <input type="checkbox" [(ngModel)]="field.enabled" [name]="'create-field-' + module.key + '-' + field.fieldKey" />
-            {{ field.label }}
-            <input type="checkbox" [(ngModel)]="field.required" [name]="'create-required-' + module.key + '-' + field.fieldKey" />
-            Required
-          </label>
-        </div>
-      </div>
+    <section class="config-panel plan-modules-panel">
+      <h5>Included on all plans</h5>
+      <p class="field-hint">Always available to every tenant — not controlled by subscription module toggles.</p>
+      <ul class="module-chip-list">
+        <li class="module-chip core-tool">Invitations</li>
+        <li class="module-chip core-tool">HR Letters</li>
+        <li class="module-chip core-tool">Team Feedback</li>
+      </ul>
+    </section>
+
+    <section class="config-panel plan-modules-panel" *ngIf="planModulesForCreate().length">
+      <h5>Included modules (from subscription plan)</h5>
+      <p class="field-hint">
+        Modules are selected automatically from the plan. Company Admin configures employee fields under Configuration → Module & Templates.
+      </p>
+      <ul class="module-chip-list">
+        <li *ngFor="let mod of planModulesForCreate()" class="module-chip">
+          <span class="module-icon" aria-hidden="true">{{ moduleIcon(mod) }}</span>
+          {{ moduleLabel(mod) }}
+        </li>
+      </ul>
     </section>
 
     <p class="error" *ngIf="errorMessage">{{ errorMessage }}</p>
-    <button type="button" class="add-btn" (click)="createTenant()" [disabled]="creating">
+    <button type="button" class="btn-primary" (click)="createTenant()" [disabled]="creating">
       {{ creating ? 'Creating...' : 'Create Company' }}
     </button>
   </section>
@@ -122,15 +159,15 @@
   <p class="success" *ngIf="successMessage">{{ successMessage }}</p>
   <p class="success code-success" *ngIf="createdCompanyCode">
     Company code: <strong>{{ createdCompanyCode }}</strong>
-    <button type="button" class="action-btn copy" (click)="copyCompanyCode(createdCompanyCode)">Copy</button>
   </p>
 
   <h4 class="section-title">Active Tenants</h4>
+  <div class="table-scroll">
   <table>
     <thead>
       <tr>
         <th>Name</th>
-        <th>Company Code</th>
+        <th>BR No</th>
         <th>Plan</th>
         <th>Seats</th>
         <th>Users</th>
@@ -144,13 +181,7 @@
     <tbody>
       <tr *ngFor="let r of activeRows">
         <td>{{ r.name }}</td>
-        <td>
-          <div class="code-cell" *ngIf="r.companyCode; else noCode">
-            <span>{{ r.companyCode }}</span>
-            <button type="button" class="action-btn copy" (click)="copyCompanyCode(r.companyCode)">Copy</button>
-          </div>
-          <ng-template #noCode>-</ng-template>
-        </td>
+        <td>{{ r.companyProfile?.brNumber || '—' }}</td>
         <td>{{ formatPlanLabel(r.plan) }}</td>
         <td>{{ formatSeats(r.plan, r.seats) }}</td>
         <td>{{ r.usersCount ?? 0 }}</td>
@@ -191,6 +222,7 @@
       </tr>
     </tbody>
   </table>
+  </div>
   <app-list-pagination
     [pagination]="activePagination"
     [disabled]="activeLoading"
@@ -199,11 +231,12 @@
   </app-list-pagination>
 
   <h4 class="section-title archived">Suspended / Archived Tenants</h4>
+  <div class="table-scroll">
   <table>
     <thead>
       <tr>
         <th>Name</th>
-        <th>Company Code</th>
+        <th>BR No</th>
         <th>Plan</th>
         <th>Seats</th>
         <th>Users</th>
@@ -217,7 +250,7 @@
     <tbody>
       <tr *ngFor="let r of archivedRows">
         <td>{{ r.name }}</td>
-        <td>{{ r.companyCode || '-' }}</td>
+        <td>{{ r.companyProfile?.brNumber || '—' }}</td>
         <td>{{ formatPlanLabel(r.plan) }}</td>
         <td>{{ formatSeats(r.plan, r.seats) }}</td>
         <td>{{ r.usersCount ?? 0 }}</td>
@@ -242,6 +275,7 @@
       </tr>
     </tbody>
   </table>
+  </div>
   <app-list-pagination
     [pagination]="archivedPagination"
     [disabled]="archivedLoading"
@@ -281,6 +315,58 @@
       <span class="field-hint">Auto-set from plan</span>
     </label>
   </div>
+
+  <section class="config-panel company-profile-panel">
+    <h5>Company details (Sri Lanka)</h5>
+    <div class="dialog-grid">
+      <label>
+        Business Registration No (BR)
+        <input [(ngModel)]="editCompanyProfile.brNumber" name="editCompanyBrNumber" type="text" />
+      </label>
+      <label>
+        Industry
+        <select [(ngModel)]="editCompanyProfile.industryType" name="editCompanyIndustry">
+          <option value="">Select industry</option>
+          <option *ngFor="let industry of industryOptions" [value]="industry">{{ industry }}</option>
+        </select>
+      </label>
+      <label>
+        District
+        <select [(ngModel)]="editCompanyProfile.district" name="editCompanyDistrict">
+          <option value="">Select district</option>
+          <option *ngFor="let district of districtOptions" [value]="district">{{ district }}</option>
+        </select>
+      </label>
+      <label>
+        City / town
+        <input [(ngModel)]="editCompanyProfile.city" name="editCompanyCity" type="text" />
+      </label>
+      <label class="span-2">
+        Registered address
+        <input [(ngModel)]="editCompanyProfile.registeredAddress" name="editCompanyAddress" type="text" />
+      </label>
+      <label>
+        Company phone
+        <input [(ngModel)]="editCompanyProfile.companyPhone" name="editCompanyPhone" type="tel" />
+      </label>
+      <label>
+        Admin phone
+        <input [(ngModel)]="editCompanyProfile.adminPhone" name="editAdminPhone" type="tel" />
+      </label>
+      <label>
+        Company email
+        <input [(ngModel)]="editCompanyProfile.companyEmail" name="editCompanyEmail" type="email" />
+      </label>
+      <label>
+        TIN (Tax ID)
+        <input [(ngModel)]="editCompanyProfile.tinNumber" name="editCompanyTin" type="text" />
+      </label>
+      <label>
+        Website
+        <input [(ngModel)]="editCompanyProfile.website" name="editCompanyWebsite" type="url" />
+      </label>
+    </div>
+  </section>
 </app-edit-dialog-shell>
 
 <app-edit-dialog-shell
@@ -305,24 +391,6 @@
       Included seats
       <input [ngModel]="formatSeats(configPlan, configSeats)" name="configSeats" type="text" readonly />
     </label>
-    <label>
-      Locale
-      <input [(ngModel)]="configLocale.locale" name="configLocale" type="text" />
-    </label>
-    <label>
-      Currency
-      <input [(ngModel)]="configLocale.currency" name="configCurrency" type="text" />
-    </label>
-    <label>
-      Fiscal year start month
-      <input [(ngModel)]="configLocale.fiscalYearStartMonth" name="configFiscalMonth" type="number" min="1" max="12" />
-    </label>
-    <label>
-      Payslip template
-      <select [(ngModel)]="configLocale.payslipTemplateKey" name="configPayslipTemplate">
-        <option *ngFor="let option of payslipTemplateOptions" [value]="option.key">{{ option.label }}</option>
-      </select>
-    </label>
   </div>
 
   <section class="config-panel leave-setup-panel" *ngIf="isLeaveModuleEnabled()">
@@ -330,15 +398,12 @@
       <h5>Leave policies</h5>
       <button type="button" class="action-btn" (click)="resetLeavePoliciesToSriLanka()">Reset to SL defaults</button>
     </div>
-    <p class="field-hint">Customize leave types, entitlements, and monthly accrual for this tenant.</p>
+    <p class="field-hint">Customize leave names and annual entitlements. Accrual and eligibility defaults remain Sri Lanka-based.</p>
     <table class="leave-policy-table">
       <thead>
         <tr>
           <th>Type</th>
           <th>Days</th>
-          <th>Carry forward</th>
-          <th>Monthly accrual</th>
-          <th>Scope</th>
           <th></th>
         </tr>
       </thead>
@@ -346,15 +411,6 @@
         <tr *ngFor="let policy of leavePolicies; let i = index">
           <td><input [(ngModel)]="policy.name" [name]="'configLeaveName' + i" type="text" /></td>
           <td><input [(ngModel)]="policy.days" [name]="'configLeaveDays' + i" type="number" min="0" step="0.5" /></td>
-          <td><input [(ngModel)]="policy.carryForwardLimit" [name]="'configLeaveCarry' + i" type="number" min="0" step="0.5" /></td>
-          <td><input [(ngModel)]="policy.accrualRate" [name]="'configLeaveAccrual' + i" type="number" min="0" step="0.01" /></td>
-          <td>
-            <select [(ngModel)]="policy.genderScope" [name]="'configLeaveScope' + i">
-              <option value="ALL">All</option>
-              <option value="FEMALE">Female</option>
-              <option value="MALE">Male</option>
-            </select>
-          </td>
           <td><button type="button" class="action-btn danger" (click)="removeLeavePolicyRow(i)">Remove</button></td>
         </tr>
       </tbody>
@@ -362,22 +418,27 @@
     <button type="button" class="action-btn" (click)="addLeavePolicyRow()">+ Add leave type</button>
   </section>
 
-  <section class="config-panel">
-    <h5>Modules and features</h5>
-    <div class="module-block" *ngFor="let module of configModules">
-      <label class="module-toggle">
-        <input type="checkbox" [(ngModel)]="module.enabled" [name]="'config-module-' + module.key" />
-        {{ module.label }}
-      </label>
-      <div class="field-grid" *ngIf="module.enabled && module.fields.length">
-        <label *ngFor="let field of module.fields" class="field-toggle">
-          <input type="checkbox" [(ngModel)]="field.enabled" [name]="'config-field-' + module.key + '-' + field.fieldKey" />
-          {{ field.label }}
-          <input type="checkbox" [(ngModel)]="field.required" [name]="'config-required-' + module.key + '-' + field.fieldKey" />
-          Required
-        </label>
-      </div>
-    </div>
+  <section class="config-panel plan-modules-panel">
+    <h5>Included on all plans</h5>
+    <p class="field-hint">Always available to every tenant — not controlled by subscription module toggles.</p>
+    <ul class="module-chip-list">
+      <li class="module-chip core-tool">Invitations</li>
+      <li class="module-chip core-tool">HR Letters</li>
+      <li class="module-chip core-tool">Team Feedback</li>
+    </ul>
+  </section>
+
+  <section class="config-panel plan-modules-panel" *ngIf="planModulesForConfig().length">
+    <h5>Included modules (from subscription plan)</h5>
+    <p class="field-hint">
+      Modules follow the selected plan. Employee field toggles are managed by Company Admin under Configuration → Module & Templates.
+    </p>
+    <ul class="module-chip-list">
+      <li *ngFor="let mod of planModulesForConfig()" class="module-chip">
+        <span class="module-icon" aria-hidden="true">{{ moduleIcon(mod) }}</span>
+        {{ moduleLabel(mod) }}
+      </li>
+    </ul>
   </section>
 </app-edit-dialog-shell>
 

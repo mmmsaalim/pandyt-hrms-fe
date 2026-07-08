@@ -2,9 +2,11 @@
   <div class="table-head">
     <h3>Recruitment</h3>
     <div class="table-actions">
-      <button type="button" class="tab-btn" [ngClass]="{active: activeTab === 'jobs'}" (click)="activeTab = 'jobs'">Job Posts</button>
-      <button type="button" class="tab-btn" [ngClass]="{active: activeTab === 'candidates'}" (click)="activeTab = 'candidates'">Candidates</button>
-      <button type="button" class="tab-btn" [ngClass]="{active: activeTab === 'pipeline'}" (click)="activeTab = 'pipeline'">Pipeline</button>
+      <div class="tab-group" role="tablist" aria-label="Recruitment views">
+        <button type="button" class="tab-btn" [class.active]="activeTab === 'jobs'" (click)="activeTab = 'jobs'">Job Posts</button>
+        <button type="button" class="tab-btn" [class.active]="activeTab === 'candidates'" (click)="activeTab = 'candidates'">Candidates</button>
+        <button type="button" class="tab-btn" [class.active]="activeTab === 'pipeline'" (click)="activeTab = 'pipeline'">Pipeline</button>
+      </div>
     </div>
   </div>
 

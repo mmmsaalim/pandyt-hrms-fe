@@ -16,6 +16,7 @@ export interface TenantConfigurationModuleField {
   fieldType: string;
   options?: unknown;
   isSystem: boolean;
+  isCustom?: boolean;
   enabled: boolean;
   required: boolean;
   sortOrder: number;
@@ -161,7 +162,7 @@ export class TenantConfigurationService {
   savePlatformPlans(plans: PlatformPlanDefinition[]) {
     return this.http.put<PlatformPlanDefinition[]>(`${environment.apiUrl}/platform/plans`, { plans }).pipe(
       tap(() => {
-        this.plansLoaded = false;
+        this.invalidatePlanCache();
       }),
     );
   }
@@ -171,7 +172,17 @@ export class TenantConfigurationService {
   }
 
   savePlatformBilling(dto: PlatformBillingConfig) {
-    return this.http.put(`${environment.apiUrl}/platform/billing`, dto);
+    return this.http.put(`${environment.apiUrl}/platform/billing`, dto).pipe(
+      tap(() => {
+        this.invalidatePlanCache();
+      }),
+    );
+  }
+
+  /** Clears cached plan catalog so the next read reflects billing/catalog API changes. */
+  invalidatePlanCache(): void {
+    this.plansLoaded = false;
+    this.cachedPlans = [];
   }
 
   createPlatformField(
@@ -195,5 +206,33 @@ export class TenantConfigurationService {
     },
   ) {
     return this.http.put(`${environment.apiUrl}/tenants/${tenantId}/configuration`, dto);
+  }
+
+  getOwnTenantConfiguration() {
+    return this.http.get<TenantConfigurationResponse & { config: Record<string, unknown> }>(
+      `${environment.apiUrl}/tenant/configuration`,
+    );
+  }
+
+  saveOwnTenantConfiguration(dto: {
+    moduleFeatures?: Record<string, Record<string, TenantFieldConfigInput>>;
+    letterhead?: Record<string, string>;
+    reportTemplates?: Array<{ id: string; name: string; type: string; content?: string }>;
+    payslipTemplateKey?: string;
+  }) {
+    return this.http.put<TenantConfigurationResponse & { config: Record<string, unknown> }>(
+      `${environment.apiUrl}/tenant/configuration`,
+      dto,
+    );
+  }
+
+  createTenantCustomField(
+    moduleKey: string,
+    dto: { fieldKey: string; label: string; fieldType: string; options?: Record<string, unknown> },
+  ) {
+    return this.http.post<TenantConfigurationResponse & { config: Record<string, unknown> }>(
+      `${environment.apiUrl}/tenant/modules/${moduleKey}/fields`,
+      dto,
+    );
   }
 }

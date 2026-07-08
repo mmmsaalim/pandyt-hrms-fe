@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { DatePipe, DecimalPipe, NgFor, NgIf } from '@angular/common';
+import { DatePipe, DecimalPipe, NgFor, NgIf, TitleCasePipe } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { DashboardService } from '../../core/services/dashboard.service';
 import { AuthService, TenantFieldRuntimeConfig } from '../../core/services/auth.service';
@@ -32,6 +32,8 @@ interface EmployeeDashboardData {
     days: number;
   }>;
   payslips: Array<{ id: string; netPay: number; status: string }>;
+  teamBirthdays?: Array<{ name: string; date: string; daysUntil: number }>;
+  upcomingHolidays?: Array<{ name: string; date: string; daysUntil: number }>;
 }
 
 interface CompanyLeaveRow {
@@ -60,7 +62,7 @@ interface ApprovalCard {
 @Component({
   selector: 'app-dashboard-page',
   standalone: true,
-  imports: [NgFor, NgIf, DatePipe, DecimalPipe, RouterLink, LeaveBalanceDisplayComponent],
+  imports: [NgFor, NgIf, DatePipe, DecimalPipe, TitleCasePipe, RouterLink, LeaveBalanceDisplayComponent],
   templateUrl: './dashboard-page.component.html',
   styleUrl: './dashboard-page.component.scss',
 })
@@ -126,6 +128,11 @@ export class DashboardPageComponent implements OnInit {
   split: Array<{ label: string; value: number; color: string }> = [...this.split_company];
 
   approvals: ApprovalCard[] = [];
+  recentHires: Array<any> = [];
+  recruitmentFunnel: Array<{ stage: string; count: number }> = [];
+  leaveTrendSeries: number[] = [];
+  monthlyBurnRate = 0;
+  attendancePct = 0;
 
   get donutGradient(): string {
     return this.buildDonutGradient(this.split);
@@ -143,7 +150,10 @@ export class DashboardPageComponent implements OnInit {
   profileFieldDefs: TenantFieldRuntimeConfig[] = [];
   isSuperAdmin = false;
   isCompanyAdmin = false;
+  showPeopleTools = false;
   tenantsList: Array<any> = [];
+  pendingLeads: Array<any> = [];
+  billingReport: Array<any> = [];
 
   constructor(
     private readonly dashboardService: DashboardService,
@@ -187,49 +197,50 @@ export class DashboardPageComponent implements OnInit {
   private setSuperAdminStats(data: any): void {
     const tenants = Number(data.tenants ?? 0);
     const activeTenants = Number(data.activeTenants ?? 0);
+    const suspendedTenants = Number(data.suspendedTenants ?? 0);
+    const activeUsers = Number(data.activeUsers ?? data.totalUsers ?? 0);
+    const inactiveUsers = Number(data.inactiveUsers ?? 0);
+    const payingTenants = Number(data.payingTenants ?? 0);
+    const pendingLeadsCount = Number(data.leads?.pending ?? 0);
     const totalEmployees = Number(data.totalEmployees ?? 0);
-    const totalRevenue = Number(data.totalRevenue ?? 0);
 
     this.months = Array.isArray(data.months) ? data.months : this.months;
     this.growthSeries = Array.isArray(data.growthSeries) ? data.growthSeries : this.growthSeries;
     this.split = Array.isArray(data.splitSeries) ? data.splitSeries : [...this.split_super];
-    this.tenantsList = Array.isArray(data.tenantsList) ? data.tenantsList.slice(0, 5) : [];
-    this.payrollLabels = Array.isArray(data.payrollLabels) ? data.payrollLabels : this.payrollLabels;
-    this.payrollSeries = Array.isArray(data.payrollRunsSeries)
-      ? data.payrollRunsSeries
-      : this.payrollSeries;
+    this.pendingLeads = Array.isArray(data.pendingLeads) ? data.pendingLeads : [];
+    this.billingReport = Array.isArray(data.billingReport) ? data.billingReport : [];
 
     this.stats = [
       {
         label: 'Total tenants',
         value: tenants.toLocaleString(),
-        detail: 'Active companies',
-        trend: '+3.2%',
+        detail: `${activeTenants} active · ${suspendedTenants} suspended`,
+        trend: `${payingTenants} paying`,
         icon: '🏢',
         accent: 'violet',
       },
       {
         label: 'Platform users',
-        value: totalEmployees.toLocaleString(),
-        detail: 'Across all tenants',
-        trend: '+5.1%',
+        value: activeUsers.toLocaleString(),
+        detail: `${inactiveUsers} inactive accounts`,
+        trend: 'Billable sign-ins',
         icon: '👥',
         accent: 'mint',
       },
       {
-        label: 'Monthly revenue',
-        value: `$${(totalRevenue / 1000).toFixed(1)}K`,
-        detail: 'Platform total',
-        trend: '+8.4%',
-        icon: '💰',
+        label: 'Employees tracked',
+        value: totalEmployees.toLocaleString(),
+        detail: 'Across all tenant workspaces',
+        trend: 'Usage basis',
+        icon: '💳',
         accent: 'sky',
       },
       {
-        label: 'Active companies',
-        value: activeTenants.toLocaleString(),
-        detail: 'On current plan',
-        trend: '+2.1%',
-        icon: '🎯',
+        label: 'Pending leads',
+        value: pendingLeadsCount.toLocaleString(),
+        detail: 'Awaiting super admin approval',
+        trend: 'Lead queue',
+        icon: '📋',
         accent: 'amber',
       },
     ];
@@ -237,8 +248,10 @@ export class DashboardPageComponent implements OnInit {
 
   private setCompanyAdminStats(data: any): void {
     const employees = Number(data.employees ?? 0);
-    const payrollRuns = Number(data.payrollRuns ?? 0);
     const leavePending = Number(data.leavePending ?? 0);
+    const openPositions = Number(data.openPositions ?? 0);
+    const monthlyBurnRate = Number(data.monthlyBurnRate ?? 0);
+    const attendancePct = Number(data.attendancePct ?? 0);
 
     this.months = Array.isArray(data.months) ? data.months : this.months;
     this.growthSeries = Array.isArray(data.growthSeries) ? data.growthSeries : this.growthSeries;
@@ -246,42 +259,49 @@ export class DashboardPageComponent implements OnInit {
     this.attendanceLabels = Array.isArray(data.attendanceLabels) ? data.attendanceLabels : this.attendanceLabels;
     this.attendance = Array.isArray(data.attendanceSeries) ? data.attendanceSeries : this.attendance;
     this.payrollLabels = Array.isArray(data.payrollLabels) ? data.payrollLabels : this.payrollLabels;
-    this.payrollSeries = Array.isArray(data.payrollRunsSeries)
-      ? data.payrollRunsSeries
-      : this.payrollSeries;
+    this.payrollSeries = Array.isArray(data.payrollRunsSeries) ? data.payrollRunsSeries : this.payrollSeries;
+    this.leaveTrendSeries = Array.isArray(data.leaveTrendSeries) ? data.leaveTrendSeries : [];
+    this.recentHires = Array.isArray(data.recentHires) ? data.recentHires : [];
+    this.recruitmentFunnel = Array.isArray(data.recruitmentFunnel) ? data.recruitmentFunnel : [];
+    this.monthlyBurnRate = monthlyBurnRate;
+    this.attendancePct = attendancePct;
+
+    const burnLabel = monthlyBurnRate > 0
+      ? `LKR ${(monthlyBurnRate / 1000).toFixed(0)}K`
+      : 'No runs this month';
 
     this.stats = [
       {
         label: 'Total employees',
         value: employees.toLocaleString(),
-        detail: 'In your company',
-        trend: '+2.8%',
+        detail: 'Active headcount',
+        trend: `${leavePending} pending leave`,
         icon: '👥',
         accent: 'violet',
       },
       {
-        label: 'Present today',
-        value: Math.max(employees - leavePending, 0).toLocaleString(),
-        detail: 'Excluding pending leave',
-        trend: '+1.1%',
-        icon: '🗓',
-        accent: 'mint',
+        label: 'Open positions',
+        value: openPositions.toLocaleString(),
+        detail: 'Hiring pipeline',
+        trend: 'Recruitment',
+        icon: '🧑‍💼',
+        accent: 'amber',
       },
       {
-        label: 'Payroll (Apr)',
-        value: `$${(Math.max(payrollRuns * 0.16, 0.08)).toFixed(2)}M`,
-        detail: 'Runs completed',
-        trend: '+0.8%',
+        label: 'Monthly burn rate',
+        value: burnLabel,
+        detail: 'Gross payroll this month',
+        trend: 'Payroll',
         icon: '💳',
         accent: 'sky',
       },
       {
-        label: 'Open positions',
-        value: Math.max(Math.round(employees * 0.06), 1).toLocaleString(),
-        detail: 'Hiring demand',
-        trend: '-1',
-        icon: '🧑‍💼',
-        accent: 'amber',
+        label: 'Attendance today',
+        value: `${attendancePct}%`,
+        detail: 'Clock-ins vs headcount',
+        trend: 'Attendance',
+        icon: '🗓',
+        accent: 'mint',
       },
     ];
   }
@@ -334,6 +354,11 @@ export class DashboardPageComponent implements OnInit {
     const userRoles = currentUser?.roles ?? [];
     this.isSuperAdmin = userRoles.includes('SUPER_ADMIN');
     this.isCompanyAdmin = userRoles.includes('COMPANY_ADMIN') || userRoles.includes('HR_MANAGER') || userRoles.includes('TEAM_LEAD');
+    this.showPeopleTools =
+      !this.isSuperAdmin &&
+      (userRoles.includes('COMPANY_ADMIN') ||
+        userRoles.includes('HR_MANAGER') ||
+        userRoles.includes('TEAM_LEAD'));
     this.isEmployeeView = false;
     this.employeeData = null;
 
@@ -429,6 +454,23 @@ export class DashboardPageComponent implements OnInit {
     if (this.isCompanyAdmin) {
       this.router.navigate(['/employees'], { queryParams: { new: '1' } });
     }
+  }
+
+  buildLeaveChartPoints(): string {
+    return this.buildChartPoints(this.leaveTrendSeries);
+  }
+
+  hasNoLeaveTrendData(): boolean {
+    return !this.leaveTrendSeries.length || this.leaveTrendSeries.every((value) => value === 0);
+  }
+
+  hasNoRecruitmentFunnelData(): boolean {
+    return !this.recruitmentFunnel.length || this.recruitmentFunnel.every((row) => row.count === 0);
+  }
+
+  funnelBarWidth(count: number): number {
+    const maxCount = Math.max(...this.recruitmentFunnel.map((r) => r.count), 1);
+    return Math.round((count / maxCount) * 100);
   }
 
   private buildChartPoints(series: number[]): string {

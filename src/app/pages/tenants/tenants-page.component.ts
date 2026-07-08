@@ -7,10 +7,8 @@ import {
   TenantConfigurationResponse,
   TenantConfigurationService,
 } from '../../core/services/tenant-configuration.service';
-import {
-  DEFAULT_EMPLOYEE_PROFILE_FIELDS,
-  seatsForPlan,
-} from '../../core/constants/subscription-plans';
+import { MODULE_LABELS } from '../../core/constants/subscription-plans';
+import { moduleIcon } from '../../core/constants/module-icons';
 import {
   LeavePolicyPreset,
   cloneLeavePresets,
@@ -25,6 +23,14 @@ import { EditDialogShellComponent } from '../../shared/dialogs/edit-dialog-shell
 import { CommonModule } from '@angular/common';
 import { DEFAULT_PAGINATION, PaginationMeta } from '../../core/models/pagination.model';
 import { ListPaginationComponent } from '../../shared/list-pagination/list-pagination.component';
+import {
+  SRI_LANKA_DISTRICTS,
+  SRI_LANKA_INDUSTRY_TYPES,
+  TenantCompanyProfile,
+  companyProfileFromRow,
+  companyProfilePayload,
+  emptyCompanyProfile,
+} from '../../core/constants/sri-lanka-company';
 
 @Component({
   selector: 'app-tenants-page',
@@ -71,8 +77,13 @@ export class TenantsPageComponent implements OnInit {
     adminName: '',
     adminEmail: '',
     subscriptionPlan: 'STARTER',
-    seats: seatsForPlan('STARTER'),
+    seats: 50,
+    billingContactEmails: '',
   };
+  companyProfile: TenantCompanyProfile = emptyCompanyProfile();
+  editCompanyProfile: TenantCompanyProfile = emptyCompanyProfile();
+  readonly industryOptions = SRI_LANKA_INDUSTRY_TYPES;
+  readonly districtOptions = SRI_LANKA_DISTRICTS;
 
   planOptions: Array<{ key: string; label: string; seats: number | null; description: string }> = [];
 
@@ -105,13 +116,14 @@ export class TenantsPageComponent implements OnInit {
           seats: plan.seats,
           description: plan.description,
         }));
+        this.form.seats = this.tenantConfigurationService.seatsForPlan(this.form.subscriptionPlan);
       },
     });
 
     this.route.queryParamMap.subscribe((params) => {
       this.showCreateForm = params.get('new') === '1';
       if (this.showCreateForm) {
-        this.loadCreateDefaults(this.form.subscriptionPlan);
+        this.configPlan = this.form.subscriptionPlan;
       }
       const id = params.get('id');
       if (id) {
@@ -268,19 +280,19 @@ export class TenantsPageComponent implements OnInit {
     this.successMessage = '';
     this.createdCompanyCode = '';
     this.showCreateForm = true;
+    this.configPlan = this.form.subscriptionPlan;
     this.leavePolicies = cloneLeavePresets();
     this.configLocale.payslipTemplateKey = DEFAULT_PAYSLIP_TEMPLATE_KEY;
-    this.loadCreateDefaults(this.form.subscriptionPlan);
+    this.companyProfile = emptyCompanyProfile();
   }
 
   onCreatePlanChange(): void {
     this.configPlan = this.form.subscriptionPlan;
-    this.form.seats = seatsForPlan(this.form.subscriptionPlan);
-    this.loadCreateDefaults(this.form.subscriptionPlan);
+    this.form.seats = this.tenantConfigurationService.seatsForPlan(this.form.subscriptionPlan);
   }
 
   onEditPlanChange(): void {
-    this.editTenantForm.seats = seatsForPlan(this.editTenantForm.plan);
+    this.editTenantForm.seats = this.tenantConfigurationService.seatsForPlan(this.editTenantForm.plan);
   }
 
   planDescription(plan: string): string {
@@ -295,55 +307,25 @@ export class TenantsPageComponent implements OnInit {
     return this.tenantConfigurationService.planLabel(plan);
   }
 
-  private loadCreateDefaults(plan: string): void {
-    this.configPlan = plan;
-    this.tenantConfigurationService.listPlatformModules().subscribe({
-      next: (modules) => {
-        const preset = this.tenantConfigurationService.modulesForPlan(plan);
-        this.configModules = modules.map((module) => ({
-          key: module.key,
-          label: module.label,
-          description: module.description,
-          enabled: preset.includes(module.key),
-          fields: (module.fields ?? []).map((field) => ({
-            fieldKey: field.fieldKey,
-            label: field.label,
-            fieldType: field.fieldType,
-            options: field.options,
-            isSystem: field.isSystem,
-            enabled:
-              field.isSystem ||
-              (module.key === 'employees' && DEFAULT_EMPLOYEE_PROFILE_FIELDS.includes(field.fieldKey)),
-            required:
-              module.key === 'employees' && (field.fieldKey === 'nic' || field.fieldKey === 'epfNo'),
-            sortOrder: 0,
-          })),
-        }));
-      },
-    });
+  planModulesForCreate(): string[] {
+    return this.tenantConfigurationService.modulesForPlan(this.form.subscriptionPlan);
   }
 
-  private planDefaultModules(plan: string): string[] {
-    return this.tenantConfigurationService.modulesForPlan(plan);
+  planModulesForConfig(): string[] {
+    return this.tenantConfigurationService.modulesForPlan(this.configPlan);
+  }
+
+  moduleLabel(key: string): string {
+    return MODULE_LABELS[key] ?? key;
+  }
+
+  moduleIcon(key: string): string {
+    return moduleIcon(key);
   }
 
   private buildConfigurationPayload() {
-    const enabledModules = this.configModules.filter((module) => module.enabled).map((module) => module.key);
-    const moduleFeatures: Record<string, Record<string, { enabled?: boolean; required?: boolean }>> = {};
-
-    for (const module of this.configModules) {
-      if (!module.enabled) {
-        continue;
-      }
-
-      moduleFeatures[module.key] = {};
-      for (const field of module.fields) {
-        moduleFeatures[module.key][field.fieldKey] = {
-          enabled: field.enabled,
-          required: field.required,
-        };
-      }
-    }
+    const plan = this.configuringTenantId ? this.configPlan : this.form.subscriptionPlan;
+    const enabledModules = this.tenantConfigurationService.modulesForPlan(plan);
 
     const config: Record<string, unknown> = { ...this.configLocale };
     if (enabledModules.includes('leave')) {
@@ -354,15 +336,15 @@ export class TenantsPageComponent implements OnInit {
     }
 
     return {
-      plan: this.configuringTenantId ? this.configPlan : this.form.subscriptionPlan,
+      plan,
       enabledModules,
-      moduleFeatures,
       config,
     };
   }
 
   isLeaveModuleEnabled(): boolean {
-    return this.configModules.some((module) => module.key === 'leave' && module.enabled);
+    const plan = this.configuringTenantId ? this.configPlan : this.form.subscriptionPlan;
+    return this.tenantConfigurationService.modulesForPlan(plan).includes('leave');
   }
 
   resetLeavePoliciesToSriLanka(): void {
@@ -386,6 +368,17 @@ export class TenantsPageComponent implements OnInit {
 
   removeLeavePolicyRow(index: number): void {
     this.leavePolicies = this.leavePolicies.filter((_, rowIndex) => rowIndex !== index);
+  }
+
+  private parseCsv(value: string): string[] {
+    return Array.from(
+      new Set(
+        value
+          .split(',')
+          .map((entry) => entry.trim())
+          .filter(Boolean),
+      ),
+    );
   }
 
   private applyLeaveSetupFromConfig(config: Record<string, unknown> | undefined): void {
@@ -416,7 +409,7 @@ export class TenantsPageComponent implements OnInit {
     this.tenantConfigurationService.getTenantConfiguration(row.id).subscribe({
       next: (config: TenantConfigurationResponse) => {
         this.configPlan = config.plan;
-        this.configSeats = config.seats ?? seatsForPlan(config.plan);
+        this.configSeats = config.seats ?? this.tenantConfigurationService.seatsForPlan(config.plan);
         this.configModules = config.modules;
         this.configLocale = {
           locale: String(config.config?.['locale'] ?? 'en-LK'),
@@ -470,49 +463,7 @@ export class TenantsPageComponent implements OnInit {
   }
 
   applyPlanPresetToConfig(): void {
-    const preset = new Set(this.planDefaultModules(this.configPlan));
-    this.configSeats = seatsForPlan(this.configPlan);
-    this.configModules = this.configModules.map((module) => ({
-      ...module,
-      enabled: preset.has(module.key),
-    }));
-  }
-
-  private async copyText(value: string): Promise<boolean> {
-    if (!value) {
-      return false;
-    }
-
-    try {
-      if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(value);
-        return true;
-      }
-
-      const textarea = document.createElement('textarea');
-      textarea.value = value;
-      textarea.style.position = 'fixed';
-      textarea.style.opacity = '0';
-      document.body.appendChild(textarea);
-      textarea.focus();
-      textarea.select();
-      const copied = document.execCommand('copy');
-      document.body.removeChild(textarea);
-      return copied;
-    } catch {
-      return false;
-    }
-  }
-
-  async copyCompanyCode(code: string): Promise<void> {
-    const copied = await this.copyText(code);
-    if (copied) {
-      this.successMessage = `Company code copied: ${code}`;
-      this.errorMessage = '';
-      return;
-    }
-
-    this.errorMessage = 'Unable to copy company code. Please copy manually.';
+    this.configSeats = this.tenantConfigurationService.seatsForPlan(this.configPlan);
   }
 
   createTenant(): void {
@@ -534,6 +485,8 @@ export class TenantsPageComponent implements OnInit {
         adminEmail: this.form.adminEmail.trim(),
         subscriptionPlan: this.form.subscriptionPlan.trim() || 'STARTER',
         seats: Number(this.form.seats) || 1,
+        billingContactEmails: this.parseCsv(this.form.billingContactEmails),
+        companyProfile: companyProfilePayload(this.companyProfile),
         ...this.buildConfigurationPayload(),
       })
       .subscribe({
@@ -545,8 +498,10 @@ export class TenantsPageComponent implements OnInit {
             adminName: '',
             adminEmail: '',
             subscriptionPlan: 'STARTER',
-            seats: seatsForPlan('STARTER'),
+            seats: this.tenantConfigurationService.seatsForPlan('STARTER'),
+            billingContactEmails: '',
           };
+          this.companyProfile = emptyCompanyProfile();
           this.configModules = [];
           this.showCreateForm = false;
           this.createdCompanyCode = createdCode;
@@ -605,6 +560,7 @@ export class TenantsPageComponent implements OnInit {
       plan: row?.plan ?? '',
       seats: Number(row?.seats ?? 1),
     };
+    this.editCompanyProfile = companyProfileFromRow(row);
   }
 
   closeTenantEditDialog(): void {
@@ -637,6 +593,7 @@ export class TenantsPageComponent implements OnInit {
         companyCode: this.editTenantForm.companyCode.trim() || undefined,
         plan: this.editTenantForm.plan.trim(),
         seats: Math.floor(nextSeats),
+        companyProfile: companyProfilePayload(this.editCompanyProfile),
       })
       .subscribe({
         next: () => {

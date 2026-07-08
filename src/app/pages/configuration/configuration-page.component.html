@@ -1,5 +1,5 @@
 <section *ngIf="!loading; else loadingTemplate" class="page-wrap">
-  <div class="tab-strip">
+  <div class="tab-group tab-strip" role="tablist" aria-label="Configuration sections">
     <button
       type="button"
       class="tab-btn"
@@ -32,16 +32,33 @@
         <span class="badge">{{ users.length }} users</span>
       </div>
 
-      <div class="assign-grid">
-        <label>
-          User
-          <select [ngModel]="selectedUserId" (ngModelChange)="onUserSelectedForAccess($event)" name="assignUserId">
-            <option [ngValue]="null">Select user</option>
-            <option *ngFor="let user of users" [ngValue]="user.id">
-              {{ user.firstName }} {{ user.lastName }} - {{ user.email }}
-            </option>
-          </select>
+      <div class="assign-panel">
+        <label class="search-label">
+          Find user
+          <input
+            [(ngModel)]="userSearch"
+            type="search"
+            placeholder="Search by name or email..."
+            name="userSearch"
+          />
         </label>
+
+        <div class="user-picker-list" *ngIf="filteredUsersForPicker.length; else noPickerUsers">
+          <button
+            type="button"
+            class="user-picker-item"
+            *ngFor="let user of filteredUsersForPicker"
+            [class.selected]="selectedUserId === user.id"
+            (click)="onUserSelectedForAccess(user.id)"
+          >
+            <strong>{{ user.firstName }} {{ user.lastName }}</strong>
+            <span>{{ user.email }}</span>
+          </button>
+        </div>
+
+        <ng-template #noPickerUsers>
+          <p class="empty">No users match your search.</p>
+        </ng-template>
 
         <button
           type="button"
@@ -49,7 +66,7 @@
           (click)="openAccessModal(selectedUserId!)"
           [disabled]="!selectedUserId"
         >
-          Select Modules In Popup
+          Edit modules for selected user
         </button>
       </div>
     </article>
@@ -89,11 +106,12 @@
 
   <section class="config-grid" *ngIf="activeTab === 'access-configuration'">
     <p class="workflow-banner">
-      <strong>Step 1 — Configure role permissions.</strong>
-      This screen edits what a <em>role</em> can do (e.g. Leave: read only vs approve/reject), not which person has the role.
-      After saving here, go to
+      <strong>Step 1 — Define what each module role can do.</strong>
+      Select a module role (Leave, Attendance, Reports, etc.) and tick permissions such as read, create, update, delete, or approve.
+      This sets the rules for everyone who gets that role — it does not pick individual users yet.
+      After saving, go to
       <button type="button" class="link-btn" (click)="switchTab('users-permissions')">Users &amp; Permissions</button>
-      to assign roles to people.
+      to assign those roles to specific people.
     </p>
 
     <article class="card panel">

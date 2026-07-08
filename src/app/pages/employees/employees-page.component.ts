@@ -5,6 +5,7 @@ import { EmployeesService, InviteRole } from '../../core/services/employees.serv
 import { OrganisationService } from '../../core/services/organisation.service';
 import { ActivatedRoute } from '@angular/router';
 import { AuthService, TenantFieldRuntimeConfig } from '../../core/services/auth.service';
+import { EMPLOYEE_BANK_FIELD_KEYS } from '../../core/constants/subscription-plans';
 import { EditDialogShellComponent } from '../../shared/dialogs/edit-dialog-shell.component';
 
 @Component({
@@ -37,6 +38,7 @@ export class EmployeesPageComponent implements OnInit {
     locationId: 0,
     managerId: 0,
     designation: '',
+    dateOfBirth: '',
     employmentStatus: 'ACTIVE' as 'ACTIVE' | 'ON_PROBATION' | 'INACTIVE',
     customFields: {} as Record<string, unknown>,
   };
@@ -390,6 +392,7 @@ export class EmployeesPageComponent implements OnInit {
       locationId: employee?.locationId ?? employee?.location?.id ?? 0,
       managerId: employee?.managerId ?? employee?.manager?.id ?? 0,
       designation: employee?.designation ?? '',
+      dateOfBirth: employee?.dateOfBirth ? new Date(employee.dateOfBirth).toISOString().split('T')[0] : '',
       employmentStatus: (employee?.employmentStatus ?? 'ACTIVE') as 'ACTIVE' | 'ON_PROBATION' | 'INACTIVE',
       customFields: { ...(employee?.customFields ?? {}) },
     };
@@ -407,6 +410,24 @@ export class EmployeesPageComponent implements OnInit {
           employee?.employeeCode ||
           `Employee #${employee.id}`,
       }));
+  }
+
+  get profileCustomFields(): TenantFieldRuntimeConfig[] {
+    const bankKeys = new Set<string>(EMPLOYEE_BANK_FIELD_KEYS);
+    return this.customFieldDefs.filter((field) => !bankKeys.has(field.fieldKey));
+  }
+
+  get bankCustomFields(): TenantFieldRuntimeConfig[] {
+    const fallbackBankFields: TenantFieldRuntimeConfig[] = [
+      { fieldKey: 'bankName', label: 'Bank Name', fieldType: 'text', enabled: true, required: false, sortOrder: 0 },
+      { fieldKey: 'bankBranch', label: 'Bank Branch', fieldType: 'text', enabled: true, required: false, sortOrder: 1 },
+      { fieldKey: 'bankAccount', label: 'Bank Account Number', fieldType: 'text', enabled: true, required: false, sortOrder: 2 },
+    ];
+
+    return EMPLOYEE_BANK_FIELD_KEYS.map((fieldKey) => {
+      const configured = this.customFieldDefs.find((field) => field.fieldKey === fieldKey);
+      return configured ?? fallbackBankFields.find((field) => field.fieldKey === fieldKey)!;
+    });
   }
 
   fieldOptions(field: TenantFieldRuntimeConfig): string[] {
@@ -449,12 +470,14 @@ export class EmployeesPageComponent implements OnInit {
           locationId: this.editForm.locationId || null,
           managerId: this.editForm.managerId || null,
           designation: this.editForm.designation.trim(),
+          dateOfBirth: this.editForm.dateOfBirth || null,
           employmentStatus: this.editForm.employmentStatus,
           customFields: this.editForm.customFields,
         }
       : {
           managerId: this.editForm.managerId || null,
           designation: this.editForm.designation.trim(),
+          dateOfBirth: this.editForm.dateOfBirth || null,
           employmentStatus: this.editForm.employmentStatus,
           customFields: this.editForm.customFields,
         };

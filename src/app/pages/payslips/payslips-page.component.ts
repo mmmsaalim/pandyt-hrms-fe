@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CurrencyPipe, NgFor, NgIf } from '@angular/common';
 import { PayslipsService } from '../../core/services/payslips.service';
+import { SL_STATUTORY } from '../../core/constants/sri-lanka-statutory';
 
 @Component({
   selector: 'app-payslips-page',
@@ -10,6 +11,7 @@ import { PayslipsService } from '../../core/services/payslips.service';
   styleUrl: './payslips-page.component.scss',
 })
 export class PayslipsPageComponent implements OnInit {
+  readonly statutory = SL_STATUTORY;
   rows: any[] = [];
   downloadingId: number | null = null;
   downloadError = '';
