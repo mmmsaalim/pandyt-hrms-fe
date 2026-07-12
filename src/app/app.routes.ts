@@ -185,6 +185,11 @@ export const appRoutes: Routes = [
             data: { tab: 'access-configuration' },
           },
           {
+            path: 'security',
+            component: ConfigurationPageComponent,
+            data: { tab: 'security' },
+          },
+          {
             path: 'module-settings',
             component: TenantModuleSettingsPageComponent,
           },

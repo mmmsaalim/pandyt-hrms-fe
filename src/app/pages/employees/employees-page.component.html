@@ -148,7 +148,10 @@
         <td>{{ departmentLabel(e) }}</td>
         <td>{{ e.designation }}</td>
         <td>{{ e.salary !== null && e.salary !== undefined ? ('LKR ' + e.salary) : '—' }}</td>
-        <td><span class="badge">{{ e.employmentStatus }}</span></td>
+        <td>
+          <span class="badge">{{ e.employmentStatus }}</span>
+          <span class="badge badge-warn" *ngIf="e.invitationPending" title="Invitation email sent — employee has not yet set a password">Invite Pending</span>
+        </td>
         <td class="row-actions" *ngIf="canManageEmployees">
           <button *ngIf="canInviteEmployees && isManualOnlyEmployee(e)" type="button" class="action-btn edit" (click)="openEnableLoginDialog(e)" [disabled]="isBusy(e.id)">
             Enable login
@@ -220,6 +223,15 @@
       <select [(ngModel)]="editForm.managerId" name="editManagerId">
         <option [ngValue]="0">— None —</option>
         <option *ngFor="let lead of teamLeadOptions" [ngValue]="lead.id">{{ lead.label }}</option>
+      </select>
+    </label>
+    <label *ngIf="hasAttendanceModule">
+      Work shift
+      <select [(ngModel)]="editForm.shiftId" name="editShiftId">
+        <option [ngValue]="0">— Company default hours —</option>
+        <option *ngFor="let shift of workShifts" [ngValue]="shift.id">
+          {{ shift.name }} ({{ shift.startTime }} – {{ shift.endTime }})
+        </option>
       </select>
     </label>
     <label>

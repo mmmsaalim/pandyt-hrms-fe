@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { NgFor, NgIf } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { EmployeesService, InviteRole } from '../../core/services/employees.service';
+import { AttendanceService } from '../../core/services/attendance.service';
 import { OrganisationService } from '../../core/services/organisation.service';
 import { ActivatedRoute } from '@angular/router';
 import { AuthService, TenantFieldRuntimeConfig } from '../../core/services/auth.service';
@@ -25,6 +26,8 @@ export class EmployeesPageComponent implements OnInit {
   canManageEmployees = false;
   canInviteEmployees = false;
   hasOrganisationModule = false;
+  hasAttendanceModule = false;
+  workShifts: Array<{ id: number; name: string; startTime: string; endTime: string }> = [];
   showCreateForm = false;
   creating = false;
   mutatingEmployeeId: number | null = null;
@@ -37,6 +40,7 @@ export class EmployeesPageComponent implements OnInit {
     teamId: 0,
     locationId: 0,
     managerId: 0,
+    shiftId: 0,
     designation: '',
     dateOfBirth: '',
     employmentStatus: 'ACTIVE' as 'ACTIVE' | 'ON_PROBATION' | 'INACTIVE',
@@ -74,6 +78,7 @@ export class EmployeesPageComponent implements OnInit {
 
   constructor(
     private readonly employeesService: EmployeesService,
+    private readonly attendanceService: AttendanceService,
     private readonly organisationService: OrganisationService,
     private readonly route: ActivatedRoute,
     readonly auth: AuthService,
@@ -85,6 +90,7 @@ export class EmployeesPageComponent implements OnInit {
     this.canManageEmployees = this.isCompanyAdmin || roles.includes('HR_MANAGER');
     this.canInviteEmployees = this.isCompanyAdmin || roles.includes('HR_MANAGER');
     this.hasOrganisationModule = this.auth.hasModule('organisation');
+    this.hasAttendanceModule = this.auth.hasModule('attendance');
     this.customFieldDefs = this.auth.getModuleFields('employees');
     this.seatLimit = this.auth.user()?.tenantConfig?.seats ?? 0;
 
@@ -106,7 +112,21 @@ export class EmployeesPageComponent implements OnInit {
     if (this.hasOrganisationModule) {
       this.loadOrgData();
     }
+    if (this.hasAttendanceModule) {
+      this.loadWorkShifts();
+    }
     this.loadEmployees();
+  }
+
+  loadWorkShifts(): void {
+    this.attendanceService.listShifts().subscribe({
+      next: (rows: any) => {
+        this.workShifts = Array.isArray(rows) ? rows : [];
+      },
+      error: () => {
+        this.workShifts = [];
+      },
+    });
   }
 
   loadOrgData(): void {
@@ -391,6 +411,7 @@ export class EmployeesPageComponent implements OnInit {
       teamId: employee?.teamId ?? employee?.team?.id ?? 0,
       locationId: employee?.locationId ?? employee?.location?.id ?? 0,
       managerId: employee?.managerId ?? employee?.manager?.id ?? 0,
+      shiftId: employee?.shiftId ?? employee?.shift?.id ?? 0,
       designation: employee?.designation ?? '',
       dateOfBirth: employee?.dateOfBirth ? new Date(employee.dateOfBirth).toISOString().split('T')[0] : '',
       employmentStatus: (employee?.employmentStatus ?? 'ACTIVE') as 'ACTIVE' | 'ON_PROBATION' | 'INACTIVE',
@@ -469,6 +490,7 @@ export class EmployeesPageComponent implements OnInit {
           teamId: this.editForm.teamId || null,
           locationId: this.editForm.locationId || null,
           managerId: this.editForm.managerId || null,
+          shiftId: this.editForm.shiftId || null,
           designation: this.editForm.designation.trim(),
           dateOfBirth: this.editForm.dateOfBirth || null,
           employmentStatus: this.editForm.employmentStatus,
@@ -476,6 +498,7 @@ export class EmployeesPageComponent implements OnInit {
         }
       : {
           managerId: this.editForm.managerId || null,
+          shiftId: this.editForm.shiftId || null,
           designation: this.editForm.designation.trim(),
           dateOfBirth: this.editForm.dateOfBirth || null,
           employmentStatus: this.editForm.employmentStatus,

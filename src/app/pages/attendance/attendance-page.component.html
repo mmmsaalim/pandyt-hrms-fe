@@ -16,6 +16,11 @@
   </div>
 
   <p *ngIf="message" class="{{ messageType === 'success' ? 'success' : 'error' }}">{{ message }}</p>
+  <div class="info-banner" *ngIf="showsAutoLeaveDeductionAlert">
+    <strong>Missing attendance policy:</strong>
+    If you miss clock-in/out, the system may deduct 1 day from your Casual leave first, then Annual leave.
+    Please clock in and out every working day.
+  </div>
 
   <section class="list-filters">
     <label>
@@ -97,7 +102,7 @@
   </ng-container>
 
   <table *ngIf="activeTab === 'list'">
-    <thead><tr><th>Employee</th><th>Date</th><th>Clock In</th><th>Clock Out</th><th>Hours</th><th>OT</th><th>Status</th></tr></thead>
+    <thead><tr><th>Employee</th><th>Date</th><th>Clock In</th><th>Clock Out</th><th>Hours</th><th>OT (hrs)</th><th>OT Pay (est.)</th><th>Deduction</th><th>Status</th></tr></thead>
     <tbody>
       <tr *ngFor="let r of paginatedListRows">
         <td class="employee-cell">
@@ -109,6 +114,8 @@
         <td>{{ r.clockOut | date:'shortTime' }}</td>
         <td>{{ r.hours }}</td>
         <td>{{ r.overtimeHours || 0 }}</td>
+        <td>{{ overtimePayEstimate(r) | currency:'LKR':'symbol':'1.2-2' }}</td>
+        <td class="deduction-cell">{{ attendanceDeduction(r) | currency:'LKR':'symbol':'1.2-2' }}</td>
         <td><span class="badge" [ngClass]="r.status?.toLowerCase()?.split(':')[0]?.trim()">{{ r.status }}</span></td>
       </tr>
     </tbody>
@@ -132,7 +139,7 @@
         <button type="button" class="settings-nav-btn" [class.active]="settingsSection === 'missing'" (click)="setSettingsSection('missing')">Missing Attendance</button>
         <button type="button" class="settings-nav-btn" [class.active]="settingsSection === 'payroll'" (click)="setSettingsSection('payroll')">Payroll Integration</button>
         <button type="button" class="settings-nav-btn" [class.active]="settingsSection === 'shifts'" (click)="setSettingsSection('shifts')">Shift Management</button>
-        <button type="button" class="settings-nav-btn" [class.active]="settingsSection === 'holidays'" (click)="setSettingsSection('holidays')">Holidays &amp; Weekends</button>
+        <button type="button" class="settings-nav-btn" [class.active]="settingsSection === 'holidays'" (click)="setSettingsSection('holidays')">Working calendar</button>
       </nav>
 
       <div class="settings-panel">
@@ -170,6 +177,18 @@
               <select [(ngModel)]="settingsForm.lateArrivalAction" name="lateAction">
                 <option *ngFor="let option of actionOptions" [value]="option.value">{{ option.label }}</option>
               </select>
+              <span class="field-hint" *ngIf="settingsForm.payrollIntegration.lateDeductionMode === 'SALARY'">Used when deduction mode is salary-based</span>
+            </label>
+            <label>
+              Late deduction mode
+              <select [(ngModel)]="settingsForm.payrollIntegration.lateDeductionMode" name="lateDeductionMode">
+                <option *ngFor="let option of deductionPayModeOptions" [value]="option.value">{{ option.label }}</option>
+              </select>
+            </label>
+            <label *ngIf="settingsForm.payrollIntegration.lateDeductionMode === 'FIXED'">
+              Fixed late deduction (LKR)
+              <input [(ngModel)]="settingsForm.payrollIntegration.lateFixedAmountLkr" name="lateFixedAmount" type="number" min="0" step="1" />
+              <span class="field-hint">Same flat amount per late day for every employee</span>
             </label>
             <label>
               Repeated late threshold
@@ -197,6 +216,18 @@
               <select [(ngModel)]="settingsForm.earlyDepartureAction" name="earlyAction">
                 <option *ngFor="let option of actionOptions" [value]="option.value">{{ option.label }}</option>
               </select>
+              <span class="field-hint" *ngIf="settingsForm.payrollIntegration.earlyDeductionMode === 'SALARY'">Used when deduction mode is salary-based</span>
+            </label>
+            <label>
+              Early departure deduction mode
+              <select [(ngModel)]="settingsForm.payrollIntegration.earlyDeductionMode" name="earlyDeductionMode">
+                <option *ngFor="let option of deductionPayModeOptions" [value]="option.value">{{ option.label }}</option>
+              </select>
+            </label>
+            <label *ngIf="settingsForm.payrollIntegration.earlyDeductionMode === 'FIXED'">
+              Fixed early departure deduction (LKR)
+              <input [(ngModel)]="settingsForm.payrollIntegration.earlyFixedAmountLkr" name="earlyFixedAmount" type="number" min="0" step="1" />
+              <span class="field-hint">Same flat amount per early departure for every employee</span>
             </label>
           </div>
         </section>
@@ -241,6 +272,17 @@
                 <option value="NONE">Track only (no pay)</option>
               </select>
             </label>
+            <label>
+              OT pay mode
+              <select [(ngModel)]="settingsForm.overtimeRules.payMode" name="otPayMode">
+                <option *ngFor="let option of deductionPayModeOptions" [value]="option.value">{{ option.label }}</option>
+              </select>
+            </label>
+            <label *ngIf="settingsForm.overtimeRules.payMode === 'FIXED'">
+              Fixed OT rate (LKR per hour)
+              <input [(ngModel)]="settingsForm.overtimeRules.fixedRateLkr" name="otFixedRate" type="number" min="0" step="1" />
+              <span class="field-hint">Same hourly OT rate for every employee (multipliers still apply to hours)</span>
+            </label>
             <label class="checkbox-row">
               <input [(ngModel)]="settingsForm.overtimeRules.requiresApproval" name="otApproval" type="checkbox" />
               Require manager approval before payroll
@@ -251,6 +293,9 @@
         <section *ngIf="settingsSection === 'missing'">
           <h4>Missing attendance</h4>
           <p class="field-hint">How to handle missing clock-in, clock-out, or both.</p>
+          <div class="info-banner" *ngIf="showsAutoLeaveDeductionAlert">
+            Auto leave deduction is enabled: missing attendance will deduct Casual first, then Annual, and employees see an alert on this page.
+          </div>
           <div class="settings-grid">
             <label>
               Missing clock-in
@@ -276,7 +321,7 @@
             </label>
             <label class="checkbox-row">
               <input [(ngModel)]="settingsForm.requireManagerApproval" name="managerApproval" type="checkbox" />
-              Require manager approval for corrections
+              Require manager approval before OT is paid
             </label>
           </div>
         </section>
@@ -285,6 +330,16 @@
           <h4>Payroll integration</h4>
           <p class="field-hint">Payroll uses attendance together with leave, holidays, weekends, shifts, and overtime — never attendance alone.</p>
           <div class="settings-grid">
+            <label>
+              Working days per month
+              <input [(ngModel)]="settingsForm.payrollIntegration.workingDaysPerMonth" name="workingDays" type="number" min="1" max="31" />
+              <span class="field-hint">Used for daily salary and absence deductions (default 22)</span>
+            </label>
+            <label>
+              Standard hours per day
+              <input [(ngModel)]="settingsForm.payrollIntegration.standardHoursPerDay" name="standardHours" type="number" min="1" max="24" />
+              <span class="field-hint">Used for salary-based OT rate when shift hours differ (default 8)</span>
+            </label>
             <label class="checkbox-row">
               <input [(ngModel)]="settingsForm.payrollIntegration.useAttendanceForPayableHours" name="payHours" type="checkbox" />
               Calculate payable hours from attendance
@@ -347,44 +402,126 @@
                 <strong>{{ shift.name }}</strong>
                 <small>{{ shift.startTime }} – {{ shift.endTime }} · Break {{ shift.breakMinutes }}m</small>
               </div>
-              <button type="button" class="btn-outline danger" (click)="removeShift(shift.id)">Remove</button>
+              <div class="inline-list-actions" *ngIf="canSaveSettings">
+                <button type="button" class="btn-outline" (click)="startShiftEdit(shift)">Edit</button>
+                <button type="button" class="btn-outline danger" (click)="removeShift(shift.id)">Remove</button>
+              </div>
+            </div>
+          </div>
+          <div class="settings-grid shift-edit-panel" *ngIf="editingShiftId !== null && canSaveSettings">
+            <h5>Edit shift</h5>
+            <label>Shift name<input [(ngModel)]="editShiftForm.name" name="editShiftName" type="text" /></label>
+            <label>Start time<input [(ngModel)]="editShiftForm.startTime" name="editShiftStart" type="time" /></label>
+            <label>End time<input [(ngModel)]="editShiftForm.endTime" name="editShiftEnd" type="time" /></label>
+            <label>Break (minutes)<input [(ngModel)]="editShiftForm.breakMinutes" name="editShiftBreak" type="number" min="0" /></label>
+            <label class="checkbox-row"><input [(ngModel)]="editShiftForm.isNightShift" name="editShiftNight" type="checkbox" /> Night shift</label>
+            <label class="checkbox-row"><input [(ngModel)]="editShiftForm.isDefault" name="editShiftDefault" type="checkbox" /> Default shift</label>
+            <label class="checkbox-row"><input [(ngModel)]="editShiftForm.overtimeEligible" name="editShiftOt" type="checkbox" /> Overtime eligible</label>
+            <div class="inline-list-actions">
+              <button type="button" class="btn-primary" (click)="saveShiftEdit()" [disabled]="settingsBusy">Save shift</button>
+              <button type="button" class="btn-outline" (click)="cancelShiftEdit()" [disabled]="settingsBusy">Cancel</button>
             </div>
           </div>
         </section>
 
         <section *ngIf="settingsSection === 'holidays'">
-          <h4>Holidays &amp; weekends</h4>
+          <h4>Company working calendar (per tenant)</h4>
+          <p class="field-hint">
+            Each company sets its own week. This drives leave day count, attendance day-close, and payroll.
+            Example: Sunday off + Saturday half day, or Saturday &amp; Sunday both off.
+          </p>
+
           <div class="settings-grid">
             <label>
-              Weekend pattern
-              <select [(ngModel)]="settingsForm.weekendPreset" name="weekendPreset" (ngModelChange)="onWeekendPresetChange()">
-                <option *ngFor="let option of weekendPresetOptions" [value]="option.value">{{ option.label }}</option>
+              Quick-start template
+              <select [(ngModel)]="settingsForm.workCalendarTemplate" name="workCalendarTemplate">
+                <option *ngFor="let template of workCalendarTemplates" [value]="template.key">
+                  {{ template.label }}
+                </option>
               </select>
+              <button type="button" class="btn-secondary template-apply-btn" (click)="applyWorkCalendarTemplate()" [disabled]="settingsForm.workCalendarTemplate === 'CUSTOM' || settingsBusy">
+                Apply template
+              </button>
+              <span class="field-hint">Optional shortcut — then adjust each day below. Saved per company.</span>
+            </label>
+            <label>
+              Half-day end time
+              <input [(ngModel)]="settingsForm.halfDayEndTime" name="halfDayEndTime" type="time" />
+              <span class="field-hint">Clock-out time on half work days (e.g. 13:00 on Saturday)</span>
             </label>
           </div>
+
+          <h5>Weekly schedule</h5>
+          <p class="field-hint">Set every weekday for this company: full work, half day, or full day off.</p>
+          <div class="work-calendar-table-wrap">
+            <table class="work-calendar-table">
+              <thead>
+                <tr>
+                  <th>Day</th>
+                  <th>Work type</th>
+                  <th>Leave count</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let day of weekdayOptions">
+                  <td><strong>{{ day.label }}</strong></td>
+                  <td>
+                    <select
+                      [ngModel]="getWeekdayKind(day.value, settingsForm.weekendDays, settingsForm.halfWorkingDays)"
+                      (ngModelChange)="onWeekdayKindChange(day.value, $event)"
+                      [name]="'weekdayKind' + day.value">
+                      <option *ngFor="let option of weekdayWorkKindOptions" [ngValue]="option.value">
+                        {{ option.label }}
+                      </option>
+                    </select>
+                  </td>
+                  <td>
+                    <span class="kind-badge" [attr.data-kind]="getWeekdayKind(day.value, settingsForm.weekendDays, settingsForm.halfWorkingDays)">
+                      {{
+                        getWeekdayKind(day.value, settingsForm.weekendDays, settingsForm.halfWorkingDays) === 'OFF'
+                          ? '0 days'
+                          : getWeekdayKind(day.value, settingsForm.weekendDays, settingsForm.halfWorkingDays) === 'HALF'
+                            ? '0.5 day'
+                            : '1 day'
+                      }}
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
           <h5>Company holidays</h5>
           <div class="settings-grid">
             <label>Holiday name<input [(ngModel)]="holidayForm.name" name="holidayName" type="text" placeholder="New Year" /></label>
             <label>Date<input [(ngModel)]="holidayForm.date" name="holidayDate" type="date" /></label>
-            <label class="checkbox-row"><input [(ngModel)]="holidayForm.isPaid" name="holidayPaid" type="checkbox" /> Paid holiday</label>
+            <label class="checkbox-row"><input [(ngModel)]="holidayForm.isPaid" name="holidayPaid" type="checkbox" /> Paid holiday (no salary deduct)</label>
+            <label class="checkbox-row"><input [(ngModel)]="holidayForm.isHalfDay" name="holidayHalf" type="checkbox" /> Half-day holiday (0.5 leave weight)</label>
           </div>
           <button type="button" class="btn-secondary" (click)="addHoliday()" [disabled]="settingsBusy">Add holiday</button>
           <div class="inline-list" *ngIf="holidays.length">
             <div class="inline-list-item" *ngFor="let holiday of holidays">
               <div>
                 <strong>{{ holiday.name }}</strong>
-                <small>{{ holiday.date | date:'mediumDate' }} · {{ holiday.isPaid ? 'Paid' : 'Unpaid' }}</small>
+                <small>
+                  {{ holiday.date | date:'mediumDate' }} ·
+                  {{ holiday.isPaid ? 'Paid' : 'Unpaid' }}
+                  <ng-container *ngIf="holiday.isHalfDay"> · Half-day</ng-container>
+                </small>
               </div>
               <button type="button" class="btn-outline danger" (click)="removeHoliday(holiday.id)">Remove</button>
             </div>
           </div>
         </section>
 
-        <div class="settings-actions" *ngIf="settingsSection !== 'shifts'">
+        <div class="settings-actions" *ngIf="settingsSection !== 'shifts' && canSaveSettings">
           <button type="button" class="btn-primary" (click)="saveSettings()" [disabled]="settingsBusy">
             {{ settingsBusy ? 'Saving...' : 'Save settings' }}
           </button>
         </div>
+        <p *ngIf="settingsSection !== 'shifts' && !canSaveSettings" class="field-hint">
+          Only Company Admin or HR Manager can save attendance settings.
+        </p>
         <p *ngIf="settingsMessage" [class]="settingsMessageType === 'success' ? 'success' : 'error'">{{ settingsMessage }}</p>
       </div>
     </section>

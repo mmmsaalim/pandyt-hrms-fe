@@ -41,7 +41,14 @@
             <option *ngFor="let type of leaveTypes" [ngValue]="type">{{ type }}</option>
           </select>
         </label>
-        <label>Days<input [(ngModel)]="applyForm.days" type="number" min="1" readonly /></label>
+        <label>
+          Days (working days)
+          <input [(ngModel)]="applyForm.days" type="number" min="0.5" step="0.5" readonly />
+        </label>
+        <p class="field-hint full-width">
+          Days exclude full weekends/holidays and count half working days as 0.5 (from Attendance calendar settings).
+          Days beyond your leave balance are unpaid and deducted on payslip.
+        </p>
         <label>
           Start Date
           <input

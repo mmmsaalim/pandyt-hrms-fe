@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { DatePipe, NgClass, NgFor, NgIf } from '@angular/common';
+import { DatePipe, NgClass, NgFor, NgIf, CurrencyPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AttendanceService } from '../../core/services/attendance.service';
 import { AuthService } from '../../core/services/auth.service';
@@ -13,9 +13,16 @@ import { parseApiDate, toLocalIsoDate } from '../../core/utils/local-date';
 import {
   ATTENDANCE_ACTION_OPTIONS,
   AttendanceSettingsForm,
+  DEDUCTION_PAY_MODE_OPTIONS,
   MISSING_ATTENDANCE_OPTIONS,
   SCHEDULE_MODE_OPTIONS,
-  WEEKEND_PRESET_OPTIONS,
+  WORK_CALENDAR_TEMPLATES,
+  WEEKDAY_OPTIONS,
+  WEEKDAY_WORK_KIND_OPTIONS,
+  WeekdayWorkKind,
+  getWeekdayKind,
+  setWeekdayKind,
+  weekdayKindLabel,
   buildDefaultSettingsForm,
   mapSettingsResponse,
   toSettingsPayload,
@@ -24,7 +31,7 @@ import {
 @Component({
   selector: 'app-attendance-page',
   standalone: true,
-  imports: [NgFor, NgIf, NgClass, DatePipe, FormsModule, MonthCalendarComponent, ListPaginationComponent],
+  imports: [NgFor, NgIf, NgClass, DatePipe, CurrencyPipe, FormsModule, MonthCalendarComponent, ListPaginationComponent],
   templateUrl: './attendance-page.component.html',
   styleUrl: './attendance-page.component.scss',
 })
@@ -33,6 +40,7 @@ export class AttendancePageComponent implements OnInit {
   employees: Array<{ id: number; name: string; email: string }> = [];
   employeeDirectory = new Map<number, { name: string; email: string }>();
   canOverrideAttendance = false;
+  canSaveSettings = false;
   canViewAllEmployees = false;
   busy = false;
   message = '';
@@ -46,6 +54,16 @@ export class AttendancePageComponent implements OnInit {
   settingsMessage = '';
   settingsMessageType: 'success' | 'error' = 'success';
   shifts: any[] = [];
+  editingShiftId: number | null = null;
+  editShiftForm = {
+    name: '',
+    startTime: '09:00',
+    endTime: '17:00',
+    breakMinutes: 60,
+    isNightShift: false,
+    isDefault: false,
+    overtimeEligible: true,
+  };
   holidays: any[] = [];
   shiftForm = {
     name: '',
@@ -56,11 +74,16 @@ export class AttendancePageComponent implements OnInit {
     isDefault: false,
     overtimeEligible: true,
   };
-  holidayForm = { name: '', date: '', isPaid: true };
+  holidayForm = { name: '', date: '', isPaid: true, isHalfDay: false };
 
   readonly actionOptions = ATTENDANCE_ACTION_OPTIONS;
+  readonly deductionPayModeOptions = DEDUCTION_PAY_MODE_OPTIONS;
   readonly scheduleModeOptions = SCHEDULE_MODE_OPTIONS;
-  readonly weekendPresetOptions = WEEKEND_PRESET_OPTIONS;
+  readonly weekdayOptions = WEEKDAY_OPTIONS;
+  readonly workCalendarTemplates = WORK_CALENDAR_TEMPLATES;
+  readonly weekdayWorkKindOptions = WEEKDAY_WORK_KIND_OPTIONS;
+  readonly getWeekdayKind = getWeekdayKind;
+  readonly weekdayKindLabel = weekdayKindLabel;
   readonly missingAttendanceOptions = MISSING_ATTENDANCE_OPTIONS;
 
   selectedCalendarDate = '';
@@ -80,9 +103,19 @@ export class AttendancePageComponent implements OnInit {
     const roles = this.auth.user()?.roles ?? [];
     this.canOverrideAttendance =
       roles.includes('COMPANY_ADMIN') || roles.includes('HR_MANAGER') || roles.includes('TEAM_LEAD');
+    this.canSaveSettings = roles.includes('COMPANY_ADMIN') || roles.includes('HR_MANAGER');
     this.canViewAllEmployees = this.canOverrideAttendance;
     this.loadEmployeeDirectory();
+    this.loadAttendanceSettings();
     this.load();
+  }
+
+  private loadAttendanceSettings(): void {
+    this.attendanceService.getSettings().subscribe({
+      next: (data: any) => {
+        this.settingsForm = mapSettingsResponse(data);
+      },
+    });
   }
 
   employeeName(row: any): string {
@@ -104,6 +137,32 @@ export class AttendancePageComponent implements OnInit {
 
     const mapped = this.employeeDirectory.get(Number(row?.employeeId ?? 0));
     return mapped?.email || 'No email';
+  }
+
+  attendanceDeduction(row: any): number {
+    return Number(row?.payrollAdjustment ?? 0);
+  }
+
+  overtimePayEstimate(row: any): number {
+    const overtimeHours = Number(row?.overtimeHours ?? 0);
+    const salary = Number(row?.employee?.salary ?? 0);
+    if (overtimeHours <= 0) {
+      return 0;
+    }
+
+    const overtimeRules = this.settingsForm.overtimeRules;
+    const payroll = this.settingsForm.payrollIntegration;
+    if (overtimeRules.payMode === 'FIXED') {
+      return Math.round(overtimeHours * Number(overtimeRules.fixedRateLkr ?? 0) * 100) / 100;
+    }
+
+    const workingDays = Number(payroll.workingDaysPerMonth ?? 22) || 22;
+    const standardHours = Number(payroll.standardHoursPerDay ?? 8) || 8;
+    if (salary <= 0) {
+      return 0;
+    }
+    const hourlyRate = salary / (workingDays * standardHours);
+    return Math.round(overtimeHours * hourlyRate * 100) / 100;
   }
 
   load(): void {
@@ -284,11 +343,37 @@ export class AttendancePageComponent implements OnInit {
     this.settingsSection = section;
   }
 
-  onWeekendPresetChange(): void {
-    const preset = this.weekendPresetOptions.find((row) => row.value === this.settingsForm.weekendPreset);
-    if (preset && preset.value !== 'CUSTOM') {
-      this.settingsForm.weekendDays = [...preset.days];
+  get showsAutoLeaveDeductionAlert(): boolean {
+    return (
+      this.settingsForm.missingBothAction === 'AUTO_LEAVE_DEDUCTION' ||
+      this.settingsForm.missingClockInAction === 'AUTO_LEAVE_DEDUCTION' ||
+      this.settingsForm.missingClockOutAction === 'AUTO_LEAVE_DEDUCTION'
+    );
+  }
+
+  applyWorkCalendarTemplate(): void {
+    const template = this.workCalendarTemplates.find(
+      (row) => row.key === this.settingsForm.workCalendarTemplate,
+    );
+    if (!template || template.key === 'CUSTOM') {
+      return;
     }
+    this.settingsForm.weekendDays = [...template.weekendDays];
+    this.settingsForm.halfWorkingDays = [...template.halfWorkingDays];
+    this.settingsForm.weekendPreset = 'CUSTOM';
+  }
+
+  onWeekdayKindChange(day: number, kind: WeekdayWorkKind): void {
+    const next = setWeekdayKind(
+      day,
+      kind,
+      this.settingsForm.weekendDays,
+      this.settingsForm.halfWorkingDays,
+    );
+    this.settingsForm.weekendDays = next.weekendDays;
+    this.settingsForm.halfWorkingDays = next.halfWorkingDays;
+    this.settingsForm.workCalendarTemplate = 'CUSTOM';
+    this.settingsForm.weekendPreset = 'CUSTOM';
   }
 
   saveSettings(): void {
@@ -296,6 +381,11 @@ export class AttendancePageComponent implements OnInit {
     this.settingsMessage = '';
     this.attendanceService.updateSettings(toSettingsPayload(this.settingsForm)).subscribe({
       next: () => {
+        this.attendanceService.getSettings().subscribe({
+          next: (data: any) => {
+            this.settingsForm = mapSettingsResponse(data);
+          },
+        });
         this.settingsMessage = 'Settings saved successfully.';
         this.settingsMessageType = 'success';
       },
@@ -351,11 +441,56 @@ export class AttendancePageComponent implements OnInit {
 
   removeShift(id: number): void {
     this.attendanceService.deleteShift(id).subscribe({
-      next: () => this.loadShifts(),
+      next: () => {
+        if (this.editingShiftId === id) {
+          this.cancelShiftEdit();
+        }
+        this.loadShifts();
+      },
       error: (err: any) => {
         this.settingsMessage = err?.error?.message || 'Failed to delete shift.';
         this.settingsMessageType = 'error';
       },
+    });
+  }
+
+  startShiftEdit(shift: any): void {
+    this.editingShiftId = shift.id;
+    this.editShiftForm = {
+      name: shift.name ?? '',
+      startTime: shift.startTime ?? '09:00',
+      endTime: shift.endTime ?? '17:00',
+      breakMinutes: shift.breakMinutes ?? 0,
+      isNightShift: !!shift.isNightShift,
+      isDefault: !!shift.isDefault,
+      overtimeEligible: shift.overtimeEligible !== false,
+    };
+  }
+
+  cancelShiftEdit(): void {
+    this.editingShiftId = null;
+  }
+
+  saveShiftEdit(): void {
+    if (this.editingShiftId === null || !this.editShiftForm.name.trim()) {
+      this.settingsMessage = 'Shift name is required.';
+      this.settingsMessageType = 'error';
+      return;
+    }
+
+    this.settingsBusy = true;
+    this.attendanceService.updateShift(this.editingShiftId, this.editShiftForm).subscribe({
+      next: () => {
+        this.cancelShiftEdit();
+        this.loadShifts();
+        this.settingsMessage = 'Shift updated.';
+        this.settingsMessageType = 'success';
+      },
+      error: (err: any) => {
+        this.settingsMessage = err?.error?.message || 'Failed to update shift.';
+        this.settingsMessageType = 'error';
+      },
+      complete: () => (this.settingsBusy = false),
     });
   }
 
@@ -380,7 +515,7 @@ export class AttendancePageComponent implements OnInit {
     this.settingsBusy = true;
     this.attendanceService.createHoliday(this.holidayForm).subscribe({
       next: () => {
-        this.holidayForm = { name: '', date: '', isPaid: true };
+        this.holidayForm = { name: '', date: '', isPaid: true, isHalfDay: false };
         this.loadHolidays();
         this.settingsMessage = 'Holiday added.';
         this.settingsMessageType = 'success';

@@ -16,6 +16,14 @@
     >
       Access Configuration
     </button>
+    <button
+      type="button"
+      class="tab-btn"
+      [class.active]="activeTab === 'security'"
+      (click)="switchTab('security')"
+    >
+      Security
+    </button>
   </div>
 
   <section class="config-grid" *ngIf="activeTab === 'users-permissions'">
@@ -271,6 +279,69 @@
             {{ permission.permission }}
           </p>
         </section>
+      </div>
+    </article>
+  </section>
+
+  <section class="config-grid security-grid" *ngIf="activeTab === 'security'">
+    <article class="card panel security-panel">
+      <div class="panel-head">
+        <h3>Platform security (read-only)</h3>
+        <span class="badge">Multi-tenant SaaS</span>
+      </div>
+
+      <p class="workflow-banner">
+        FlowHR isolates each company tenant. These rules apply to the web app, API, and Postman testing.
+      </p>
+
+      <div class="security-block">
+        <h4>Session & JWT</h4>
+        <ul>
+          <li>Access token lifetime: <strong>8 hours</strong> (480 minutes).</li>
+          <li>Browser session uses HttpOnly cookie <code>flowhr_access_token</code> (not readable by JavaScript).</li>
+          <li>Password reset link: <strong>24 hours</strong> default.</li>
+          <li>Invitation link: <strong>24 hours</strong> default.</li>
+          <li>After permission or tenant module changes, users must <strong>re-login</strong>.</li>
+        </ul>
+      </div>
+
+      <div class="security-block">
+        <h4>Tenant isolation</h4>
+        <ul>
+          <li>Every tenant API call must include <code>X-Tenant-ID</code> matching the logged-in user's tenant.</li>
+          <li>JWT <code>tenantId</code> and header must match — otherwise request is rejected.</li>
+          <li>Database queries are scoped per tenant (Prisma extension + service checks).</li>
+          <li>Cross-tenant reports are <strong>SUPER_ADMIN only</strong>.</li>
+        </ul>
+      </div>
+
+      <div class="security-block">
+        <h4>Rate limits (public/auth endpoints)</h4>
+        <ul>
+          <li>Login: 10 attempts / 15 min per IP</li>
+          <li>Password reset & signup: 5 / 15 min per IP</li>
+          <li>Invitation resolve/accept: 20 / 10 per 15 min per IP</li>
+        </ul>
+      </div>
+
+      <div class="security-block">
+        <h4>Postman / API testing</h4>
+        <ol>
+          <li><code>POST /api/auth/login</code> with email, password, companyCode</li>
+          <li>Copy <code>accessToken</code> and <code>user.tenantId</code> from response</li>
+          <li>Add headers: <code>Authorization: Bearer &lt;token&gt;</code> and <code>X-Tenant-ID: &lt;tenantId&gt;</code></li>
+          <li>Wrong tenant header → 401. Missing role → 403.</li>
+        </ol>
+      </div>
+
+      <div class="security-block">
+        <h4>Company Admin checklist</h4>
+        <ul>
+          <li>Assign module roles only on <strong>Users & Permissions</strong> — least privilege.</li>
+          <li>Do not share login credentials between employees.</li>
+          <li>Offboard users promptly (employee offboard disables access).</li>
+          <li>Use email invite so employees set their own password.</li>
+        </ul>
       </div>
     </article>
   </section>

@@ -48,15 +48,17 @@ Main folders used in frontend:
 ## 5) Security Baseline Status (Complete)
 Implemented and active:
 - Login with `email`, `password`, `companyCode` (company code required for non-super-admin users)
-- Session handled via backend HttpOnly cookie
+- Session handled via backend HttpOnly cookie (8 hours)
 - Interceptor sends `withCredentials: true`
 - Interceptor appends `X-Tenant-ID` when user has tenant context
 - Protected routing via auth guards
+- **Configuration → Security tab** — in-app security instructions for Company Admin
 
 Core routes:
 - Public: `/login`, `/accept-invitation`, `/set-password`
 - Public: `/forgot-password`, `/reset-password`
 - Protected: app layout routes under authenticated shell
+- Security guide: `/configuration/security`
 
 ## 6) Core MVP Status (Complete)
 Implemented and active:
@@ -463,6 +465,42 @@ Employee view now shows:
 - `organisation.service.ts` calls `list()` from `EmployeesService` to populate dropdown.
 
 ### 15.5 Attendance Settings
-- New **Settings** tab on Attendance page (visible to COMPANY_ADMIN / HR_MANAGER).
-- Configure: work start/end time, late arrival grace (minutes) + action, early departure grace + action.
-- Saved to `GET/PATCH /api/attendance/settings`.
+- **Settings** tab on Attendance page (COMPANY_ADMIN / HR_MANAGER save; TEAM_LEAD view).
+- Sections: Work Schedule, Late Rules, Early Departure, Overtime Rules, Missing Attendance, Payroll Integration, Shift Management, Holidays & Weekends.
+- SaaS pay modes: salary-based or fixed LKR (late, early, OT).
+- List shows OT Pay (est.) and Deduction columns; payslips show OT allowance + attendance deduction.
+
+---
+
+## 16) Security Instructions (FE + API Testing)
+
+### 16.1 In-app Security Page
+
+Route: **Configuration → Security** (`/configuration/security`)  
+Visible to: `COMPANY_ADMIN` with `configuration.manage`
+
+Shows: JWT lifetime, tenant isolation rules, rate limits, Postman steps, admin checklist.
+
+### 16.2 Frontend Security Behavior
+
+| Layer | File | Behavior |
+|---|---|---|
+| Auth cookie | BE `auth.controller.ts` | HttpOnly, SameSite strict, 8h |
+| Tenant header | `auth.interceptor.ts` | Sends `X-Tenant-ID` from logged-in user |
+| Route guard | `role.guard.ts` | roles + permissions + module |
+| Session fields | `auth.service.ts` | `enabledModules`, `effectivePermissions` |
+
+### 16.3 Postman Testing (same as BE Section 16)
+
+1. Login → get `accessToken` + `tenantId`
+2. Headers on all protected APIs: `Authorization` + `X-Tenant-ID`
+3. Re-login after permission or tenant module changes
+
+### 16.4 Company Admin Checklist
+
+- Assign least-privilege module roles (Users & Permissions)
+- Use email invite (employee sets own password)
+- Offboard users when they leave
+- Do not share credentials
+
+---

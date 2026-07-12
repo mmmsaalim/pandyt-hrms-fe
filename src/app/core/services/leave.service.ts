@@ -48,4 +48,11 @@ export class LeaveService {
   delete(id: string) {
     return this.http.delete(`${environment.apiUrl}/leave/${id}`);
   }
+
+  calculateWorkingDays(startDate: string, endDate: string) {
+    return this.http.get<{ days: number; weekendDays: number[]; halfWorkingDays: number[] }>(
+      `${environment.apiUrl}/leave/calculate-days`,
+      { params: { startDate, endDate } },
+    );
+  }
 }

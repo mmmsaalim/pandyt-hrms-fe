@@ -20,7 +20,7 @@ import { AuthService } from '../../core/services/auth.service';
   styleUrl: './configuration-page.component.scss',
 })
 export class ConfigurationPageComponent implements OnInit {
-  activeTab: 'users-permissions' | 'access-configuration' = 'users-permissions';
+  activeTab: 'users-permissions' | 'access-configuration' | 'security' = 'users-permissions';
   loading = false;
   savingPermissions = false;
   savingUserAccess = false;
@@ -58,7 +58,7 @@ export class ConfigurationPageComponent implements OnInit {
 
   ngOnInit(): void {
     this.route.data.subscribe((data) => {
-      const tab = data['tab'] as 'users-permissions' | 'access-configuration' | undefined;
+      const tab = data['tab'] as 'users-permissions' | 'access-configuration' | 'security' | undefined;
       this.activeTab = tab ?? 'users-permissions';
     });
     this.auth.refreshTenantConfig().subscribe({
@@ -229,11 +229,13 @@ export class ConfigurationPageComponent implements OnInit {
     this.accessModalOpen = false;
   }
 
-  switchTab(tab: 'users-permissions' | 'access-configuration'): void {
+  switchTab(tab: 'users-permissions' | 'access-configuration' | 'security'): void {
     const path =
       tab === 'access-configuration'
         ? '/configuration/access-configuration'
-        : '/configuration/users-permissions';
+        : tab === 'security'
+          ? '/configuration/security'
+          : '/configuration/users-permissions';
     this.router.navigateByUrl(path);
     this.successMessage = '';
     this.errorMessage = '';

@@ -42,4 +42,18 @@ export class PayslipsPageComponent implements OnInit {
       },
     });
   }
+
+  deductionReasons(row: any, type: string): string {
+    const items = Array.isArray(row?.deductionBreakdown)
+      ? row.deductionBreakdown.filter((item: any) => item?.type === type && item?.reason)
+      : [];
+    return items.map((item: any) => item.reason).join('; ');
+  }
+
+  allDeductionReasons(row: any): string {
+    const items = Array.isArray(row?.deductionBreakdown)
+      ? row.deductionBreakdown.filter((item: any) => item?.reason)
+      : [];
+    return items.map((item: any) => item.reason).join('; ');
+  }
 }

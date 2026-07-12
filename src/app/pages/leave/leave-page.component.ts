@@ -181,7 +181,14 @@ export class LeavePageComponent implements OnInit {
     const { start, end } = normalizeLocalDateRange(this.applyForm.startDate, this.applyForm.endDate);
     this.applyForm.startDate = start;
     this.applyForm.endDate = end;
-    this.applyForm.days = countInclusiveLocalDays(start, end);
+    this.leaveService.calculateWorkingDays(start, end).subscribe({
+      next: (result) => {
+        this.applyForm.days = result.days;
+      },
+      error: () => {
+        this.applyForm.days = countInclusiveLocalDays(start, end);
+      },
+    });
   }
 
   private validateApplyDates(): string | null {
@@ -200,12 +207,10 @@ export class LeavePageComponent implements OnInit {
       }
     }
 
-    const calculatedDays = countInclusiveLocalDays(start, end);
-    if (calculatedDays < 1) {
-      return 'End date cannot be before start date.';
+    if (this.applyForm.days <= 0) {
+      return 'Selected dates have no working days (check weekends/holidays in Attendance settings).';
     }
 
-    this.applyForm.days = calculatedDays;
     return null;
   }
 
@@ -383,32 +388,53 @@ export class LeavePageComponent implements OnInit {
       return;
     }
     this.busy = true;
-    const payload = {
-      ...this.applyForm,
-      employeeId: this.canManualLeave && this.applyForm.employeeId ? this.applyForm.employeeId : undefined,
-      status: this.canManualLeave ? this.applyForm.status : undefined,
-    };
-
-    this.leaveService.apply(payload).subscribe({
-      next: () => {
-        this.showMsg('Leave applied successfully.', 'success');
-        this.closeApplyForm();
-        this.applyForm = {
-          type: this.leaveTypes[0] ?? 'Annual',
-          employeeId: 0,
-          startDate: '',
-          endDate: '',
-          days: 1,
-          reason: '',
-          status: 'PENDING',
+    this.leaveService.calculateWorkingDays(this.applyForm.startDate, this.applyForm.endDate).subscribe({
+      next: (result) => {
+        if (result.days <= 0) {
+          this.busy = false;
+          this.showMsg(
+            'Selected dates have no working days (check weekends/holidays in Attendance settings).',
+            'error',
+          );
+          return;
+        }
+        this.applyForm.days = result.days;
+        const payload = {
+          ...this.applyForm,
+          employeeId: this.canManualLeave && this.applyForm.employeeId ? this.applyForm.employeeId : undefined,
+          status: this.canManualLeave ? this.applyForm.status : undefined,
         };
-        this.calendarRangeStart = '';
-        this.calendarRangeEnd = '';
-        this.loadRows();
-        this.loadBalances();
+        this.leaveService.apply(payload).subscribe({
+          next: () => {
+            this.showMsg(
+              result.days !== Math.floor(result.days)
+                ? 'Leave applied (includes half working day). Excess over balance is unpaid on payslip.'
+                : 'Leave applied successfully. Excess over balance is unpaid on payslip.',
+              'success',
+            );
+            this.closeApplyForm();
+            this.applyForm = {
+              type: this.leaveTypes[0] ?? 'Annual',
+              employeeId: 0,
+              startDate: '',
+              endDate: '',
+              days: 1,
+              reason: '',
+              status: 'PENDING',
+            };
+            this.calendarRangeStart = '';
+            this.calendarRangeEnd = '';
+            this.loadRows();
+            this.loadBalances();
+          },
+          error: (err) => this.showMsg(err?.error?.message || 'Failed to apply leave.', 'error'),
+          complete: () => (this.busy = false),
+        });
       },
-      error: (err) => this.showMsg(err?.error?.message || 'Failed to apply leave.', 'error'),
-      complete: () => (this.busy = false),
+      error: (err) => {
+        this.busy = false;
+        this.showMsg(err?.error?.message || 'Failed to calculate working days.', 'error');
+      },
     });
   }
 
