@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { EmployeesService, InviteRole } from '../../core/services/employees.service';
 import { AttendanceService } from '../../core/services/attendance.service';
 import { OrganisationService } from '../../core/services/organisation.service';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { AuthService, TenantFieldRuntimeConfig } from '../../core/services/auth.service';
 import { EMPLOYEE_BANK_FIELD_KEYS } from '../../core/constants/subscription-plans';
 import { EditDialogShellComponent } from '../../shared/dialogs/edit-dialog-shell.component';
@@ -12,7 +12,7 @@ import { EditDialogShellComponent } from '../../shared/dialogs/edit-dialog-shell
 @Component({
   selector: 'app-employees-page',
   standalone: true,
-  imports: [NgFor, NgIf, FormsModule, EditDialogShellComponent],
+  imports: [NgFor, NgIf, FormsModule, RouterLink, EditDialogShellComponent],
   templateUrl: './employees-page.component.html',
   styleUrl: './employees-page.component.scss',
 })
@@ -47,6 +47,9 @@ export class EmployeesPageComponent implements OnInit {
     customFields: {} as Record<string, unknown>,
   };
   customFieldDefs: TenantFieldRuntimeConfig[] = [];
+  private _profileCustomFields: TenantFieldRuntimeConfig[] = [];
+  private _bankCustomFields: TenantFieldRuntimeConfig[] = [];
+  private _teamLeadOptions: Array<{ id: number; label: string }> = [];
   salaryEmployeeId: number | null = null;
   salaryBusy = false;
   salaryForm = {
@@ -91,7 +94,7 @@ export class EmployeesPageComponent implements OnInit {
     this.canInviteEmployees = this.isCompanyAdmin || roles.includes('HR_MANAGER');
     this.hasOrganisationModule = this.auth.hasModule('organisation');
     this.hasAttendanceModule = this.auth.hasModule('attendance');
-    this.customFieldDefs = this.auth.getModuleFields('employees');
+    this.setCustomFieldDefs(this.auth.getModuleFields('employees'));
     this.seatLimit = this.auth.user()?.tenantConfig?.seats ?? 0;
 
     this.route.queryParamMap.subscribe((params) => {
@@ -101,11 +104,11 @@ export class EmployeesPageComponent implements OnInit {
     this.auth.refreshTenantConfig().subscribe({
       next: (config) => {
         this.auth.applyTenantConfig(config);
-        this.customFieldDefs = config.fields?.['employees'] ?? [];
+        this.setCustomFieldDefs(config.fields?.['employees'] ?? []);
         this.seatLimit = config.seats ?? this.auth.user()?.tenantConfig?.seats ?? 0;
       },
       error: () => {
-        this.customFieldDefs = this.auth.getModuleFields('employees');
+        this.setCustomFieldDefs(this.auth.getModuleFields('employees'));
       },
     });
 
@@ -158,6 +161,7 @@ export class EmployeesPageComponent implements OnInit {
     this.employeesService.list().subscribe((rows: any) => {
       this.employees = rows;
       this.seatUsage = rows.filter((employee: any) => employee.employmentStatus !== 'INACTIVE').length;
+      this.rebuildTeamLeadOptions();
     });
   }
 
@@ -170,6 +174,12 @@ export class EmployeesPageComponent implements OnInit {
 
   isAtSeatLimit(): boolean {
     return this.seatLimit > 0 && this.seatUsage >= this.seatLimit;
+  }
+
+  /** True when the org module is on but no locations/teams exist yet — the admin
+   *  should set up the organisation structure first so they can be assigned here. */
+  get needsOrgSetup(): boolean {
+    return this.hasOrganisationModule && (this.locations.length === 0 || this.teams.length === 0);
   }
 
   teamsForDepartment(departmentId: number): any[] {
@@ -419,8 +429,57 @@ export class EmployeesPageComponent implements OnInit {
     };
   }
 
+  // These are consumed directly by *ngFor with [(ngModel)] rows. They MUST return a
+  // stable reference between change-detection cycles — returning a fresh array each
+  // call makes ngFor destroy/recreate every NgModel every tick, which never lets the
+  // zone stabilise and freezes the page. They are rebuilt only when their source data
+  // (customFieldDefs / employees) actually changes.
   get teamLeadOptions(): Array<{ id: number; label: string }> {
-    return this.employees
+    return this._teamLeadOptions;
+  }
+
+  get profileCustomFields(): TenantFieldRuntimeConfig[] {
+    return this._profileCustomFields;
+  }
+
+  get bankCustomFields(): TenantFieldRuntimeConfig[] {
+    return this._bankCustomFields;
+  }
+
+  trackByFieldKey(_index: number, field: TenantFieldRuntimeConfig): string {
+    return field.fieldKey;
+  }
+
+  trackByLeadId(_index: number, lead: { id: number }): number {
+    return lead.id;
+  }
+
+  private setCustomFieldDefs(defs: TenantFieldRuntimeConfig[]): void {
+    this.customFieldDefs = defs ?? [];
+
+    const bankKeys = new Set<string>(EMPLOYEE_BANK_FIELD_KEYS);
+    this._profileCustomFields = this.customFieldDefs.filter((field) => !bankKeys.has(field.fieldKey));
+
+    // The backend runtime config already omits fields the tenant disabled in
+    // Configuration → Module & Templates, so only include the bank fields that
+    // are actually present (enabled). A bank field the admin unchecked must NOT
+    // reappear via a fallback.
+    const configuredBankFields = EMPLOYEE_BANK_FIELD_KEYS.map((fieldKey) =>
+      this.customFieldDefs.find((field) => field.fieldKey === fieldKey),
+    ).filter((field): field is TenantFieldRuntimeConfig => !!field);
+
+    // Only fall back to the built-in bank fields for a fresh tenant that has no
+    // employee field configuration at all (nothing enabled yet).
+    const fallbackBankFields: TenantFieldRuntimeConfig[] = [
+      { fieldKey: 'bankName', label: 'Bank Name', fieldType: 'text', enabled: true, required: false, sortOrder: 0 },
+      { fieldKey: 'bankBranch', label: 'Bank Branch', fieldType: 'text', enabled: true, required: false, sortOrder: 1 },
+      { fieldKey: 'bankAccount', label: 'Bank Account Number', fieldType: 'text', enabled: true, required: false, sortOrder: 2 },
+    ];
+    this._bankCustomFields = this.customFieldDefs.length === 0 ? fallbackBankFields : configuredBankFields;
+  }
+
+  private rebuildTeamLeadOptions(): void {
+    this._teamLeadOptions = this.employees
       .filter((employee) =>
         (employee?.user?.roles ?? []).some((entry: any) => entry?.role?.name === 'TEAM_LEAD'),
       )
@@ -431,24 +490,6 @@ export class EmployeesPageComponent implements OnInit {
           employee?.employeeCode ||
           `Employee #${employee.id}`,
       }));
-  }
-
-  get profileCustomFields(): TenantFieldRuntimeConfig[] {
-    const bankKeys = new Set<string>(EMPLOYEE_BANK_FIELD_KEYS);
-    return this.customFieldDefs.filter((field) => !bankKeys.has(field.fieldKey));
-  }
-
-  get bankCustomFields(): TenantFieldRuntimeConfig[] {
-    const fallbackBankFields: TenantFieldRuntimeConfig[] = [
-      { fieldKey: 'bankName', label: 'Bank Name', fieldType: 'text', enabled: true, required: false, sortOrder: 0 },
-      { fieldKey: 'bankBranch', label: 'Bank Branch', fieldType: 'text', enabled: true, required: false, sortOrder: 1 },
-      { fieldKey: 'bankAccount', label: 'Bank Account Number', fieldType: 'text', enabled: true, required: false, sortOrder: 2 },
-    ];
-
-    return EMPLOYEE_BANK_FIELD_KEYS.map((fieldKey) => {
-      const configured = this.customFieldDefs.find((field) => field.fieldKey === fieldKey);
-      return configured ?? fallbackBankFields.find((field) => field.fieldKey === fieldKey)!;
-    });
   }
 
   fieldOptions(field: TenantFieldRuntimeConfig): string[] {

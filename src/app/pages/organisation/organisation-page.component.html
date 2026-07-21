@@ -16,30 +16,39 @@
   <ng-container *ngIf="activeTab === 'tree'">
     <div class="org-tree">
       <div *ngFor="let loc of tree" class="tree-location">
-        <h4>📍 {{ loc.name }}</h4>
+        <h4 class="tree-location-head">
+          <span class="tree-pin">📍</span>
+          <span>{{ loc.name }}</span>
+        </h4>
         <div *ngFor="let dept of loc.departments" class="tree-department">
           <div class="tree-node-head">
             <strong>🏢 {{ dept.name }}</strong>
             <span class="badge">{{ dept._count?.employees ?? 0 }} employees</span>
             <span class="manager-chip" *ngIf="dept.managerName">👤 {{ dept.managerName }}</span>
           </div>
-          <div *ngFor="let employee of dept.employees" class="tree-employee">
-            <span>{{ employee.name || employee.employeeCode }}</span>
-            <small>{{ employee.employeeCode }}</small>
+          <div class="tree-members" *ngIf="dept.employees?.length">
+            <span class="member-chip" *ngFor="let employee of dept.employees">
+              <span class="member-avatar">{{ employeeInitials(employee) }}</span>
+              <span class="member-name">{{ employee.name || employee.employeeCode }}</span>
+              <small>{{ employee.employeeCode }}</small>
+            </span>
           </div>
           <div *ngFor="let team of dept.teams" class="tree-team">
             <div class="tree-node-head">
               <span>👥 {{ team.name }}</span>
               <span class="badge">{{ team._count?.employees ?? 0 }} employees</span>
             </div>
-            <div *ngFor="let employee of team.employees" class="tree-employee">
-              <span>{{ employee.name || employee.employeeCode }}</span>
-              <small>{{ employee.employeeCode }}</small>
+            <div class="tree-members" *ngIf="team.employees?.length">
+              <span class="member-chip" *ngFor="let employee of team.employees">
+                <span class="member-avatar">{{ employeeInitials(employee) }}</span>
+                <span class="member-name">{{ employee.name || employee.employeeCode }}</span>
+                <small>{{ employee.employeeCode }}</small>
+              </span>
             </div>
           </div>
         </div>
       </div>
-      <p *ngIf="tree.length === 0">No organisation structure defined yet.</p>
+      <p class="tree-empty" *ngIf="tree.length === 0">No organisation structure defined yet. Add a location and department to get started.</p>
     </div>
   </ng-container>
 
@@ -58,18 +67,34 @@
       <button type="button" class="add-btn" (click)="createLocation()">Create</button>
     </section>
     <div class="table-scroll">
-    <table>
-      <thead><tr><th>ID</th><th>Name</th><th>Address</th><th *ngIf="isCompanyAdmin">Actions</th></tr></thead>
+    <table class="expandable-table">
+      <thead><tr><th class="caret-col"></th><th>ID</th><th>Name</th><th>Address</th><th>Members</th><th *ngIf="isCompanyAdmin">Actions</th></tr></thead>
       <tbody>
-        <tr *ngFor="let l of locations">
-          <td>{{ l.id }}</td>
-          <td>{{ l.name }}</td>
-          <td>{{ l.address ?? '—' }}</td>
-          <td class="row-actions" *ngIf="isCompanyAdmin">
-            <button type="button" class="action-btn edit" (click)="openEditLocation(l)" [disabled]="isBusy(l.id)">Edit</button>
-            <button type="button" class="action-btn delete" (click)="promptDelete('location', l)" [disabled]="isBusy(l.id)">Delete</button>
-          </td>
-        </tr>
+        <ng-container *ngFor="let l of locations">
+          <tr class="expandable-row" (click)="toggleLocation(l.id)">
+            <td class="caret-col"><span class="expand-caret" [class.open]="isLocationExpanded(l.id)">▸</span></td>
+            <td>{{ l.id }}</td>
+            <td>{{ l.name }}</td>
+            <td>{{ l.address ?? '—' }}</td>
+            <td><span class="member-badge">{{ membersOfLocation(l.id).length }} members</span></td>
+            <td class="row-actions" *ngIf="isCompanyAdmin" (click)="$event.stopPropagation()">
+              <button type="button" class="action-btn edit" (click)="openEditLocation(l)" [disabled]="isBusy(l.id)">Edit</button>
+              <button type="button" class="action-btn delete" (click)="promptDelete('location', l)" [disabled]="isBusy(l.id)">Delete</button>
+            </td>
+          </tr>
+          <tr class="member-detail-row" *ngIf="isLocationExpanded(l.id)">
+            <td [attr.colspan]="isCompanyAdmin ? 6 : 5">
+              <div class="member-list" *ngIf="membersOfLocation(l.id).length; else noLocMembers">
+                <span class="member-chip" *ngFor="let e of membersOfLocation(l.id)">
+                  <span class="member-avatar">{{ employeeInitials(e) }}</span>
+                  <span class="member-name">{{ employeeName(e) }}</span>
+                  <small>{{ e.employeeCode }}</small>
+                </span>
+              </div>
+              <ng-template #noLocMembers><p class="member-empty">No employees at this location yet.</p></ng-template>
+            </td>
+          </tr>
+        </ng-container>
       </tbody>
     </table>
     </div>
@@ -101,19 +126,35 @@
       <button type="button" class="add-btn" (click)="createDepartment()">Create</button>
     </section>
     <div class="table-scroll">
-    <table>
-      <thead><tr><th>ID</th><th>Name</th><th>Location</th><th>Manager</th><th *ngIf="isCompanyAdmin">Actions</th></tr></thead>
+    <table class="expandable-table">
+      <thead><tr><th class="caret-col"></th><th>ID</th><th>Name</th><th>Location</th><th>Manager</th><th>Members</th><th *ngIf="isCompanyAdmin">Actions</th></tr></thead>
       <tbody>
-        <tr *ngFor="let d of departments">
-          <td>{{ d.id }}</td>
-          <td>{{ d.name }}</td>
-          <td>{{ d.location?.name ?? '—' }}</td>
-          <td>{{ managerLabel(d.managerId ?? d.manager?.id) }}</td>
-          <td class="row-actions" *ngIf="isCompanyAdmin">
-            <button type="button" class="action-btn edit" (click)="openEditDepartment(d)" [disabled]="isBusy(d.id)">Edit</button>
-            <button type="button" class="action-btn delete" (click)="promptDelete('department', d)" [disabled]="isBusy(d.id)">Delete</button>
-          </td>
-        </tr>
+        <ng-container *ngFor="let d of departments">
+          <tr class="expandable-row" (click)="toggleDepartment(d.id)">
+            <td class="caret-col"><span class="expand-caret" [class.open]="isDepartmentExpanded(d.id)">▸</span></td>
+            <td>{{ d.id }}</td>
+            <td>{{ d.name }}</td>
+            <td>{{ d.location?.name ?? '—' }}</td>
+            <td>{{ managerLabel(d.managerId ?? d.manager?.id) }}</td>
+            <td><span class="member-badge">{{ membersOfDepartment(d.id).length }} members</span></td>
+            <td class="row-actions" *ngIf="isCompanyAdmin" (click)="$event.stopPropagation()">
+              <button type="button" class="action-btn edit" (click)="openEditDepartment(d)" [disabled]="isBusy(d.id)">Edit</button>
+              <button type="button" class="action-btn delete" (click)="promptDelete('department', d)" [disabled]="isBusy(d.id)">Delete</button>
+            </td>
+          </tr>
+          <tr class="member-detail-row" *ngIf="isDepartmentExpanded(d.id)">
+            <td [attr.colspan]="isCompanyAdmin ? 7 : 6">
+              <div class="member-list" *ngIf="membersOfDepartment(d.id).length; else noDeptMembers">
+                <span class="member-chip" *ngFor="let e of membersOfDepartment(d.id)">
+                  <span class="member-avatar">{{ employeeInitials(e) }}</span>
+                  <span class="member-name">{{ employeeName(e) }}</span>
+                  <small>{{ e.employeeCode }}</small>
+                </span>
+              </div>
+              <ng-template #noDeptMembers><p class="member-empty">No employees in this department yet.</p></ng-template>
+            </td>
+          </tr>
+        </ng-container>
       </tbody>
     </table>
     </div>
@@ -139,18 +180,34 @@
       <button type="button" class="add-btn" (click)="createTeam()">Create</button>
     </section>
     <div class="table-scroll">
-    <table>
-      <thead><tr><th>ID</th><th>Name</th><th>Department</th><th *ngIf="isCompanyAdmin">Actions</th></tr></thead>
+    <table class="expandable-table">
+      <thead><tr><th class="caret-col"></th><th>ID</th><th>Name</th><th>Department</th><th>Members</th><th *ngIf="isCompanyAdmin">Actions</th></tr></thead>
       <tbody>
-        <tr *ngFor="let t of teams">
-          <td>{{ t.id }}</td>
-          <td>{{ t.name }}</td>
-          <td>{{ t.department?.name ?? '—' }}</td>
-          <td class="row-actions" *ngIf="isCompanyAdmin">
-            <button type="button" class="action-btn edit" (click)="openEditTeam(t)" [disabled]="isBusy(t.id)">Edit</button>
-            <button type="button" class="action-btn delete" (click)="promptDelete('team', t)" [disabled]="isBusy(t.id)">Delete</button>
-          </td>
-        </tr>
+        <ng-container *ngFor="let t of teams">
+          <tr class="expandable-row" (click)="toggleTeam(t.id)">
+            <td class="caret-col"><span class="expand-caret" [class.open]="isTeamExpanded(t.id)">▸</span></td>
+            <td>{{ t.id }}</td>
+            <td>{{ t.name }}</td>
+            <td>{{ t.department?.name ?? '—' }}</td>
+            <td><span class="member-badge">{{ membersOfTeam(t.id).length }} members</span></td>
+            <td class="row-actions" *ngIf="isCompanyAdmin" (click)="$event.stopPropagation()">
+              <button type="button" class="action-btn edit" (click)="openEditTeam(t)" [disabled]="isBusy(t.id)">Edit</button>
+              <button type="button" class="action-btn delete" (click)="promptDelete('team', t)" [disabled]="isBusy(t.id)">Delete</button>
+            </td>
+          </tr>
+          <tr class="member-detail-row" *ngIf="isTeamExpanded(t.id)">
+            <td [attr.colspan]="isCompanyAdmin ? 6 : 5">
+              <div class="member-list" *ngIf="membersOfTeam(t.id).length; else noTeamMembers">
+                <span class="member-chip" *ngFor="let e of membersOfTeam(t.id)">
+                  <span class="member-avatar">{{ employeeInitials(e) }}</span>
+                  <span class="member-name">{{ employeeName(e) }}</span>
+                  <small>{{ e.employeeCode }}</small>
+                </span>
+              </div>
+              <ng-template #noTeamMembers><p class="member-empty">No employees in this team yet.</p></ng-template>
+            </td>
+          </tr>
+        </ng-container>
       </tbody>
     </table>
     </div>

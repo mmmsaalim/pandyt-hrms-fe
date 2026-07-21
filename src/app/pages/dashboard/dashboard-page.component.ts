@@ -5,6 +5,7 @@ import { DashboardService } from '../../core/services/dashboard.service';
 import { AuthService, TenantFieldRuntimeConfig } from '../../core/services/auth.service';
 import { EmployeesService } from '../../core/services/employees.service';
 import { LeaveService } from '../../core/services/leave.service';
+import { OrganisationService } from '../../core/services/organisation.service';
 import { LeaveBalanceDisplayComponent } from '../leave/leave-balance-display.component';
 
 interface StatCard {
@@ -57,6 +58,15 @@ interface ApprovalCard {
   initials: string;
   name: string;
   meta: string;
+}
+
+interface SetupStep {
+  label: string;
+  hint: string;
+  done: boolean;
+  link: string;
+  queryParams: Record<string, string>;
+  actionLabel: string;
 }
 
 @Component({
@@ -155,11 +165,20 @@ export class DashboardPageComponent implements OnInit {
   pendingLeads: Array<any> = [];
   billingReport: Array<any> = [];
 
+  // Getting Started (org-first onboarding) checklist
+  canSetupWorkspace = false;
+  hasOrganisationModule = false;
+  setupSteps: SetupStep[] = [];
+  private setupDismissed = false;
+  private orgCounts = { locations: 0, departments: 0, teams: 0 };
+  private employeeCount = 0;
+
   constructor(
     private readonly dashboardService: DashboardService,
     private readonly auth: AuthService,
     private readonly employeesService: EmployeesService,
     private readonly leaveService: LeaveService,
+    private readonly organisationService: OrganisationService,
     private readonly router: Router,
   ) {}
 
@@ -370,10 +389,15 @@ export class DashboardPageComponent implements OnInit {
     }
 
     if (userRoles.includes('COMPANY_ADMIN') || userRoles.includes('HR_MANAGER') || userRoles.includes('TEAM_LEAD')) {
+      this.canSetupWorkspace = userRoles.includes('COMPANY_ADMIN') || userRoles.includes('HR_MANAGER');
+      this.hasOrganisationModule = this.auth.hasModule('organisation');
+      this.setupDismissed = this.readSetupDismissed();
       this.dashboardService.companyAdmin().subscribe({
         next: (data: any) => {
           this.setCompanyAdminStats(data);
           this.loadCompanyPendingApprovals();
+          this.employeeCount = Number(data.employees ?? 0);
+          this.loadSetupChecklist();
         },
       });
       return;
@@ -453,6 +477,109 @@ export class DashboardPageComponent implements OnInit {
 
     if (this.isCompanyAdmin) {
       this.router.navigate(['/employees'], { queryParams: { new: '1' } });
+    }
+  }
+
+  // --- Getting Started checklist ---------------------------------------------
+
+  get showSetupChecklist(): boolean {
+    return (
+      this.canSetupWorkspace &&
+      this.hasOrganisationModule &&
+      !this.setupDismissed &&
+      this.setupSteps.length > 0 &&
+      !this.setupComplete
+    );
+  }
+
+  get setupComplete(): boolean {
+    return this.setupSteps.length > 0 && this.setupSteps.every((step) => step.done);
+  }
+
+  get setupCompletedCount(): number {
+    return this.setupSteps.filter((step) => step.done).length;
+  }
+
+  dismissSetupChecklist(): void {
+    this.setupDismissed = true;
+    try {
+      localStorage.setItem(this.setupStorageKey(), '1');
+    } catch {
+      // localStorage unavailable — dismissal just won't persist across reloads.
+    }
+  }
+
+  private loadSetupChecklist(): void {
+    if (!this.canSetupWorkspace || !this.hasOrganisationModule || this.setupDismissed) {
+      return;
+    }
+
+    this.organisationService.getLocations().subscribe({
+      next: (rows: any) => {
+        this.orgCounts.locations = Array.isArray(rows) ? rows.length : 0;
+        this.buildSetupSteps();
+      },
+    });
+    this.organisationService.getDepartments().subscribe({
+      next: (rows: any) => {
+        this.orgCounts.departments = Array.isArray(rows) ? rows.length : 0;
+        this.buildSetupSteps();
+      },
+    });
+    this.organisationService.getTeams().subscribe({
+      next: (rows: any) => {
+        this.orgCounts.teams = Array.isArray(rows) ? rows.length : 0;
+        this.buildSetupSteps();
+      },
+    });
+  }
+
+  private buildSetupSteps(): void {
+    this.setupSteps = [
+      {
+        label: 'Add a location',
+        hint: 'Where your teams work',
+        done: this.orgCounts.locations > 0,
+        link: '/organisation',
+        queryParams: { tab: 'locations', add: '1' },
+        actionLabel: 'Add location',
+      },
+      {
+        label: 'Add a department',
+        hint: 'Group employees by function',
+        done: this.orgCounts.departments > 0,
+        link: '/organisation',
+        queryParams: { tab: 'departments', add: '1' },
+        actionLabel: 'Add department',
+      },
+      {
+        label: 'Add a team',
+        hint: 'Teams sit under a department',
+        done: this.orgCounts.teams > 0,
+        link: '/organisation',
+        queryParams: { tab: 'teams', add: '1' },
+        actionLabel: 'Add team',
+      },
+      {
+        label: 'Invite employees',
+        hint: 'Send email invites or add manually',
+        done: this.employeeCount > 1,
+        link: '/employees',
+        queryParams: { new: '1' },
+        actionLabel: 'Invite',
+      },
+    ];
+  }
+
+  private setupStorageKey(): string {
+    return `flowhr:setupDismissed:${this.auth.user()?.tenantId ?? 'unknown'}`;
+  }
+
+  private readSetupDismissed(): boolean {
+    try {
+      return localStorage.getItem(this.setupStorageKey()) === '1';
+    } catch {
+      return false;
     }
   }
 

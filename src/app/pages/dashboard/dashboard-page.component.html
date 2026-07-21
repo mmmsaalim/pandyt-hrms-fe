@@ -52,6 +52,29 @@
     </div>
   </section>
 
+  <!-- Getting Started: org-first onboarding checklist -->
+  <section class="panel setup-panel" *ngIf="showSetupChecklist">
+    <div class="panel-head">
+      <div>
+        <h3>Getting started</h3>
+        <p>Set up your organisation first, then invite employees so departments and teams are ready to assign. ({{ setupCompletedCount }}/{{ setupSteps.length }} done)</p>
+      </div>
+      <button type="button" class="setup-dismiss" (click)="dismissSetupChecklist()">Dismiss</button>
+    </div>
+    <ol class="setup-steps">
+      <li class="setup-step" *ngFor="let step of setupSteps" [class.done]="step.done">
+        <span class="setup-marker">{{ step.done ? '✓' : '' }}</span>
+        <div class="setup-copy">
+          <strong>{{ step.label }}</strong>
+          <small>{{ step.hint }}</small>
+        </div>
+        <a class="setup-action" [routerLink]="step.link" [queryParams]="step.queryParams">
+          {{ step.done ? 'Manage' : step.actionLabel }}
+        </a>
+      </li>
+    </ol>
+  </section>
+
   <!-- Super Admin Platform Dashboard -->
   <section class="middle-grid" *ngIf="isSuperAdmin">
     <article class="panel growth-panel">

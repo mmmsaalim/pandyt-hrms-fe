@@ -1,47 +1,166 @@
 .org-tree {
-  padding: 16px 0;
+  padding: 12px 4px;
 }
 
 .tree-location {
-  margin-bottom: 16px;
-  h4 { margin: 0 0 8px; font-size: 1rem; }
+  margin-bottom: 22px;
+}
+
+.tree-location-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--text);
+
+  .tree-pin {
+    display: inline-grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 9px;
+    background: var(--brand-soft);
+  }
 }
 
 .tree-department {
-  margin-left: 20px;
-  margin-bottom: 8px;
-  padding: 8px 0 4px 12px;
-  border-left: 2px solid #fed7aa;
+  margin-left: 15px;
+  margin-bottom: 10px;
+  padding: 12px 0 8px 16px;
+  border-left: 2px solid var(--brand-soft-strong);
+  position: relative;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: -1px;
+    top: 18px;
+    width: 12px;
+    height: 2px;
+    background: var(--brand-soft-strong);
+  }
 }
 
 .tree-team {
-  margin-left: 20px;
-  padding: 6px 0 4px 12px;
+  margin-left: 18px;
+  margin-top: 8px;
+  padding: 8px 0 6px 16px;
   font-size: 0.9rem;
-  border-left: 2px solid #e5e7eb;
+  border-left: 2px solid #dbe2ea;
 }
 
 .tree-node-head {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 
-.tree-employee {
+.tree-members {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 2px 0 4px;
+}
+
+.tree-empty {
+  color: var(--muted);
+  font-size: 0.9rem;
+  padding: 8px 0;
+}
+
+/* Shared member chip (used in tree + expandable table rows) */
+.member-chip {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  margin: 3px 6px 3px 0;
-  padding: 4px 8px;
+  gap: 7px;
+  padding: 4px 10px 4px 4px;
   border-radius: 999px;
-  background: #fff7ed;
-  color: #7c2d12;
+  background: var(--surface);
+  border: 1px solid var(--border);
   font-size: 0.8rem;
+  color: var(--text);
+
+  small {
+    color: var(--muted);
+    font-size: 0.72rem;
+  }
 }
 
-.tree-employee small {
-  color: #9a3412;
+.member-avatar {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--brand);
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 800;
+  flex: 0 0 auto;
+}
+
+.member-name {
+  font-weight: 600;
+}
+
+/* Expandable Departments/Teams/Locations tables */
+.expandable-table {
+  .caret-col {
+    width: 30px;
+    text-align: center;
+  }
+
+  .expandable-row {
+    cursor: pointer;
+
+    &:hover {
+      background: var(--surface);
+    }
+  }
+
+  .expand-caret {
+    display: inline-block;
+    color: var(--brand-deep);
+    font-size: 0.75rem;
+    transition: transform 0.15s ease;
+
+    &.open {
+      transform: rotate(90deg);
+    }
+  }
+
+  .member-detail-row > td {
+    background: var(--surface);
+    padding: 10px 14px 12px 44px;
+  }
+
+  .member-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+  }
+
+  .member-empty {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.82rem;
+  }
+}
+
+.member-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.18rem 0.55rem;
+  border-radius: 999px;
+  background: var(--brand-soft);
+  color: var(--brand-deep);
+  font-size: 0.74rem;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 @media (max-width: 900px) {

@@ -32,6 +32,12 @@ export interface LetterPrintPayload {
   };
   locale: string;
   currency: string;
+  printMeta?: {
+    referenceNo: string;
+    issueDate: string;
+    letterTypeLabel: string;
+    subject: string;
+  };
 }
 
 @Injectable({ providedIn: 'root' })

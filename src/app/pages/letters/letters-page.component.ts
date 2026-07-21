@@ -3,6 +3,8 @@ import { DatePipe, NgFor, NgIf } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HrLetter, LettersService } from '../../core/services/letters.service';
 import { AuthService } from '../../core/services/auth.service';
+import { buildLetterPrintHtml } from './letter-print.util';
+import { LETTER_TYPES, letterTypeLabel, LetterTypeValue } from './letter-templates';
 
 @Component({
   selector: 'app-letters-page',
@@ -19,22 +21,16 @@ export class LettersPageComponent implements OnInit {
   successMessage = '';
   showComposer = false;
   editingId: number | null = null;
+  private skipNextTypeChange = false;
 
   form = {
     title: '',
-    letterType: 'GENERAL',
+    letterType: 'GENERAL' as LetterTypeValue,
     recipientName: '',
     body: '',
   };
 
-  readonly letterTypes = [
-    { value: 'GENERAL', label: 'General letter' },
-    { value: 'APPOINTMENT', label: 'Appointment letter' },
-    { value: 'WARNING', label: 'Warning letter' },
-    { value: 'CONFIRMATION', label: 'Confirmation letter' },
-    { value: 'OFFER', label: 'Offer letter' },
-    { value: 'EXPERIENCE', label: 'Experience certificate' },
-  ];
+  readonly letterTypes = LETTER_TYPES;
 
   constructor(
     private readonly lettersService: LettersService,
@@ -43,6 +39,10 @@ export class LettersPageComponent implements OnInit {
 
   get isCompanyAdmin(): boolean {
     return (this.auth.user()?.roles ?? []).includes('COMPANY_ADMIN');
+  }
+
+  typeLabel(value: string): string {
+    return letterTypeLabel(value);
   }
 
   creatorLabel(letter: HrLetter): string {
@@ -75,18 +75,51 @@ export class LettersPageComponent implements OnInit {
   openComposer(letter?: HrLetter): void {
     this.showComposer = true;
     this.editingId = letter?.id ?? null;
+    this.skipNextTypeChange = true;
     this.form = {
       title: letter?.title ?? '',
-      letterType: letter?.letterType ?? 'GENERAL',
+      letterType: (letter?.letterType as LetterTypeValue) ?? 'GENERAL',
       recipientName: letter?.recipientName ?? '',
       body: letter?.body ?? '',
     };
+
+    if (!letter) {
+      this.applyTemplate(false);
+    }
   }
 
   closeComposer(): void {
     this.showComposer = false;
     this.editingId = null;
     this.form = { title: '', letterType: 'GENERAL', recipientName: '', body: '' };
+  }
+
+  onLetterTypeChange(type: LetterTypeValue): void {
+    if (this.skipNextTypeChange) {
+      this.skipNextTypeChange = false;
+      return;
+    }
+    this.applyTemplate(true);
+  }
+
+  applyTemplate(confirmWhenFilled = true): void {
+    const template = this.letterTypes.find((item) => item.value === this.form.letterType);
+    if (!template) {
+      return;
+    }
+
+    const hasBody = this.form.body.trim().length > 0;
+    if (hasBody && confirmWhenFilled) {
+      const replace = confirm(`Load the official ${template.label.toLowerCase()} template? This will replace the current body.`);
+      if (!replace) {
+        return;
+      }
+    }
+
+    if (!this.form.title.trim() || confirmWhenFilled) {
+      this.form.title = template.defaultTitle;
+    }
+    this.form.body = template.body;
   }
 
   save(): void {
@@ -146,31 +179,8 @@ export class LettersPageComponent implements OnInit {
           return;
         }
 
-        const { letter, letterhead } = payload;
-        const safeBody = letter.body.replace(/</g, '&lt;').replace(/>/g, '&gt;');
         doc.open();
-        doc.write(`
-          <!DOCTYPE html>
-          <html><head><title>${letter.title}</title>
-          <style>
-            body { font-family: Georgia, serif; margin: 40px; color: #222; }
-            .letterhead { border-bottom: 2px solid #f47421; padding-bottom: 16px; margin-bottom: 24px; }
-            .letterhead img { max-height: 56px; margin-bottom: 8px; }
-            .letterhead h1 { margin: 0; font-size: 22px; }
-            .meta { color: #666; font-size: 13px; margin-top: 6px; }
-            .body { white-space: pre-wrap; line-height: 1.6; font-size: 15px; }
-            .recipient { margin-bottom: 18px; font-weight: 600; }
-          </style></head><body>
-          <div class="letterhead">
-            ${letterhead.logoUrl ? `<img src="${letterhead.logoUrl}" alt="Logo" />` : ''}
-            <h1>${letterhead.companyDisplayName}</h1>
-            <div class="meta">${letterhead.address}${letterhead.phone ? ' · ' + letterhead.phone : ''}${letterhead.email ? ' · ' + letterhead.email : ''}</div>
-          </div>
-          ${letter.recipientName ? `<div class="recipient">To: ${letter.recipientName}</div>` : ''}
-          <h2>${letter.title}</h2>
-          <div class="body">${safeBody}</div>
-          </body></html>
-        `);
+        doc.write(buildLetterPrintHtml(payload));
         doc.close();
 
         frameWindow.focus();

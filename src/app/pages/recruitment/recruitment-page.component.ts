@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { NgClass, NgFor, NgIf } from '@angular/common';
+import { NgFor, NgIf } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
   PipelineStage,
@@ -12,7 +12,7 @@ import { EditDialogShellComponent } from '../../shared/dialogs/edit-dialog-shell
 @Component({
   selector: 'app-recruitment-page',
   standalone: true,
-  imports: [NgFor, NgIf, NgClass, FormsModule, ConfirmDialogComponent, EditDialogShellComponent],
+  imports: [NgFor, NgIf, FormsModule, ConfirmDialogComponent, EditDialogShellComponent],
   templateUrl: './recruitment-page.component.html',
   styleUrl: './recruitment-page.component.scss',
 })

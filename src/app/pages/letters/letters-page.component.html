@@ -2,7 +2,7 @@
   <header class="page-head">
     <div>
       <h2>HR Letters</h2>
-      <p>Compose letters with your company letterhead and print them for employees.</p>
+      <p>Compose formal letters with your company letterhead and print them for employees.</p>
       <p class="muted" *ngIf="!isCompanyAdmin">You only see letters you created. Company admins can view all letters.</p>
     </div>
     <button type="button" class="primary-btn" (click)="openComposer()">New letter</button>
@@ -13,21 +13,34 @@
 
   <section class="card panel" *ngIf="showComposer">
     <h3>{{ editingId ? 'Edit letter' : 'Compose letter' }}</h3>
+    <p class="muted composer-hint">Choose a letter type to load an official template. Replace placeholders like [Job Title] before printing.</p>
     <div class="form-grid">
-      <label>Title<input [(ngModel)]="form.title" name="title" type="text" /></label>
-      <label>
-        Type
-        <select [(ngModel)]="form.letterType" name="letterType">
+      <label class="field">
+        <span class="field-label">Title</span>
+        <input [(ngModel)]="form.title" name="title" type="text" placeholder="e.g. Appointment Letter" />
+      </label>
+      <label class="field">
+        <span class="field-label">Type</span>
+        <select [(ngModel)]="form.letterType" name="letterType" (ngModelChange)="onLetterTypeChange($event)">
           <option *ngFor="let type of letterTypes" [value]="type.value">{{ type.label }}</option>
         </select>
       </label>
-      <label>Recipient<input [(ngModel)]="form.recipientName" name="recipientName" type="text" placeholder="Employee name" /></label>
-      <label class="full-width">
-        Body
-        <textarea [(ngModel)]="form.body" name="body" rows="10" placeholder="Write your letter content..."></textarea>
+      <label class="field">
+        <span class="field-label">Recipient</span>
+        <input [(ngModel)]="form.recipientName" name="recipientName" type="text" placeholder="Employee name" />
+      </label>
+      <label class="field full-width">
+        <span class="field-label">Body</span>
+        <textarea
+          [(ngModel)]="form.body"
+          name="body"
+          rows="14"
+          placeholder="Official letter content..."
+        ></textarea>
       </label>
     </div>
     <div class="actions">
+      <button type="button" class="outline-btn" (click)="applyTemplate()">Load official template</button>
       <button type="button" class="primary-btn" (click)="save()" [disabled]="saving">{{ saving ? 'Saving...' : 'Save letter' }}</button>
       <button type="button" class="outline-btn" (click)="closeComposer()">Cancel</button>
     </div>
@@ -43,7 +56,7 @@
       <tbody>
         <tr *ngFor="let letter of letters">
           <td>{{ letter.title }}</td>
-          <td>{{ letter.letterType }}</td>
+          <td><span class="type-badge">{{ typeLabel(letter.letterType) }}</span></td>
           <td>{{ letter.recipientName || '—' }}</td>
           <td *ngIf="isCompanyAdmin">{{ creatorLabel(letter) }}</td>
           <td>{{ letter.updatedAt | date: 'medium' }}</td>

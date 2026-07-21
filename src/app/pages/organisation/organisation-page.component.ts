@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { NgFor, NgIf } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 import { OrganisationService } from '../../core/services/organisation.service';
 import { AuthService } from '../../core/services/auth.service';
 import { EmployeesService } from '../../core/services/employees.service';
@@ -21,7 +22,13 @@ export class OrganisationPageComponent implements OnInit {
   locations: any[] = [];
   departments: any[] = [];
   teams: any[] = [];
+  employees: any[] = [];
   employeeOptions: Array<{ id: number; label: string }> = [];
+
+  // Expanded rows in the Departments/Teams/Locations tabs (reveals members inline).
+  expandedDepartments = new Set<number>();
+  expandedTeams = new Set<number>();
+  expandedLocations = new Set<number>();
 
   isCompanyAdmin = false;
   message = '';
@@ -54,11 +61,29 @@ export class OrganisationPageComponent implements OnInit {
     private readonly orgService: OrganisationService,
     private readonly auth: AuthService,
     private readonly employeesService: EmployeesService,
+    private readonly route: ActivatedRoute,
   ) {}
 
   ngOnInit(): void {
     this.isCompanyAdmin = this.auth.user()?.roles.includes('COMPANY_ADMIN') ?? false;
+    this.applyRouteParams();
     this.loadAll();
+  }
+
+  /** Supports deep-links from the dashboard "Getting Started" checklist, e.g.
+   *  /organisation?tab=locations&add=1 opens the Locations tab with the add form open. */
+  private applyRouteParams(): void {
+    const params = this.route.snapshot.queryParamMap;
+    const tab = params.get('tab');
+    if (tab === 'locations' || tab === 'departments' || tab === 'teams' || tab === 'tree') {
+      this.activeTab = tab;
+    }
+
+    if (params.get('add') === '1' && this.isCompanyAdmin) {
+      this.showLocationForm = this.activeTab === 'locations';
+      this.showDepartmentForm = this.activeTab === 'departments';
+      this.showTeamForm = this.activeTab === 'teams';
+    }
   }
 
   loadAll(): void {
@@ -68,12 +93,72 @@ export class OrganisationPageComponent implements OnInit {
     this.orgService.getTeams().subscribe((res: any) => (this.teams = res));
     this.employeesService.list().subscribe({
       next: (res: any) => {
-        this.employeeOptions = (res?.data ?? res ?? []).map((emp: any) => ({
+        this.employees = res?.data ?? res ?? [];
+        this.employeeOptions = this.employees.map((emp: any) => ({
           id: Number(emp.id),
-          label: `${emp.user?.firstName ?? ''} ${emp.user?.lastName ?? ''}`.trim() || emp.employeeCode || `#${emp.id}`,
+          label: this.employeeName(emp),
         }));
       },
     });
+  }
+
+  // --- Member lookups (computed from the employee list; no backend change) -----
+
+  employeeName(emp: any): string {
+    return `${emp?.user?.firstName ?? ''} ${emp?.user?.lastName ?? ''}`.trim() || emp?.employeeCode || `#${emp?.id}`;
+  }
+
+  employeeInitials(emp: any): string {
+    const name = this.employeeName(emp);
+    const parts = name.split(' ').filter(Boolean).slice(0, 2);
+    return parts.map((part) => part[0]?.toUpperCase() ?? '').join('') || '?';
+  }
+
+  membersOfDepartment(departmentId: number): any[] {
+    return this.employees.filter(
+      (emp) => (emp?.departmentId ?? emp?.departmentRelation?.id) === departmentId,
+    );
+  }
+
+  membersOfTeam(teamId: number): any[] {
+    return this.employees.filter((emp) => (emp?.teamId ?? emp?.team?.id) === teamId);
+  }
+
+  private resolveEmployeeLocationId(emp: any): number {
+    const direct = emp?.locationId ?? emp?.location?.id;
+    if (direct) {
+      return direct;
+    }
+    const deptId = emp?.departmentId ?? emp?.departmentRelation?.id;
+    const dept = this.departments.find((d) => d.id === deptId);
+    return dept?.locationId ?? dept?.location?.id ?? 0;
+  }
+
+  membersOfLocation(locationId: number): any[] {
+    return this.employees.filter((emp) => this.resolveEmployeeLocationId(emp) === locationId);
+  }
+
+  // --- Expand/collapse toggles -------------------------------------------------
+
+  toggleDepartment(id: number): void {
+    this.expandedDepartments.has(id) ? this.expandedDepartments.delete(id) : this.expandedDepartments.add(id);
+  }
+  isDepartmentExpanded(id: number): boolean {
+    return this.expandedDepartments.has(id);
+  }
+
+  toggleTeam(id: number): void {
+    this.expandedTeams.has(id) ? this.expandedTeams.delete(id) : this.expandedTeams.add(id);
+  }
+  isTeamExpanded(id: number): boolean {
+    return this.expandedTeams.has(id);
+  }
+
+  toggleLocation(id: number): void {
+    this.expandedLocations.has(id) ? this.expandedLocations.delete(id) : this.expandedLocations.add(id);
+  }
+  isLocationExpanded(id: number): boolean {
+    return this.expandedLocations.has(id);
   }
 
   managerLabel(managerId: number | null | undefined): string {

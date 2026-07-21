@@ -22,6 +22,10 @@
       <h4>{{ form.onboardingMode === 'MANUAL_ONLY' ? 'Manual employee entry' : 'Invite employee by email' }}</h4>
       <button type="button" class="btn-secondary" (click)="closeCreateForm()">Cancel</button>
     </div>
+    <p class="org-setup-hint" *ngIf="needsOrgSetup">
+      <span>ⓘ You haven't set up your organisation structure yet. Add locations, departments and teams first so you can assign them here.</span>
+      <a routerLink="/organisation" [queryParams]="{ tab: 'locations', add: '1' }">Set up organisation →</a>
+    </p>
     <div class="form-grid">
       <label *ngIf="form.onboardingMode === 'EMAIL_INVITE'">
         Work email
@@ -82,11 +86,11 @@
         Reporting manager (team lead)
         <select [(ngModel)]="form.managerId" name="managerId">
           <option [ngValue]="0">— None —</option>
-          <option *ngFor="let lead of teamLeadOptions" [ngValue]="lead.id">{{ lead.label }}</option>
+          <option *ngFor="let lead of teamLeadOptions; trackBy: trackByLeadId" [ngValue]="lead.id">{{ lead.label }}</option>
         </select>
       </label>
 
-      <ng-container *ngFor="let field of profileCustomFields">
+      <ng-container *ngFor="let field of profileCustomFields; trackBy: trackByFieldKey">
         <label *ngIf="field.fieldType === 'select'">
           {{ field.label }}<span *ngIf="field.required"> *</span>
           <select [(ngModel)]="form.customFields[field.fieldKey]" [name]="'create-custom-' + field.fieldKey">
@@ -103,11 +107,11 @@
         </label>
       </ng-container>
 
-      <section class="bank-details-panel full-width">
+      <section class="bank-details-panel full-width" *ngIf="bankCustomFields.length">
         <h5>Bank details (salary transfer)</h5>
         <p class="field-hint">Required for payroll — enter the employee's salary bank account in Sri Lanka.</p>
         <div class="form-grid bank-grid">
-          <ng-container *ngFor="let field of bankCustomFields">
+          <ng-container *ngFor="let field of bankCustomFields; trackBy: trackByFieldKey">
             <label *ngIf="field.fieldType === 'select'">
               {{ field.label }}<span *ngIf="field.required"> *</span>
               <select [(ngModel)]="form.customFields[field.fieldKey]" [name]="'create-bank-' + field.fieldKey">
@@ -222,7 +226,7 @@
       Reporting manager (team lead)
       <select [(ngModel)]="editForm.managerId" name="editManagerId">
         <option [ngValue]="0">— None —</option>
-        <option *ngFor="let lead of teamLeadOptions" [ngValue]="lead.id">{{ lead.label }}</option>
+        <option *ngFor="let lead of teamLeadOptions; trackBy: trackByLeadId" [ngValue]="lead.id">{{ lead.label }}</option>
       </select>
     </label>
     <label *ngIf="hasAttendanceModule">
@@ -260,7 +264,7 @@
       </label>
     </ng-container>
 
-    <section class="bank-details-panel full-width">
+    <section class="bank-details-panel full-width" *ngIf="bankCustomFields.length">
       <h5>Bank details</h5>
       <div class="dialog-grid bank-grid">
         <ng-container *ngFor="let field of bankCustomFields">
