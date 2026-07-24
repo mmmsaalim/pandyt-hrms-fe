@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
 
 export interface PlatformTenantReportRow {
@@ -15,13 +15,11 @@ export interface PlatformTenantReportRow {
   createdAt: string;
 }
 
-export interface PlatformTenantUserRow {
-  id: number;
-  name: string;
-  email: string;
-  status: string;
-  roles: string[];
-  createdAt: string;
+export type TenantReportKind = 'employees' | 'leave' | 'attendance' | 'payroll';
+
+export interface TenantReportDateRange {
+  from?: string;
+  to?: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -32,13 +30,50 @@ export class ReportsService {
     return this.http.get(`${environment.apiUrl}/reports/summary`);
   }
 
+  // ---------------------------------------------------------------------
+  // Platform report (SUPER_ADMIN) — counts only, no per-tenant user detail.
+  // ---------------------------------------------------------------------
+
   platformTenants() {
     return this.http.get<PlatformTenantReportRow[]>(`${environment.apiUrl}/reports/platform/tenants`);
   }
 
-  platformTenantUsers(tenantId: number) {
-    return this.http.get<{ tenant: PlatformTenantReportRow; users: PlatformTenantUserRow[] }>(
-      `${environment.apiUrl}/reports/platform/tenants/${tenantId}/users`,
-    );
+  exportPlatformTenantsExcel(tenantIds?: number[]) {
+    let params = new HttpParams();
+    if (tenantIds && tenantIds.length > 0) {
+      params = params.set('tenantIds', tenantIds.join(','));
+    }
+    return this.http.get(`${environment.apiUrl}/reports/platform/tenants/export-excel`, {
+      params,
+      responseType: 'blob',
+    });
+  }
+
+  // ---------------------------------------------------------------------
+  // Tenant-scoped reports (COMPANY_ADMIN / HR_MANAGER).
+  // ---------------------------------------------------------------------
+
+  private rangeParams(range?: TenantReportDateRange): HttpParams {
+    let params = new HttpParams();
+    if (range?.from) {
+      params = params.set('from', range.from);
+    }
+    if (range?.to) {
+      params = params.set('to', range.to);
+    }
+    return params;
+  }
+
+  tenantReport(kind: TenantReportKind, range?: TenantReportDateRange) {
+    return this.http.get<Record<string, unknown>[]>(`${environment.apiUrl}/reports/tenant/${kind}`, {
+      params: this.rangeParams(range),
+    });
+  }
+
+  exportTenantReportExcel(kind: TenantReportKind, range?: TenantReportDateRange) {
+    return this.http.get(`${environment.apiUrl}/reports/tenant/${kind}/export-excel`, {
+      params: this.rangeParams(range),
+      responseType: 'blob',
+    });
   }
 }

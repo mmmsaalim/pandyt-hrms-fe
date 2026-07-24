@@ -48,6 +48,10 @@ export class TenantsService {
     return this.http.post(`${environment.apiUrl}/tenants/payments/${tenantId}/reminder`, {});
   }
 
+  sendTenantEmail(tenantId: number, dto: { subject: string; message: string }) {
+    return this.http.post(`${environment.apiUrl}/tenants/payments/${tenantId}/email`, dto);
+  }
+
   sendAllOverdueReminders() {
     return this.http.post(`${environment.apiUrl}/tenants/payments/reminders/overdue`, {});
   }

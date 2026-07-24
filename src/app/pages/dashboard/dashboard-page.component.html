@@ -10,7 +10,7 @@
       <p *ngIf="isCompanyAdmin">Company operations: Manage your employees, leave, attendance, and payroll.</p>
       <p *ngIf="isEmployeeView">Here is your personal dashboard for attendance, leave, and payslips.</p>
     </div>
-    <button *ngIf="!isEmployeeView" class="new-btn" type="button" (click)="onNewClick()">
+    <button *ngIf="showNewButton" class="new-btn" type="button" (click)="onNewClick()">
       {{ newButtonLabel }}
     </button>
   </header>
@@ -262,7 +262,10 @@
       </div>
       <div class="panel-copy" *ngIf="hasNoLeaveTrendData()">No approved leave data yet.</div>
     </article>
+  </section>
 
+  <!-- Company Admin: Pending Approvals + Recruitment Funnel -->
+  <section class="bottom-grid" *ngIf="isCompanyAdmin">
     <article class="panel approvals-panel">
       <div class="panel-head">
         <div>
@@ -272,26 +275,25 @@
         <a routerLink="/leave">View all</a>
       </div>
 
-      <div class="approval-row" *ngFor="let item of approvals">
-        <div class="avatar">{{ item.initials }}</div>
-        <div>
-          <h4>{{ item.name }}</h4>
-          <p>{{ item.meta }}</p>
+      <div class="list-scroll">
+        <div class="approval-row" *ngFor="let item of approvals">
+          <div class="avatar">{{ item.initials }}</div>
+          <div>
+            <h4>{{ item.name }}</h4>
+            <p>{{ item.meta }}</p>
+          </div>
+          <button type="button" routerLink="/leave">Open</button>
         </div>
-        <button type="button" routerLink="/leave">Open</button>
-      </div>
 
-      <div class="approval-row empty-row" *ngIf="approvals.length === 0">
-        <div>
-          <h4>No pending requests</h4>
-          <p>Leave approvals will appear here when employees submit requests.</p>
+        <div class="approval-row empty-row" *ngIf="approvals.length === 0">
+          <div>
+            <h4>No pending requests</h4>
+            <p>Leave approvals will appear here when employees submit requests.</p>
+          </div>
         </div>
       </div>
     </article>
-  </section>
 
-  <!-- Company Admin: Recruitment Funnel + Recent Hires -->
-  <section class="bottom-grid" *ngIf="isCompanyAdmin">
     <article class="panel funnel-panel">
       <div class="panel-head">
         <div>
@@ -311,7 +313,10 @@
       </div>
       <p class="panel-copy" *ngIf="hasNoRecruitmentFunnelData()">No candidates in the pipeline yet.</p>
     </article>
+  </section>
 
+  <!-- Company Admin: Recent Hires -->
+  <section class="bottom-grid" *ngIf="isCompanyAdmin">
     <article class="panel tenant-list-panel">
       <div class="panel-head">
         <div>
@@ -335,6 +340,48 @@
         </div>
         <p class="panel-copy" *ngIf="!recentHires.length">No recent hires found.</p>
       </div>
+    </article>
+  </section>
+
+  <!-- Company Admin: Upcoming Birthdays + Public Holidays -->
+  <section class="bottom-grid" *ngIf="isCompanyAdmin">
+    <article class="panel employee-list-panel">
+      <div class="panel-head">
+        <div>
+          <h3>Upcoming birthdays</h3>
+          <p>Employees celebrating in the next 30 days</p>
+        </div>
+      </div>
+      <div class="list-row" *ngFor="let b of upcomingBirthdays">
+        <span class="qa-icon">🎂</span>
+        <div>
+          <strong>{{ b.name }}</strong>
+          <small>{{ b.date | date: 'MMM d' }}</small>
+        </div>
+        <span class="badge" *ngIf="b.daysUntil === 0">Today!</span>
+        <span class="badge" *ngIf="b.daysUntil === 1">Tomorrow</span>
+        <span *ngIf="b.daysUntil > 1">in {{ b.daysUntil }} days</span>
+      </div>
+      <p class="panel-copy" *ngIf="!upcomingBirthdays.length">No birthdays in the next 30 days.</p>
+    </article>
+
+    <article class="panel employee-list-panel">
+      <div class="panel-head">
+        <div>
+          <h3>Upcoming public holidays</h3>
+          <p>Sri Lanka — next 5 holidays</p>
+        </div>
+      </div>
+      <div class="list-row" *ngFor="let h of upcomingHolidays">
+        <span class="qa-icon">🇱🇰</span>
+        <div>
+          <strong>{{ h.name }}</strong>
+          <small>{{ h.date | date: 'MMM d, y' }}</small>
+        </div>
+        <span class="badge" *ngIf="h.daysUntil === 0">Today</span>
+        <span *ngIf="h.daysUntil > 0">in {{ h.daysUntil }} days</span>
+      </div>
+      <p class="panel-copy" *ngIf="!upcomingHolidays.length">No upcoming holidays found.</p>
     </article>
   </section>
 
@@ -393,52 +440,90 @@
           <span>Joined date</span>
           <strong>{{ employeeData.joinedDate | date: 'mediumDate' }}</strong>
         </div>
-        <div class="profile-item" *ngFor="let field of profileFieldDefs">
+        <div
+          class="profile-item"
+          [class.empty]="!employeeProfile?.customFields?.[field.fieldKey]"
+          *ngFor="let field of visibleProfileFieldDefs"
+        >
           <span>{{ field.label }}</span>
           <strong>{{ employeeProfile?.customFields?.[field.fieldKey] || '—' }}</strong>
         </div>
+        <ng-container *ngIf="showAllProfileFields">
+          <div
+            class="profile-item"
+            [class.empty]="!employeeProfile?.customFields?.[field.fieldKey]"
+            *ngFor="let field of hiddenProfileFieldDefs"
+          >
+            <span>{{ field.label }}</span>
+            <strong>{{ employeeProfile?.customFields?.[field.fieldKey] || '—' }}</strong>
+          </div>
+        </ng-container>
       </div>
+
+      <button
+        type="button"
+        class="profile-toggle"
+        *ngIf="hiddenProfileFieldDefs.length"
+        (click)="showAllProfileFields = !showAllProfileFields"
+      >
+        {{ showAllProfileFields ? 'Show less' : 'Show ' + hiddenProfileFieldDefs.length + ' more field' + (hiddenProfileFieldDefs.length === 1 ? '' : 's') }}
+        <span class="arrow" [class.expanded]="showAllProfileFields">▼</span>
+      </button>
     </article>
 
     <app-leave-balance-display></app-leave-balance-display>
 
-    <!-- Team birthdays -->
+    <!-- Coming up: birthdays + holidays behind one segmented toggle -->
     <article class="panel employee-list-panel">
       <div class="panel-head">
         <div>
-          <h3>Team birthdays</h3>
-          <p>Colleagues with birthdays in the next 30 days</p>
+          <h3>Coming up</h3>
+          <p *ngIf="comingUpTab === 'birthdays'">Colleagues celebrating in the next 30 days</p>
+          <p *ngIf="comingUpTab === 'holidays'">Sri Lanka — next 5 public holidays</p>
+        </div>
+        <div class="segmented" role="tablist" aria-label="Coming up">
+          <button
+            type="button"
+            role="tab"
+            [class.active]="comingUpTab === 'birthdays'"
+            [attr.aria-selected]="comingUpTab === 'birthdays'"
+            (click)="comingUpTab = 'birthdays'"
+          >🎂 Birthdays</button>
+          <button
+            type="button"
+            role="tab"
+            [class.active]="comingUpTab === 'holidays'"
+            [attr.aria-selected]="comingUpTab === 'holidays'"
+            (click)="comingUpTab = 'holidays'"
+          >🇱🇰 Holidays</button>
         </div>
       </div>
-      <div class="list-row" *ngFor="let b of employeeData.teamBirthdays">
-        <span class="qa-icon">🎂</span>
-        <div>
-          <strong>{{ b.name }}</strong>
-          <small>{{ b.date | date: 'MMM d' }}</small>
-        </div>
-        <span class="badge" *ngIf="b.daysUntil === 0">Today!</span>
-        <span class="badge" *ngIf="b.daysUntil === 1">Tomorrow</span>
-        <span *ngIf="b.daysUntil > 1">in {{ b.daysUntil }} days</span>
-      </div>
-      <p class="panel-copy" *ngIf="!employeeData.teamBirthdays?.length">No team birthdays in the next 30 days.</p>
-    </article>
 
-    <!-- Upcoming public holidays -->
-    <article class="panel employee-list-panel">
-      <div class="panel-head">
-        <div>
-          <h3>Upcoming public holidays</h3>
-          <p>Sri Lanka — next 5 holidays</p>
+      <div class="list-scroll" *ngIf="comingUpTab === 'birthdays'">
+        <div class="list-row" *ngFor="let b of employeeData.teamBirthdays">
+          <span class="qa-icon">🎂</span>
+          <div>
+            <strong>{{ b.name }}</strong>
+            <small>{{ b.date | date: 'MMM d' }}</small>
+          </div>
+          <span class="badge" *ngIf="b.daysUntil === 0">Today!</span>
+          <span class="badge" *ngIf="b.daysUntil === 1">Tomorrow</span>
+          <span *ngIf="b.daysUntil > 1">in {{ b.daysUntil }} days</span>
         </div>
+        <p class="panel-copy" *ngIf="!employeeData.teamBirthdays?.length">No team birthdays in the next 30 days.</p>
       </div>
-      <div class="list-row" *ngFor="let h of employeeData.upcomingHolidays">
-        <span class="qa-icon">🇱🇰</span>
-        <div>
-          <strong>{{ h.name }}</strong>
-          <small>{{ h.date | date: 'MMM d, y' }}</small>
+
+      <div class="list-scroll" *ngIf="comingUpTab === 'holidays'">
+        <div class="list-row" *ngFor="let h of employeeData.upcomingHolidays">
+          <span class="qa-icon">🇱🇰</span>
+          <div>
+            <strong>{{ h.name }}</strong>
+            <small>{{ h.date | date: 'MMM d, y' }}</small>
+          </div>
+          <span class="badge" *ngIf="h.daysUntil === 0">Today</span>
+          <span *ngIf="h.daysUntil > 0">in {{ h.daysUntil }} days</span>
         </div>
-        <span class="badge" *ngIf="h.daysUntil === 0">Today</span>
-        <span *ngIf="h.daysUntil > 0">in {{ h.daysUntil }} days</span>
+        <p class="panel-copy" *ngIf="!employeeData.upcomingHolidays?.length">No upcoming holidays found.</p>
       </div>
     </article>
 
@@ -450,12 +535,14 @@
         </div>
         <a routerLink="/leave">All requests</a>
       </div>
-      <div class="list-row" *ngFor="let item of employeeData.leaveRequests">
-        <span>{{ item.type }} ({{ item.days }}d)</span>
-        <strong>{{ item.status }}</strong>
-        <small>{{ item.startDate | date: 'MMM d' }} – {{ item.endDate | date: 'MMM d' }}</small>
+      <div class="list-scroll">
+        <div class="list-row" *ngFor="let item of employeeData.leaveRequests">
+          <span>{{ item.type }} ({{ item.days }}d)</span>
+          <strong>{{ item.status }}</strong>
+          <small>{{ item.startDate | date: 'MMM d' }} – {{ item.endDate | date: 'MMM d' }}</small>
+        </div>
+        <p class="panel-copy" *ngIf="!employeeData.leaveRequests?.length">No recent leave requests.</p>
       </div>
-      <p class="panel-copy" *ngIf="!employeeData.leaveRequests?.length">No recent leave requests.</p>
     </article>
 
     <article class="panel employee-list-panel">
@@ -465,10 +552,13 @@
           <p>Last 7 records</p>
         </div>
       </div>
-      <div class="list-row" *ngFor="let item of employeeData.attendance">
-        <span>{{ item.date | date: 'mediumDate' }}</span>
-        <strong>{{ item.status }}</strong>
-        <small>{{ item.hours }}h</small>
+      <div class="list-scroll">
+        <div class="list-row" *ngFor="let item of employeeData.attendance">
+          <span>{{ item.date | date: 'mediumDate' }}</span>
+          <strong>{{ item.status }}</strong>
+          <small>{{ item.hours }}h</small>
+        </div>
+        <p class="panel-copy" *ngIf="!employeeData.attendance?.length">No attendance records yet.</p>
       </div>
     </article>
 
@@ -479,10 +569,13 @@
           <p>Latest 5 payslips</p>
         </div>
       </div>
-      <div class="list-row" *ngFor="let item of employeeData.payslips">
-        <span>{{ item.id }}</span>
-        <strong>{{ item.status }}</strong>
-        <small>{{ item.netPay | number: '1.0-0' }}</small>
+      <div class="list-scroll">
+        <div class="list-row" *ngFor="let item of employeeData.payslips">
+          <span>{{ item.id }}</span>
+          <strong>{{ item.status }}</strong>
+          <small>{{ item.netPay | number: '1.0-0' }}</small>
+        </div>
+        <p class="panel-copy" *ngIf="!employeeData.payslips?.length">No payslips available yet.</p>
       </div>
     </article>
   </section>

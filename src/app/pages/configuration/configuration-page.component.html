@@ -200,7 +200,7 @@
           </div>
 
           <div class="module-list">
-            <section class="module-block" *ngFor="let group of permissionsByModule">
+            <section class="module-block" *ngFor="let group of matrixPermissionsByModule">
               <h4>{{ group.module }}</h4>
               <label class="permission-row" *ngFor="let permission of group.rows">
                 <input
@@ -421,7 +421,21 @@
 </ng-template>
 
 <ng-template #noRolesTemplate>
-  <p class="empty">No roles available yet. Create your first tenant role above.</p>
+  <div class="empty-roles">
+    <p class="empty">
+      No module roles have been generated for this tenant yet. Generate them to start configuring
+      permissions, or create a custom role above.
+    </p>
+    <p class="empty" *ngIf="bootstrappingModules">Generating module roles for your tenant...</p>
+    <button
+      type="button"
+      class="primary"
+      (click)="generateDefaultModules()"
+      [disabled]="bootstrappingModules"
+    >
+      {{ bootstrappingModules ? 'Generating...' : 'Generate module roles' }}
+    </button>
+  </div>
 </ng-template>
 
 <ng-template #noRoleSelectedTemplate>

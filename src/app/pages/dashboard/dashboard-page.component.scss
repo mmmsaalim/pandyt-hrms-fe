@@ -213,6 +213,7 @@
   display: grid;
   grid-template-columns: 2.15fr 1.05fr;
   gap: 0.9rem;
+  align-items: start;
 }
 
 .tenant-list-panel {
@@ -571,10 +572,28 @@
 	display: grid;
 	grid-template-columns: repeat(2, minmax(220px, 1fr));
 	gap: 0.9rem;
+	// Size each panel to its own content instead of stretching to the tallest
+	// sibling — otherwise short panels (e.g. an empty "Team birthdays") balloon
+	// to match the leave-balance card next to them.
+	align-items: start;
 }
 
 .profile-panel {
 	grid-column: 1 / -1;
+}
+
+// Leave balance is a tall block; give it its own full-width row so the short
+// list panels (birthdays, holidays, approvals…) pair up evenly below it
+// instead of leaving a large empty gap beside it.
+app-leave-balance-display {
+	display: block;
+	grid-column: 1 / -1;
+
+	// Drop the component's own outer margin so the grid gap alone controls
+	// spacing (keeps the row rhythm even with neighbouring panels).
+	::ng-deep .leave-balance-section {
+		margin: 0;
+	}
 }
 
 .profile-grid {
@@ -599,10 +618,90 @@
 	strong {
 		font-size: 0.9rem;
 	}
+
+	&.empty strong {
+		color: #b7c0d1;
+		font-weight: 500;
+	}
+}
+
+.profile-toggle {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.35rem;
+	width: 100%;
+	margin-top: 0.65rem;
+	padding: 0.5rem;
+	border: 1px dashed var(--border);
+	border-radius: 10px;
+	background: transparent;
+	color: var(--muted);
+	font-size: 0.8rem;
+	font-weight: 600;
+	cursor: pointer;
+	transition: background 0.15s ease, color 0.15s ease;
+
+	&:hover {
+		background: #fafbff;
+		color: var(--brand-deep, #d95f11);
+	}
+
+	.arrow {
+		font-size: 9px;
+		transition: transform 0.2s ease;
+	}
+
+	.arrow.expanded {
+		transform: rotate(180deg);
+	}
 }
 
 .employee-list-panel {
-	min-height: 220px;
+	// Keeps populated panels visually even, but small enough that an empty-state
+	// panel doesn't leave a large blank card.
+	min-height: 150px;
+}
+
+// Scrollable body for list panels — caps a long list so a single panel can't
+// grow unbounded, and keeps the empty-state copy tucked directly under the head.
+.list-scroll {
+	max-height: 260px;
+	overflow-y: auto;
+
+	.panel-copy {
+		margin-top: 0.25rem;
+	}
+}
+
+// Segmented toggle (pill switch) used in the "Coming up" card head.
+.segmented {
+	display: inline-flex;
+	flex: 0 0 auto;
+	gap: 2px;
+	padding: 3px;
+	border: 1px solid var(--border);
+	border-radius: 999px;
+	background: #f3f4f8;
+
+	button {
+		border: 0;
+		border-radius: 999px;
+		padding: 0.3rem 0.6rem;
+		background: transparent;
+		color: var(--muted);
+		font-size: 0.74rem;
+		font-weight: 600;
+		white-space: nowrap;
+		cursor: pointer;
+		transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+
+		&.active {
+			background: #fff;
+			color: var(--brand-deep, #d95f11);
+			box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
+		}
+	}
 }
 
 .list-row {
@@ -612,6 +711,12 @@
 	align-items: center;
 	padding: 0.55rem 0;
 	border-top: 1px solid #edf0f7;
+
+	// Birthday / holiday rows lead with an emoji icon; give the name column the
+	// flexible track so it aligns left under the header instead of the icon.
+	&:has(> .qa-icon:first-child) {
+		grid-template-columns: auto 1fr auto;
+	}
 
 	span {
 		font-size: 0.8rem;
@@ -667,7 +772,9 @@
 	}
 
 	.stats-grid {
-		grid-template-columns: 1fr;
+		// Two-up on small screens (minmax 0 so cards can shrink to fit a phone
+		// instead of overflowing); drops to a single column only when very narrow.
+		grid-template-columns: repeat(2, minmax(0, 1fr));
 	}
 
 	.people-tools-actions {
@@ -799,5 +906,86 @@
 
 	.quick-actions-panel {
 		grid-column: span 1;
+	}
+}
+
+/* Phone / narrow screens */
+@media (max-width: 560px) {
+	.dashboard-page {
+		gap: 0.75rem;
+	}
+
+	.panel,
+	.people-tools-panel {
+		padding: 0.8rem;
+	}
+
+	.stats-grid {
+		gap: 0.6rem;
+	}
+
+	.stat-card {
+		padding: 0.75rem;
+
+		h3 {
+			font-size: 1.35rem;
+		}
+	}
+
+	.page-head {
+		gap: 0.6rem;
+	}
+
+	.new-btn {
+		align-self: stretch;
+		text-align: center;
+	}
+
+	// Wide super-admin tables can't reflow — let them scroll horizontally
+	// instead of squashing the columns into unreadable slivers.
+	.tenant-list {
+		overflow-x: auto;
+		-webkit-overflow-scrolling: touch;
+
+		.tenant-list-row {
+			min-width: 480px;
+		}
+	}
+
+	// Stack setup checklist steps so the action button doesn't crush the copy.
+	.setup-step {
+		flex-wrap: wrap;
+
+		.setup-action {
+			margin-left: 34px;
+		}
+	}
+
+	.panel-head {
+		flex-wrap: wrap;
+	}
+
+	.segmented {
+		margin-top: 0.35rem;
+	}
+
+	.funnel-row {
+		grid-template-columns: 72px 1fr 28px;
+		gap: 0.4rem;
+	}
+
+	.donut {
+		width: 110px;
+		height: 110px;
+	}
+}
+
+@media (max-width: 380px) {
+	.stats-grid {
+		grid-template-columns: 1fr;
+	}
+
+	.quick-actions-grid {
+		grid-template-columns: 1fr;
 	}
 }

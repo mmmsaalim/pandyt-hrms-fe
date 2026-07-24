@@ -86,13 +86,18 @@
           </button>
           <button
             type="button"
+            class="settings-btn"
+            (click)="openEmailDialog(row)">
+            Send Email
+          </button>
+          <button
+            type="button"
             class="reminder-btn"
             *ngIf="row.billingStatus === 'OVERDUE'"
             [disabled]="remindingTenantId() === row.tenantId"
             (click)="openSingleReminderDialog(row)">
             {{ remindingTenantId() === row.tenantId ? 'Sending...' : 'Send Reminder' }}
           </button>
-          <span *ngIf="row.billingStatus !== 'OVERDUE'">-</span>
         </td>
       </tr>
       <tr *ngIf="rows().length === 0">
@@ -164,4 +169,30 @@
   <ng-template #settingsLoadingTpl>
     <p class="loading">Loading settings...</p>
   </ng-template>
+</app-edit-dialog-shell>
+
+<app-edit-dialog-shell
+  *ngIf="emailTenant()"
+  title="Send email"
+  [subtitle]="'Send a one-off email to ' + (emailTenant()?.companyName || '') + '. Delivered to billing contact emails, or the company admin if none are set.'"
+  submitText="Send email"
+  [busy]="sendingEmail()"
+  (cancel)="closeEmailDialog()"
+  (submitForm)="sendEmail()">
+  <div class="settings-grid">
+    <label>
+      Recipients
+      <input type="text" [value]="billingEmailsLabel(emailTenant()!)" disabled />
+    </label>
+
+    <label>
+      Subject
+      <input [(ngModel)]="emailForm.subject" name="emailSubject" type="text" placeholder="Subject" />
+    </label>
+
+    <label>
+      Message
+      <textarea [(ngModel)]="emailForm.message" name="emailMessage" rows="8" placeholder="Write your message..."></textarea>
+    </label>
+  </div>
 </app-edit-dialog-shell>

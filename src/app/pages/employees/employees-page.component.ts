@@ -91,7 +91,10 @@ export class EmployeesPageComponent implements OnInit {
     const roles = this.auth.user()?.roles ?? [];
     this.isCompanyAdmin = roles.includes('COMPANY_ADMIN');
     this.canManageEmployees = this.isCompanyAdmin || roles.includes('HR_MANAGER');
-    this.canInviteEmployees = this.isCompanyAdmin || roles.includes('HR_MANAGER');
+    // Invite is permission-driven: Company Admin / HR Manager have employees.invite
+    // by default, and Access Configuration can grant it to other module roles too.
+    this.canInviteEmployees =
+      this.auth.hasAnyPermission(['employees.invite']) || this.isCompanyAdmin || roles.includes('HR_MANAGER');
     this.hasOrganisationModule = this.auth.hasModule('organisation');
     this.hasAttendanceModule = this.auth.hasModule('attendance');
     this.setCustomFieldDefs(this.auth.getModuleFields('employees'));

@@ -39,29 +39,78 @@ export interface AuthUser {
   effectivePermissions?: string[];
   enabledModules?: string[];
   tenantConfig?: TenantRuntimeConfig | null;
-  accessToken?: string;
+  // NOTE: the JWT access token is intentionally NOT part of this object and is
+  // never written to localStorage (BRD §19.4). Authentication is carried by the
+  // HttpOnly `flowhr_access_token` cookie the backend sets on login. Only
+  // non-credential profile data lives here, for menu/role rendering.
+}
+
+/**
+ * Shape persisted to localStorage. Holds only non-credential profile data plus a
+ * plain session-expiry timestamp (derived once from the JWT `exp` claim at login).
+ * The JWT itself is never stored.
+ */
+interface PersistedSession {
+  user: AuthUser;
+  expiresAt: number; // epoch ms
 }
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private readonly userKey = 'flowhr_user';
+  private readonly sessionKey = 'flowhr_session';
+  private readonly legacyUserKey = 'flowhr_user';
   readonly user = signal<AuthUser | null>(null);
+  private sessionExpiresAt: number | null = null;
 
   constructor(
     private readonly http: HttpClient,
     private readonly router: Router,
   ) {
-    const rawUser = localStorage.getItem(this.userKey);
-    if (!rawUser) {
+    this.restoreSession();
+  }
+
+  private restoreSession(): void {
+    // Remove any legacy session that may still contain a stored JWT.
+    localStorage.removeItem(this.legacyUserKey);
+
+    const raw = localStorage.getItem(this.sessionKey);
+    if (!raw) {
       return;
     }
 
     try {
-      const parsed = JSON.parse(rawUser) as AuthUser;
-      this.user.set(parsed);
+      const parsed = JSON.parse(raw) as PersistedSession;
+      if (!parsed?.user || typeof parsed.expiresAt !== 'number') {
+        localStorage.removeItem(this.sessionKey);
+        return;
+      }
+
+      this.user.set(parsed.user);
+      this.sessionExpiresAt = parsed.expiresAt;
     } catch {
-      localStorage.removeItem(this.userKey);
+      localStorage.removeItem(this.sessionKey);
     }
+  }
+
+  private persistSession(user: AuthUser): void {
+    const session: PersistedSession = {
+      user,
+      expiresAt: this.sessionExpiresAt ?? Date.now() + 8 * 60 * 60 * 1000,
+    };
+    localStorage.setItem(this.sessionKey, JSON.stringify(session));
+  }
+
+  /** Extracts the non-sensitive `exp` claim (ms) from the JWT, then discards the token. */
+  private expiryFromToken(token: string): number {
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1])) as { exp?: number };
+      if (typeof payload.exp === 'number') {
+        return payload.exp * 1000;
+      }
+    } catch {
+      // fall through to default
+    }
+    return Date.now() + 8 * 60 * 60 * 1000;
   }
 
   login(email: string, password: string, companyCode?: string) {
@@ -105,39 +154,39 @@ export class AuthService {
     });
   }
 
+  /**
+   * Records the session after login. The `token` is used only to derive the
+   * client-side expiry timestamp and is then discarded — it is never persisted.
+   * Real request authentication rides on the HttpOnly cookie set by the backend.
+   */
   setSession(token: string, user: AuthUser) {
-    const userWithToken = { ...user, accessToken: token };
-    localStorage.setItem(this.userKey, JSON.stringify(userWithToken));
-    this.user.set(userWithToken);
+    this.sessionExpiresAt = this.expiryFromToken(token);
+    this.user.set(user);
+    this.persistSession(user);
+  }
+
+  /** Clears local session state without a network call (used on 401 or logout). */
+  clearSession() {
+    this.sessionExpiresAt = null;
+    localStorage.removeItem(this.sessionKey);
+    localStorage.removeItem(this.legacyUserKey);
+    this.user.set(null);
   }
 
   logout() {
-    this.http.post(`${environment.apiUrl}/auth/logout`, {}, { withCredentials: true }).subscribe();
-    localStorage.removeItem(this.userKey);
-    this.user.set(null);
+    this.http
+      .post(`${environment.apiUrl}/auth/logout`, {}, { withCredentials: true })
+      .subscribe({ next: () => undefined, error: () => undefined });
+    this.clearSession();
     this.router.navigate(['/login']);
   }
 
-  private isTokenExpired(token: string): boolean {
-    try {
-      const decoded = JSON.parse(atob(token.split('.')[1]));
-      if (decoded.exp === undefined) {
-        return false;
-      }
-      const date = new Date(0);
-      date.setUTCSeconds(decoded.exp);
-      return !(date.valueOf() > new Date().valueOf());
-    } catch (e) {
-      return true;
-    }
-  }
-
+  /** True when a session exists and its client-side expiry has not passed. */
   isAuthenticated(): boolean {
-    const user = this.user();
-    if (!user || !user.accessToken) {
+    if (!this.user() || this.sessionExpiresAt === null) {
       return false;
     }
-    return !this.isTokenExpired(user.accessToken);
+    return this.sessionExpiresAt > Date.now();
   }
 
   hasAnyRole(roles: string[]) {
@@ -245,6 +294,6 @@ export class AuthService {
       },
     };
     this.user.set(nextUser);
-    localStorage.setItem(this.userKey, JSON.stringify(nextUser));
+    this.persistSession(nextUser);
   }
 }

@@ -60,6 +60,18 @@ interface ApprovalCard {
   meta: string;
 }
 
+interface UpcomingBirthday {
+  name: string;
+  date: string;
+  daysUntil: number;
+}
+
+interface UpcomingHoliday {
+  name: string;
+  date: string;
+  daysUntil: number;
+}
+
 interface SetupStep {
   label: string;
   hint: string;
@@ -143,6 +155,37 @@ export class DashboardPageComponent implements OnInit {
   leaveTrendSeries: number[] = [];
   monthlyBurnRate = 0;
   attendancePct = 0;
+  upcomingBirthdays: UpcomingBirthday[] = [];
+  upcomingHolidays: UpcomingHoliday[] = [];
+
+  // Segmented toggle for the combined "Coming up" card (employee view).
+  comingUpTab: 'birthdays' | 'holidays' = 'birthdays';
+
+  // "Employee details" panel: tenant custom fields can run long (many unset),
+  // so only 6 show by default (filled ones prioritized) and the rest sit
+  // behind a "Show more" toggle.
+  showAllProfileFields = false;
+  private readonly defaultFieldPreviewCount = 6;
+
+  private hasCustomFieldValue(fieldKey: string): boolean {
+    const value = this.employeeProfile?.customFields?.[fieldKey];
+    return value !== null && value !== undefined && String(value).trim() !== '';
+  }
+
+  // Filled fields first so the default preview favors real data over blanks.
+  private get orderedProfileFieldDefs(): TenantFieldRuntimeConfig[] {
+    const filled = this.profileFieldDefs.filter((field) => this.hasCustomFieldValue(field.fieldKey));
+    const empty = this.profileFieldDefs.filter((field) => !this.hasCustomFieldValue(field.fieldKey));
+    return [...filled, ...empty];
+  }
+
+  get visibleProfileFieldDefs(): TenantFieldRuntimeConfig[] {
+    return this.orderedProfileFieldDefs.slice(0, this.defaultFieldPreviewCount);
+  }
+
+  get hiddenProfileFieldDefs(): TenantFieldRuntimeConfig[] {
+    return this.orderedProfileFieldDefs.slice(this.defaultFieldPreviewCount);
+  }
 
   get donutGradient(): string {
     return this.buildDonutGradient(this.split);
@@ -160,6 +203,7 @@ export class DashboardPageComponent implements OnInit {
   profileFieldDefs: TenantFieldRuntimeConfig[] = [];
   isSuperAdmin = false;
   isCompanyAdmin = false;
+  canInviteEmployees = false;
   showPeopleTools = false;
   tenantsList: Array<any> = [];
   pendingLeads: Array<any> = [];
@@ -282,6 +326,8 @@ export class DashboardPageComponent implements OnInit {
     this.leaveTrendSeries = Array.isArray(data.leaveTrendSeries) ? data.leaveTrendSeries : [];
     this.recentHires = Array.isArray(data.recentHires) ? data.recentHires : [];
     this.recruitmentFunnel = Array.isArray(data.recruitmentFunnel) ? data.recruitmentFunnel : [];
+    this.upcomingBirthdays = Array.isArray(data.upcomingBirthdays) ? data.upcomingBirthdays : [];
+    this.upcomingHolidays = Array.isArray(data.upcomingHolidays) ? data.upcomingHolidays : [];
     this.monthlyBurnRate = monthlyBurnRate;
     this.attendancePct = attendancePct;
 
@@ -373,6 +419,12 @@ export class DashboardPageComponent implements OnInit {
     const userRoles = currentUser?.roles ?? [];
     this.isSuperAdmin = userRoles.includes('SUPER_ADMIN');
     this.isCompanyAdmin = userRoles.includes('COMPANY_ADMIN') || userRoles.includes('HR_MANAGER') || userRoles.includes('TEAM_LEAD');
+    // "+ Add Employee" must only appear for users who can actually invite (permission-driven),
+    // not every admin-ish role — a team lead without employees.invite cannot invite.
+    this.canInviteEmployees =
+      this.auth.hasAnyPermission(['employees.invite']) ||
+      userRoles.includes('COMPANY_ADMIN') ||
+      userRoles.includes('HR_MANAGER');
     this.showPeopleTools =
       !this.isSuperAdmin &&
       (userRoles.includes('COMPANY_ADMIN') ||
@@ -462,11 +514,15 @@ export class DashboardPageComponent implements OnInit {
       return '+ New Tenant';
     }
 
-    if (this.isCompanyAdmin) {
+    if (this.canInviteEmployees) {
       return '+ Add Employee';
     }
 
     return '+ New';
+  }
+
+  get showNewButton(): boolean {
+    return this.isSuperAdmin || this.canInviteEmployees;
   }
 
   onNewClick(): void {
@@ -475,7 +531,7 @@ export class DashboardPageComponent implements OnInit {
       return;
     }
 
-    if (this.isCompanyAdmin) {
+    if (this.canInviteEmployees) {
       this.router.navigate(['/employees'], { queryParams: { new: '1' } });
     }
   }

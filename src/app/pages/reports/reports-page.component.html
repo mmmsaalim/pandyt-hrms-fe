@@ -1,7 +1,7 @@
 <section class="reports-page" *ngIf="!isSuperAdmin">
   <header class="page-head">
     <h2>Reports</h2>
-    <p>Summary counts for your company workspace.</p>
+    <p>Attendance, leave, payroll, and employee reports for your company — pick a month or a custom date range and export to Excel.</p>
   </header>
 
   <div class="grid cards">
@@ -10,6 +10,74 @@
       <h2>{{ card.value }}</h2>
     </article>
   </div>
+
+  <p *ngIf="errorMessage" class="error">{{ errorMessage }}</p>
+
+  <section class="card table-card">
+    <div class="tabs">
+      <button
+        type="button"
+        *ngFor="let tab of tabs"
+        class="tab"
+        [class.active]="activeTab === tab.kind"
+        (click)="selectTab(tab.kind)">
+        {{ tab.label }}
+      </button>
+    </div>
+
+    <div class="range-controls">
+      <div class="range-mode">
+        <label>
+          <input type="radio" name="rangeMode" value="month" [checked]="rangeMode === 'month'" (change)="setRangeMode('month')" />
+          Month
+        </label>
+        <label>
+          <input type="radio" name="rangeMode" value="custom" [checked]="rangeMode === 'custom'" (change)="setRangeMode('custom')" />
+          Custom range
+        </label>
+      </div>
+
+      <div class="range-inputs" *ngIf="rangeMode === 'month'">
+        <input type="month" [(ngModel)]="monthValue" (change)="loadTenantReport()" />
+      </div>
+
+      <div class="range-inputs" *ngIf="rangeMode === 'custom'">
+        <input type="date" [(ngModel)]="customFrom" (change)="loadTenantReport()" />
+        <span>to</span>
+        <input type="date" [(ngModel)]="customTo" (change)="loadTenantReport()" />
+      </div>
+
+      <div class="table-actions">
+        <button type="button" class="refresh-btn" (click)="loadTenantReport()" [disabled]="loadingTenantReport">
+          {{ loadingTenantReport ? 'Loading...' : 'Refresh' }}
+        </button>
+        <button type="button" class="refresh-btn primary" (click)="exportTenantReport()" [disabled]="exportingTenantReport || !tenantReportRows.length">
+          {{ exportingTenantReport ? 'Exporting...' : 'Export to Excel' }}
+        </button>
+      </div>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th *ngFor="let column of activeTabDefinition.columns">{{ column.label }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let row of tenantReportRows">
+          <td *ngFor="let column of activeTabDefinition.columns">
+            <ng-container [ngSwitch]="column.type">
+              <span *ngSwitchCase="'date'">{{ cellValue(row, column) | date: 'mediumDate' }}</span>
+              <span *ngSwitchCase="'datetime'">{{ cellValue(row, column) | date: 'medium' }}</span>
+              <span *ngSwitchDefault>{{ cellValue(row, column) }}</span>
+            </ng-container>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p *ngIf="!loadingTenantReport && !tenantReportRows.length" class="muted">No records found for this period.</p>
+  </section>
 </section>
 
 <section class="reports-page platform" *ngIf="isSuperAdmin">
@@ -42,6 +110,9 @@
         <button type="button" class="refresh-btn" (click)="loadPlatformTenants()" [disabled]="loadingTenants">
           {{ loadingTenants ? 'Refreshing...' : 'Refresh' }}
         </button>
+        <button type="button" class="refresh-btn primary" (click)="exportPlatformReport()" [disabled]="exportingPlatformReport || !tenantRows.length">
+          {{ exportingPlatformReport ? 'Exporting...' : (selectedTenantIds.size > 0 ? 'Export selected to Excel' : 'Export all to Excel') }}
+        </button>
         <button type="button" class="refresh-btn" (click)="printReport()">Print</button>
       </div>
     </div>
@@ -73,9 +144,7 @@
           <td>{{ row.activeEmployees }}</td>
           <td>{{ row.seats || '—' }}</td>
           <td>
-            <button type="button" class="link-btn" (click)="viewTenantUsers(row)">
-              {{ selectedTenantId === row.id ? 'Hide users' : 'View users' }}
-            </button>
+            <button type="button" class="link-btn" (click)="viewTenantDetail(row)">View</button>
           </td>
         </tr>
       </tbody>
@@ -83,34 +152,34 @@
 
     <p *ngIf="!loadingTenants && !tenantRows.length" class="muted">No converted tenants found.</p>
   </section>
-
-  <section class="card table-card" *ngIf="selectedTenantId">
-    <div class="table-head">
-      <h3>Users in {{ selectedTenantName }}</h3>
-      <span class="muted" *ngIf="loadingUsers">Loading users...</span>
-    </div>
-
-    <table *ngIf="!loadingUsers">
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Email</th>
-          <th>Status</th>
-          <th>Roles</th>
-          <th>Joined</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let user of tenantUsers">
-          <td>{{ user.name }}</td>
-          <td>{{ user.email }}</td>
-          <td>{{ user.status }}</td>
-          <td>{{ user.roles.join(', ') || '—' }}</td>
-          <td>{{ user.createdAt | date: 'mediumDate' }}</td>
-        </tr>
-      </tbody>
-    </table>
-
-    <p *ngIf="!loadingUsers && !tenantUsers.length" class="muted">No users found for this tenant.</p>
-  </section>
 </section>
+
+<app-edit-dialog-shell
+  *ngIf="detailTenant"
+  title="Tenant summary"
+  [subtitle]="detailTenant!.name"
+  submitText="Export to Excel"
+  cancelText="Close"
+  [busy]="exportingPlatformReport"
+  (cancel)="closeTenantDetail()"
+  (submitForm)="exportDetailTenant()">
+  <dl class="tenant-detail" *ngIf="detailTenant as tenant">
+    <dt>Company code</dt>
+    <dd>{{ tenant.companyCode || '—' }}</dd>
+    <dt>Plan</dt>
+    <dd>{{ tenant.plan }}</dd>
+    <dt>Status</dt>
+    <dd>{{ tenant.status }}</dd>
+    <dt>Seats</dt>
+    <dd>{{ tenant.seats || '—' }}</dd>
+    <dt>Active users</dt>
+    <dd>{{ tenant.activeUsers }}</dd>
+    <dt>Inactive users</dt>
+    <dd>{{ tenant.inactiveUsers }}</dd>
+    <dt>Employees</dt>
+    <dd>{{ tenant.activeEmployees }}</dd>
+    <dt>Created</dt>
+    <dd>{{ tenant.createdAt | date: 'mediumDate' }}</dd>
+  </dl>
+  <p class="muted detail-note">Individual user names and emails for other tenants are not shown here to protect tenant privacy.</p>
+</app-edit-dialog-shell>

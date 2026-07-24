@@ -53,6 +53,12 @@ export class CompanyPaymentsPageComponent implements OnInit {
   settingsTenant = signal<PaymentRow | null>(null);
   settingsLoading = signal(false);
   settingsSaving = signal(false);
+  emailTenant = signal<PaymentRow | null>(null);
+  sendingEmail = signal(false);
+  emailForm = {
+    subject: '',
+    message: '',
+  };
   settingsForm = {
     enabled: true,
     reminderDaysCsv: '7,3,1,0',
@@ -237,6 +243,56 @@ export class CompanyPaymentsPageComponent implements OnInit {
       },
       complete: () => {
         this.runningDailySchedule.set(false);
+      },
+    });
+  }
+
+  openEmailDialog(row: PaymentRow): void {
+    this.emailTenant.set(row);
+    this.emailForm = { subject: '', message: '' };
+    this.actionMessage.set('');
+  }
+
+  closeEmailDialog(): void {
+    if (this.sendingEmail()) {
+      return;
+    }
+
+    this.emailTenant.set(null);
+  }
+
+  sendEmail(): void {
+    const tenant = this.emailTenant();
+    if (!tenant) {
+      return;
+    }
+
+    const subject = this.emailForm.subject.trim();
+    const message = this.emailForm.message.trim();
+
+    if (!subject || !message) {
+      this.actionType.set('error');
+      this.actionMessage.set('Subject and message are both required.');
+      return;
+    }
+
+    this.sendingEmail.set(true);
+    this.tenantsService.sendTenantEmail(tenant.tenantId, { subject, message }).subscribe({
+      next: (res: any) => {
+        this.actionType.set('success');
+        this.actionMessage.set(
+          res?.recipients > 0
+            ? `Email sent to ${res.recipients} recipient(s) for ${tenant.companyName}.`
+            : `No billing contacts or company admin found for ${tenant.companyName}.`,
+        );
+        this.emailTenant.set(null);
+      },
+      error: (err) => {
+        this.actionType.set('error');
+        this.actionMessage.set(err?.error?.message ?? 'Failed to send email.');
+      },
+      complete: () => {
+        this.sendingEmail.set(false);
       },
     });
   }

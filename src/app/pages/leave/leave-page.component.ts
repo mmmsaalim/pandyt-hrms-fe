@@ -91,13 +91,12 @@ export class LeavePageComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    const roles = this.auth.user()?.roles ?? [];
-    const canManageOthers =
-      roles.includes('COMPANY_ADMIN') ||
-      roles.includes('HR_MANAGER') ||
-      roles.includes('TEAM_LEAD');
-    this.canApproveLeave = canManageOthers && this.auth.hasAnyPermission(['leave.manage']);
-    this.canManualLeave = canManageOthers;
+    // Data-driven: approve/reject and manual entry follow the leave.manage permission
+    // (configured per role in Access Configuration), never a hardcoded role list.
+    // hasAnyPermission already grants SUPER_ADMIN implicitly.
+    const canManageLeave = this.auth.hasAnyPermission(['leave.manage']);
+    this.canApproveLeave = canManageLeave;
+    this.canManualLeave = canManageLeave;
     this.currentUserEmail = this.auth.user()?.email?.trim().toLowerCase() ?? '';
     this.loadRows();
     this.loadBalances();

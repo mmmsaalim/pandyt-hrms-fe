@@ -144,9 +144,11 @@ export class ConfigurationPageComponent implements OnInit {
     );
   }
 
-  get permissionsByModule(): Array<{ module: string; rows: ConfigPermission[] }> {
+  private groupByModule(
+    permissions: ConfigPermission[],
+  ): Array<{ module: string; rows: ConfigPermission[] }> {
     const grouped = new Map<string, ConfigPermission[]>();
-    for (const permission of this.permissions) {
+    for (const permission of permissions) {
       const key = permission.module;
       grouped.set(key, [...(grouped.get(key) ?? []), permission]);
     }
@@ -157,6 +159,33 @@ export class ConfigurationPageComponent implements OnInit {
         module,
         rows: rows.sort((a, b) => a.permission.localeCompare(b.permission)),
       }));
+  }
+
+  /** Full catalog grouped — used by the read-only Permission reference panel. */
+  get permissionsByModule(): Array<{ module: string; rows: ConfigPermission[] }> {
+    return this.groupByModule(this.permissions);
+  }
+
+  /**
+   * Permissions relevant to the selected role only.
+   * A module role (name matches an enabled module) shows just that module's
+   * permissions; a job/custom role can hold anything, so it shows the full set.
+   */
+  get matrixScopedPermissions(): ConfigPermission[] {
+    const role = this.selectedRole;
+    if (!role) {
+      return [];
+    }
+    const roleModule = role.name.toLowerCase();
+    if (this.auth.getEnabledModules().includes(roleModule)) {
+      return this.permissions.filter((permission) => permission.module === roleModule);
+    }
+    return this.permissions;
+  }
+
+  /** Matrix view scoped to the selected role (prevents cross-module confusion). */
+  get matrixPermissionsByModule(): Array<{ module: string; rows: ConfigPermission[] }> {
+    return this.groupByModule(this.matrixScopedPermissions);
   }
 
   loadConfiguration(): void {
@@ -261,12 +290,15 @@ export class ConfigurationPageComponent implements OnInit {
     this.selectedPermissionIds.delete(permissionId);
   }
 
-  toggleActionPermissions(action: string, checked: boolean): void {
-    const targets = this.permissions.filter((permission) =>
-      permission.permission.toLowerCase().includes(action.toLowerCase()),
+  private actionTargets(action: string): ConfigPermission[] {
+    // Only the selected role's own permissions — never other modules'.
+    return this.matrixScopedPermissions.filter((permission) =>
+      permission.permission.toLowerCase().endsWith(`.${action.toLowerCase()}`),
     );
+  }
 
-    for (const permission of targets) {
+  toggleActionPermissions(action: string, checked: boolean): void {
+    for (const permission of this.actionTargets(action)) {
       if (checked) {
         this.selectedPermissionIds.add(permission.id);
       } else {
@@ -276,10 +308,7 @@ export class ConfigurationPageComponent implements OnInit {
   }
 
   isActionFullySelected(action: string): boolean {
-    const targets = this.permissions.filter((permission) =>
-      permission.permission.toLowerCase().includes(action.toLowerCase()),
-    );
-
+    const targets = this.actionTargets(action);
     if (!targets.length) {
       return false;
     }
