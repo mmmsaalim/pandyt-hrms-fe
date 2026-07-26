@@ -1,5 +1,10 @@
 :root {
   --brand: #f47421;
+  /* Darker end of the brand gradient. Was undefined, which broke every
+     linear-gradient(var(--brand), var(--brand-strong)) button (invalid gradient
+     -> transparent background -> white-on-white invisible buttons, e.g. the
+     "Save User Access" button in the modal). */
+  --brand-strong: #d9611a;
   --brand-deep: #bf5311;
   --brand-soft: #ffe1cf;
   --brand-soft-strong: #ffd0b3;

@@ -123,6 +123,38 @@ input:focus {
 	border-color: rgba(244, 116, 33, 0.5);
 }
 
+.password-field {
+	position: relative;
+	display: flex;
+}
+
+.password-field input {
+	flex: 1;
+	padding-right: 2.9rem;
+	width: 100%;
+}
+
+.password-field .toggle-visibility {
+	position: absolute;
+	top: 50%;
+	right: .5rem;
+	transform: translateY(-50%);
+	margin: 0;
+	padding: .25rem .4rem;
+	background: none;
+	border: 0;
+	box-shadow: none;
+	color: var(--muted, #667085);
+	font-size: 1.05rem;
+	line-height: 1;
+	cursor: pointer;
+}
+
+.password-field .toggle-visibility:hover {
+	background: rgba(15, 23, 42, 0.05);
+	border-radius: 8px;
+}
+
 button {
 	margin-top: .6rem;
 	background: linear-gradient(180deg, #f68d46 0%, #f47421 100%);

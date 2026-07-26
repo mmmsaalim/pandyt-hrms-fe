@@ -8,16 +8,20 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { AuthService, TenantFieldRuntimeConfig } from '../../core/services/auth.service';
 import { EMPLOYEE_BANK_FIELD_KEYS } from '../../core/constants/subscription-plans';
 import { EditDialogShellComponent } from '../../shared/dialogs/edit-dialog-shell.component';
+import { ListPaginationComponent } from '../../shared/list-pagination/list-pagination.component';
+import { PaginationMeta } from '../../core/models/pagination.model';
+import { buildPaginationMeta, defaultListPagination, slicePage } from '../../core/utils/paginate-array';
 
 @Component({
   selector: 'app-employees-page',
   standalone: true,
-  imports: [NgFor, NgIf, FormsModule, RouterLink, EditDialogShellComponent],
+  imports: [NgFor, NgIf, FormsModule, RouterLink, EditDialogShellComponent, ListPaginationComponent],
   templateUrl: './employees-page.component.html',
   styleUrl: './employees-page.component.scss',
 })
 export class EmployeesPageComponent implements OnInit {
   employees: any[] = [];
+  listPagination: PaginationMeta = defaultListPagination(5);
   departments: any[] = [];
   teams: any[] = [];
   locations: any[] = [];
@@ -91,10 +95,7 @@ export class EmployeesPageComponent implements OnInit {
     const roles = this.auth.user()?.roles ?? [];
     this.isCompanyAdmin = roles.includes('COMPANY_ADMIN');
     this.canManageEmployees = this.isCompanyAdmin || roles.includes('HR_MANAGER');
-    // Invite is permission-driven: Company Admin / HR Manager have employees.invite
-    // by default, and Access Configuration can grant it to other module roles too.
-    this.canInviteEmployees =
-      this.auth.hasAnyPermission(['employees.invite']) || this.isCompanyAdmin || roles.includes('HR_MANAGER');
+    this.refreshInvitePermission();
     this.hasOrganisationModule = this.auth.hasModule('organisation');
     this.hasAttendanceModule = this.auth.hasModule('attendance');
     this.setCustomFieldDefs(this.auth.getModuleFields('employees'));
@@ -107,6 +108,10 @@ export class EmployeesPageComponent implements OnInit {
     this.auth.refreshTenantConfig().subscribe({
       next: (config) => {
         this.auth.applyTenantConfig(config);
+        // Re-evaluate against the freshly fetched permissions. Without this the
+        // button keeps the state baked into the login-time JWT, so a permission a
+        // Company Admin just revoked would still appear granted until re-login.
+        this.refreshInvitePermission();
         this.setCustomFieldDefs(config.fields?.['employees'] ?? []);
         this.seatLimit = config.seats ?? this.auth.user()?.tenantConfig?.seats ?? 0;
       },
@@ -122,6 +127,19 @@ export class EmployeesPageComponent implements OnInit {
       this.loadWorkShifts();
     }
     this.loadEmployees();
+  }
+
+  /**
+   * Invite is permission-driven so a Company Admin can revoke it per role in
+   * Access Configuration (untick employees.invite on HR_MANAGER -> HR managers
+   * become view-only). Deliberately no `roles.includes('HR_MANAGER')` fallback:
+   * that would re-grant the button the permission was just used to take away.
+   * COMPANY_ADMIN stays unconditional — it owns the tenant and its shared role
+   * is not editable in the matrix.
+   */
+  private refreshInvitePermission(): void {
+    this.canInviteEmployees =
+      this.auth.hasAnyPermission(['employees.invite']) || this.isCompanyAdmin;
   }
 
   loadWorkShifts(): void {
@@ -162,10 +180,35 @@ export class EmployeesPageComponent implements OnInit {
 
   loadEmployees(): void {
     this.employeesService.list().subscribe((rows: any) => {
-      this.employees = rows;
-      this.seatUsage = rows.filter((employee: any) => employee.employmentStatus !== 'INACTIVE').length;
+      // Newest first (higher id = more recently added) so recent hires land on
+      // page 1 and the order stays stable between reloads.
+      this.employees = (Array.isArray(rows) ? rows : []).sort(
+        (a: any, b: any) => Number(b?.id ?? 0) - Number(a?.id ?? 0),
+      );
+      this.seatUsage = this.employees.filter((employee: any) => employee.employmentStatus !== 'INACTIVE').length;
       this.rebuildTeamLeadOptions();
+      this.syncListPagination();
     });
+  }
+
+  get paginatedEmployees(): any[] {
+    return slicePage(this.employees, this.listPagination.page, this.listPagination.limit);
+  }
+
+  onListPageChange(page: number): void {
+    this.listPagination = buildPaginationMeta(this.employees.length, page, this.listPagination.limit);
+  }
+
+  onListLimitChange(limit: number): void {
+    this.listPagination = buildPaginationMeta(this.employees.length, 1, limit);
+  }
+
+  private syncListPagination(): void {
+    this.listPagination = buildPaginationMeta(
+      this.employees.length,
+      this.listPagination.page,
+      this.listPagination.limit,
+    );
   }
 
   seatsRemaining(): number {

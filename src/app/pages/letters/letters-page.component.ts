@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { DatePipe, NgFor, NgIf } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HrLetter, LettersService } from '../../core/services/letters.service';
+import { EmployeesService } from '../../core/services/employees.service';
 import { AuthService } from '../../core/services/auth.service';
 import { buildLetterPrintHtml } from './letter-print.util';
 import { LETTER_TYPES, letterTypeLabel, LetterTypeValue } from './letter-templates';
@@ -30,10 +31,18 @@ export class LettersPageComponent implements OnInit {
     body: '',
   };
 
+  // Send-by-email dialog state.
+  employees: Array<{ id: number; name: string; email: string }> = [];
+  sendTarget: HrLetter | null = null;
+  sendMode: 'employee' | 'email' = 'employee';
+  sending = false;
+  sendForm = { employeeId: 0, email: '', recipientName: '' };
+
   readonly letterTypes = LETTER_TYPES;
 
   constructor(
     private readonly lettersService: LettersService,
+    private readonly employeesService: EmployeesService,
     private readonly auth: AuthService,
   ) {}
 
@@ -56,6 +65,74 @@ export class LettersPageComponent implements OnInit {
 
   ngOnInit(): void {
     this.load();
+    this.loadEmployees();
+  }
+
+  private loadEmployees(): void {
+    this.employeesService.list().subscribe({
+      next: (rows: any) => {
+        this.employees = (Array.isArray(rows) ? rows : [])
+          .map((row: any) => ({
+            id: Number(row.id),
+            name: `${row?.user?.firstName ?? ''} ${row?.user?.lastName ?? ''}`.trim() || `Employee #${row.id}`,
+            email: row?.user?.email ?? '',
+          }))
+          .filter((e: { email: string }) => !!e.email && !e.email.endsWith('@no-email.flowhr.local'));
+      },
+      error: () => {
+        this.employees = [];
+      },
+    });
+  }
+
+  openSendDialog(letter: HrLetter): void {
+    this.sendTarget = letter;
+    this.sendMode = this.employees.length ? 'employee' : 'email';
+    this.sendForm = { employeeId: 0, email: '', recipientName: letter.recipientName ?? '' };
+    this.errorMessage = '';
+    this.successMessage = '';
+  }
+
+  closeSendDialog(): void {
+    if (this.sending) {
+      return;
+    }
+    this.sendTarget = null;
+  }
+
+  confirmSend(): void {
+    if (!this.sendTarget) {
+      return;
+    }
+
+    const payload =
+      this.sendMode === 'employee'
+        ? { employeeId: this.sendForm.employeeId }
+        : { email: this.sendForm.email.trim(), recipientName: this.sendForm.recipientName.trim() || undefined };
+
+    if (this.sendMode === 'employee' && !this.sendForm.employeeId) {
+      this.errorMessage = 'Select an employee to send the letter to.';
+      return;
+    }
+    if (this.sendMode === 'email' && !this.sendForm.email.trim()) {
+      this.errorMessage = 'Enter an email address to send the letter to.';
+      return;
+    }
+
+    this.sending = true;
+    this.errorMessage = '';
+    this.lettersService.sendByEmail(this.sendTarget.id, payload).subscribe({
+      next: (res) => {
+        this.successMessage = `Letter sent to ${res.sentTo}.`;
+        this.sending = false;
+        this.sendTarget = null;
+        this.load();
+      },
+      error: (err) => {
+        this.errorMessage = err?.error?.message || 'Failed to send the letter.';
+        this.sending = false;
+      },
+    });
   }
 
   load(): void {

@@ -16,6 +16,8 @@ export class SetPasswordPageComponent implements OnInit {
   loading = false;
   successMessage = '';
   errorMessage = '';
+  showPassword = false;
+  showConfirm = false;
 
   readonly form = this.fb.group({
     password: ['', [Validators.required, Validators.minLength(8)]],

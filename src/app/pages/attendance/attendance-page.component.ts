@@ -91,7 +91,7 @@ export class AttendancePageComponent implements OnInit {
   overrideForm = { employeeId: 0, date: '', clockIn: '', clockOut: '', reason: '' };
 
   listFilters = { dateFrom: '', dateTo: '', status: 'ALL', search: '', employeeId: 0 };
-  listPagination: PaginationMeta = defaultListPagination(10);
+  listPagination: PaginationMeta = defaultListPagination(5);
 
   constructor(
     private readonly attendanceService: AttendanceService,
@@ -167,7 +167,12 @@ export class AttendancePageComponent implements OnInit {
 
   load(): void {
     this.attendanceService.list().subscribe((res: any) => {
-      this.rows = res;
+      // Latest attendance date first (id as tie-breaker) so recent records show
+      // on page 1 and the order stays stable across reloads.
+      this.rows = (Array.isArray(res) ? res : []).sort((a: any, b: any) => {
+        const byDate = String(b?.date ?? '').localeCompare(String(a?.date ?? ''));
+        return byDate !== 0 ? byDate : Number(b?.id ?? 0) - Number(a?.id ?? 0);
+      });
       this.rebuildCalendarMarkers();
       this.syncListPagination();
     });

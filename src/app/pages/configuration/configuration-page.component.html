@@ -347,23 +347,34 @@
   </section>
 </section>
 
-<p class="error" *ngIf="errorMessage">{{ errorMessage }}</p>
-<p class="success" *ngIf="successMessage">{{ successMessage }}</p>
+<!-- Fixed toast so the result of an action (save role, permissions, user access)
+     is always visible — the page is very tall, so an inline message rendered here
+     would fall below the fold, out of the user's view. -->
+<div class="toast-stack" *ngIf="errorMessage || successMessage" role="status" aria-live="polite">
+  <div class="toast toast-error" *ngIf="errorMessage">
+    <span class="toast-icon" aria-hidden="true">!</span>
+    <div class="toast-body">
+      <strong class="toast-title">Couldn’t save</strong>
+      <span class="toast-msg">{{ errorMessage }}</span>
+    </div>
+    <button type="button" class="toast-close" aria-label="Dismiss" (click)="errorMessage = ''">×</button>
+  </div>
+  <div class="toast toast-success" *ngIf="successMessage">
+    <span class="toast-icon" aria-hidden="true">✓</span>
+    <div class="toast-body">
+      <strong class="toast-title">Saved</strong>
+      <span class="toast-msg">{{ successMessage }}</span>
+    </div>
+    <button type="button" class="toast-close" aria-label="Dismiss" (click)="successMessage = ''">×</button>
+  </div>
+</div>
 
 <section class="modal-backdrop" *ngIf="accessModalOpen">
   <article class="modal-card">
     <div class="panel-head modal-head">
       <h3>Select Modules Access</h3>
       <div class="modal-head-actions">
-        <button type="button" class="secondary" (click)="closeAccessModal()">Close</button>
-        <button
-          type="button"
-          class="primary save-btn"
-          (click)="saveUserAccess()"
-          [disabled]="savingUserAccess || !selectedUserId"
-        >
-          {{ savingUserAccess ? 'Saving...' : 'Save User Access' }}
-        </button>
+        <button type="button" class="modal-close" aria-label="Close" (click)="closeAccessModal()">×</button>
       </div>
     </div>
 

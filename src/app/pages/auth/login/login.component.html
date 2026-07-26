@@ -19,7 +19,22 @@
       <label>Email</label>
       <input type="email" formControlName="email" placeholder="name@company.com" />
       <label>Password</label>
-      <input type="password" formControlName="password" placeholder="Enter password" />
+      <div class="password-field">
+        <input
+          [type]="showPassword ? 'text' : 'password'"
+          formControlName="password"
+          placeholder="Enter password"
+        />
+        <button
+          type="button"
+          class="toggle-visibility"
+          (click)="showPassword = !showPassword"
+          [attr.aria-label]="showPassword ? 'Hide password' : 'Show password'"
+          [attr.aria-pressed]="showPassword"
+        >
+          {{ showPassword ? '🙈' : '👁️' }}
+        </button>
+      </div>
       <button type="submit" [disabled]="form.invalid || loading">{{ loading ? 'Signing in...' : 'Sign in' }}</button>
     </form>
 

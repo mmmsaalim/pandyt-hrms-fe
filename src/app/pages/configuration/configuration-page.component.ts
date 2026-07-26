@@ -29,7 +29,29 @@ export class ConfigurationPageComponent implements OnInit {
   bootstrappingModules = false;
   private bootstrapAttempted = false;
   errorMessage = '';
-  successMessage = '';
+
+  // successMessage auto-clears a few seconds after being shown so the fixed
+  // toast doesn't linger on screen. Assigning '' cancels any pending timer.
+  private _successMessage = '';
+  private successTimer: ReturnType<typeof setTimeout> | null = null;
+
+  get successMessage(): string {
+    return this._successMessage;
+  }
+
+  set successMessage(value: string) {
+    this._successMessage = value;
+    if (this.successTimer) {
+      clearTimeout(this.successTimer);
+      this.successTimer = null;
+    }
+    if (value) {
+      this.successTimer = setTimeout(() => {
+        this._successMessage = '';
+        this.successTimer = null;
+      }, 5000);
+    }
+  }
 
   managedTenantId: number | null = null;
   permissions: ConfigPermission[] = [];
@@ -363,7 +385,7 @@ export class ConfigurationPageComponent implements OnInit {
       });
   }
 
-  savePermissions(): void {
+  savePermissions(successText = 'Role permissions updated successfully.'): void {
     if (!this.selectedAccessRoleId) {
       this.errorMessage = 'Select a role to configure permissions.';
       return;
@@ -382,7 +404,7 @@ export class ConfigurationPageComponent implements OnInit {
       .setRolePermissions(this.selectedAccessRoleId, Array.from(this.selectedPermissionIds))
       .subscribe({
         next: () => {
-          this.successMessage = 'Role permissions updated successfully.';
+          this.successMessage = successText;
           this.loadConfiguration();
         },
         error: (err) => {
@@ -476,7 +498,7 @@ export class ConfigurationPageComponent implements OnInit {
     }
 
     this.selectedPermissionIds = new Set<number>();
-    this.savePermissions();
+    this.savePermissions('Module access cleared for this role.');
   }
 
   generateDefaultModules(): void {
@@ -524,6 +546,11 @@ export class ConfigurationPageComponent implements OnInit {
   }
 
   private syncSelectedPermissions(): void {
+    // Reflect ONLY the role's actual saved permissions. A dynamic "pre-tick the
+    // default module group" overlay was tried here, but it unconditionally
+    // re-added default permissions on every load — silently reverting any
+    // explicit untick+save by the admin. Ticks must equal persisted state, or
+    // saving stops being trustworthy.
     const role = this.selectedRole;
     this.selectedPermissionIds = new Set(
       (role?.rolePermissions ?? []).map((row) => row.permissionId),

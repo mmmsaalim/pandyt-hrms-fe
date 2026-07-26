@@ -146,7 +146,7 @@
   <table>
     <thead><tr><th>Name</th><th>Code</th><th>Department</th><th>Designation</th><th>Salary (LKR)</th><th>Status</th><th>Actions</th></tr></thead>
     <tbody>
-      <tr *ngFor="let e of employees">
+      <tr *ngFor="let e of paginatedEmployees">
         <td>{{ e.user?.firstName }} {{ e.user?.lastName }}</td>
         <td>{{ e.employeeCode }}</td>
         <td>{{ departmentLabel(e) }}</td>
@@ -176,6 +176,13 @@
     </tbody>
   </table>
   </div>
+
+  <app-list-pagination
+    *ngIf="employees.length"
+    [pagination]="listPagination"
+    (pageChange)="onListPageChange($event)"
+    (limitChange)="onListLimitChange($event)"
+  ></app-list-pagination>
 </section>
 
 <app-edit-dialog-shell

@@ -15,6 +15,7 @@ import { AuthService } from '../../../core/services/auth.service';
 export class LoginComponent {
   loading = false;
   errorMessage = '';
+  showPassword = false;
 
   readonly form = this.fb.group({
     email: ['', [Validators.required, Validators.email]],

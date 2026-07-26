@@ -109,18 +109,30 @@ export class ReportsPageComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.isSuperAdmin = this.auth.user()?.roles?.includes('SUPER_ADMIN') ?? false;
+    const roles = this.auth.user()?.roles ?? [];
+    this.isSuperAdmin = roles.includes('SUPER_ADMIN');
 
     if (this.isSuperAdmin) {
       this.loadPlatformTenants();
       return;
     }
 
+    // Payroll (salary) reports are Company Admin / HR Manager only. A Team Lead
+    // granted Reports sees team-scoped Employees/Leave/Attendance, not payroll.
+    const canSeePayroll = roles.includes('COMPANY_ADMIN') || roles.includes('HR_MANAGER');
+    if (!canSeePayroll) {
+      this.tabs = TENANT_REPORT_TABS.filter((tab) => tab.kind !== 'payroll');
+      this.cards = [
+        { label: 'Employees', value: 0 },
+        { label: 'Leaves', value: 0 },
+      ];
+    }
+
     this.reportsService.summary().subscribe((res: any) => {
       this.cards = [
         { label: 'Employees', value: res.employees ?? 0 },
         { label: 'Leaves', value: res.leaves ?? 0 },
-        { label: 'Payroll Runs', value: res.payrollRuns ?? 0 },
+        ...(canSeePayroll ? [{ label: 'Payroll Runs', value: res.payrollRuns ?? 0 }] : []),
       ];
     });
 

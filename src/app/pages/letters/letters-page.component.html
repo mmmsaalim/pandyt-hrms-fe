@@ -51,16 +51,18 @@
     <p *ngIf="loading" class="muted">Loading...</p>
     <table *ngIf="!loading && letters.length">
       <thead>
-        <tr><th>Title</th><th>Type</th><th>Recipient</th><th *ngIf="isCompanyAdmin">Created by</th><th>Updated</th><th></th></tr>
+        <tr><th>Title</th><th>Type</th><th>Recipient</th><th>Status</th><th *ngIf="isCompanyAdmin">Created by</th><th>Updated</th><th></th></tr>
       </thead>
       <tbody>
         <tr *ngFor="let letter of letters">
           <td>{{ letter.title }}</td>
           <td><span class="type-badge">{{ typeLabel(letter.letterType) }}</span></td>
           <td>{{ letter.recipientName || '—' }}</td>
+          <td><span class="type-badge">{{ letter.status }}</span></td>
           <td *ngIf="isCompanyAdmin">{{ creatorLabel(letter) }}</td>
           <td>{{ letter.updatedAt | date: 'medium' }}</td>
           <td class="row-actions">
+            <button type="button" class="link-btn" (click)="openSendDialog(letter)">Email</button>
             <button type="button" class="link-btn" (click)="print(letter.id)">Print</button>
             <button type="button" class="link-btn" (click)="openComposer(letter)">Edit</button>
             <button type="button" class="link-btn danger" (click)="remove(letter.id)">Delete</button>
@@ -69,5 +71,44 @@
       </tbody>
     </table>
     <p *ngIf="!loading && !letters.length" class="muted">No letters yet. Create one to get started.</p>
+  </section>
+
+  <section class="modal-backdrop" *ngIf="sendTarget">
+    <article class="modal-card send-dialog card">
+      <div class="modal-head">
+        <h3>Email letter</h3>
+        <button type="button" class="modal-close" aria-label="Close" (click)="closeSendDialog()">×</button>
+      </div>
+      <p class="muted">Sending "<strong>{{ sendTarget.title }}</strong>". Make sure you replaced any [placeholders] before sending.</p>
+
+      <div class="send-mode">
+        <label><input type="radio" name="sendMode" value="employee" [(ngModel)]="sendMode" [disabled]="!employees.length" /> Existing employee</label>
+        <label><input type="radio" name="sendMode" value="email" [(ngModel)]="sendMode" /> Other email address</label>
+      </div>
+
+      <label class="field" *ngIf="sendMode === 'employee'">
+        <span class="field-label">Employee</span>
+        <select [(ngModel)]="sendForm.employeeId" name="sendEmployee">
+          <option [ngValue]="0">— Select employee —</option>
+          <option *ngFor="let e of employees" [ngValue]="e.id">{{ e.name }} ({{ e.email }})</option>
+        </select>
+      </label>
+
+      <ng-container *ngIf="sendMode === 'email'">
+        <label class="field">
+          <span class="field-label">Email address</span>
+          <input type="email" [(ngModel)]="sendForm.email" name="sendEmail" placeholder="name@example.com" />
+        </label>
+        <label class="field">
+          <span class="field-label">Recipient name (optional)</span>
+          <input type="text" [(ngModel)]="sendForm.recipientName" name="sendName" placeholder="e.g. Jane Doe" />
+        </label>
+      </ng-container>
+
+      <div class="actions">
+        <button type="button" class="outline-btn" (click)="closeSendDialog()" [disabled]="sending">Cancel</button>
+        <button type="button" class="primary-btn" (click)="confirmSend()" [disabled]="sending">{{ sending ? 'Sending...' : 'Send letter' }}</button>
+      </div>
+    </article>
   </section>
 </section>

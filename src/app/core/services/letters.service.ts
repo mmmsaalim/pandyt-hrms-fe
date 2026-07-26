@@ -67,4 +67,14 @@ export class LettersService {
   getPrintPayload(id: number): Observable<LetterPrintPayload> {
     return this.http.get<LetterPrintPayload>(`${environment.apiUrl}/letters/${id}/print`);
   }
+
+  sendByEmail(
+    id: number,
+    dto: { employeeId?: number; email?: string; recipientName?: string },
+  ): Observable<{ success: boolean; sentTo: string; letter: HrLetter }> {
+    return this.http.post<{ success: boolean; sentTo: string; letter: HrLetter }>(
+      `${environment.apiUrl}/letters/${id}/send`,
+      dto,
+    );
+  }
 }

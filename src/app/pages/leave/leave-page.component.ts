@@ -80,7 +80,7 @@ export class LeavePageComponent implements OnInit {
   calendarRangeEnd = '';
 
   listFilters = { status: 'ALL', dateFrom: '', dateTo: '', search: '' };
-  listPagination: PaginationMeta = defaultListPagination(10);
+  listPagination: PaginationMeta = defaultListPagination(5);
 
   applyForm = { employeeId: 0, type: '', startDate: '', endDate: '', days: 1, reason: '', status: 'PENDING' as LeaveStatus };
 
@@ -599,7 +599,11 @@ export class LeavePageComponent implements OnInit {
 
   private loadRows(): void {
     this.leaveService.list().subscribe((res: any) => {
-      this.rows = res as LeaveRow[];
+      // Newest first so the most recent requests always land on page 1 and the
+      // list order stays stable between reloads (no "records shuffle" effect).
+      this.rows = (Array.isArray(res) ? (res as LeaveRow[]) : []).sort(
+        (a, b) => Number(b.id) - Number(a.id),
+      );
       this.rebuildCalendarMarkers();
       this.syncListPagination();
     });

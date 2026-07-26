@@ -419,12 +419,12 @@ export class DashboardPageComponent implements OnInit {
     const userRoles = currentUser?.roles ?? [];
     this.isSuperAdmin = userRoles.includes('SUPER_ADMIN');
     this.isCompanyAdmin = userRoles.includes('COMPANY_ADMIN') || userRoles.includes('HR_MANAGER') || userRoles.includes('TEAM_LEAD');
-    // "+ Add Employee" must only appear for users who can actually invite (permission-driven),
-    // not every admin-ish role — a team lead without employees.invite cannot invite.
+    // "+ Add Employee" must only appear for users who can actually invite
+    // (permission-driven), so revoking employees.invite on a role in Access
+    // Configuration also hides this shortcut. No HR_MANAGER role fallback — it
+    // would override the very permission an admin just unticked.
     this.canInviteEmployees =
-      this.auth.hasAnyPermission(['employees.invite']) ||
-      userRoles.includes('COMPANY_ADMIN') ||
-      userRoles.includes('HR_MANAGER');
+      this.auth.hasAnyPermission(['employees.invite']) || userRoles.includes('COMPANY_ADMIN');
     this.showPeopleTools =
       !this.isSuperAdmin &&
       (userRoles.includes('COMPANY_ADMIN') ||

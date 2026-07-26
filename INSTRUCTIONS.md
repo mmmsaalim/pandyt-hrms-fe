@@ -470,6 +470,16 @@ Employee view now shows:
 - SaaS pay modes: salary-based or fixed LKR (late, early, OT).
 - List shows OT Pay (est.) and Deduction columns; payslips show OT allowance + attendance deduction.
 
+### 15.6 Org-First Onboarding & Employee-Form Fixes (2026-07-21)
+Tested end-to-end: tenant onboarding flow + employee invite (email/manual) flow.
+
+- **Employees page freeze fix** (`employees-page.component.ts`): the invite form used `*ngFor` over getters that rebuilt arrays every change-detection tick (`profileCustomFields`, `bankCustomFields`, `teamLeadOptions`) while each row held `[(ngModel)]`. That created a never-settling CD loop → "Page Unresponsive". Refactored to cached arrays rebuilt only when source data changes, plus `trackBy`.
+- **Getting Started checklist** (`dashboard-page.component.ts/html/scss`): COMPANY_ADMIN / HR_MANAGER on a fresh workspace (organisation module on) sees a dismissible checklist — Add location → department → team → invite employees — each step deep-links and auto-ticks when data exists. Dismissal persists per-tenant in `localStorage`.
+- **Organisation deep-links** (`organisation-page.component.ts`): reads `?tab=locations|departments|teams` + `?add=1` to open the right tab with its add form (used by the checklist).
+- **Organisation members view** (`organisation-page.component.ts/html/scss`): Departments/Teams/Locations tabs now show a member-count badge and an expandable row listing employees inside (computed client-side from the employee list — no backend change). Tree tab restyled (avatars, member chips, hierarchy).
+- **Employee invite empty-state**: banner links to Organisation when locations/teams are missing (`needsOrgSetup`).
+- **Bank fields respect enable toggles**: the invite/edit forms no longer force-show Bank Name/Branch/Account. `bankCustomFields` now only lists bank fields present in the tenant runtime config (backend already omits disabled ones — `tenant-configuration.service.ts` skips `enabled === false`); the whole Bank details section hides when none are enabled. Built-in fallback applies only to a tenant with no employee field config at all.
+
 ---
 
 ## 16) Security Instructions (FE + API Testing)

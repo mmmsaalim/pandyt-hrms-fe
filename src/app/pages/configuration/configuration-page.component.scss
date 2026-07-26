@@ -49,6 +49,26 @@
   gap: 0.75rem;
 }
 
+.modal-close {
+  border: 0;
+  background: transparent;
+  color: var(--muted, #667085);
+  font-size: 1.5rem;
+  line-height: 1;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-close:hover {
+  background: rgba(15, 23, 42, 0.06);
+  color: var(--text, #1d2430);
+}
+
 .save-btn {
   border: 0;
   border-radius: 10px;
@@ -296,6 +316,98 @@ select {
 .success {
   color: #166534;
   margin: 0.65rem 0;
+}
+
+.toast-stack {
+  // Bottom-right, not top: the app's sticky topbar lives in a higher stacking
+  // context than the routed page (.content has z-index:1), so a top-anchored
+  // toast would be painted *under* the header. The bottom-right corner is clear.
+  position: fixed;
+  bottom: 1.25rem;
+  right: 1.25rem;
+  z-index: 2000;
+  display: grid;
+  gap: 0.5rem;
+  max-width: min(420px, calc(100vw - 2rem));
+}
+
+.toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  padding: 0.85rem 0.95rem 0.85rem 0.85rem;
+  border-radius: 14px;
+  background: #ffffff;
+  border: 1px solid var(--border, #ecd8cb);
+  border-left-width: 4px;
+  box-shadow: 0 16px 38px rgba(15, 23, 42, 0.16);
+  animation: toast-in 0.2s ease-out;
+}
+
+.toast-icon {
+  flex: 0 0 auto;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #ffffff;
+  line-height: 1;
+}
+
+.toast-body {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.toast-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text, #1d2430);
+}
+
+.toast-msg {
+  font-size: 0.85rem;
+  color: var(--muted, #667085);
+  word-break: break-word;
+}
+
+.toast-success {
+  border-left-color: #12b76a;
+}
+.toast-success .toast-icon {
+  background: #12b76a;
+}
+
+.toast-error {
+  border-left-color: #f04438;
+}
+.toast-error .toast-icon {
+  background: #f04438;
+}
+
+.toast-close {
+  border: 0;
+  background: transparent;
+  color: var(--muted, #98a2b3);
+  font-size: 1.15rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 0.1rem;
+  margin-left: auto;
+  align-self: flex-start;
+}
+.toast-close:hover {
+  color: var(--text, #1d2430);
+}
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .empty {
